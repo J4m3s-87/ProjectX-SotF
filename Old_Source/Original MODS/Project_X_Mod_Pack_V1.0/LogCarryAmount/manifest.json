@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+  "id": "ItemCarryAmount",
+  "author": "codengine",
+  "version": "1.0.3",
+  "description": "Increases Carry Weight",
+  "gameVersion": "1.0.0",
+  "type": "Mod",
+  "url": "https://sotf-mods.com/profile/codengine"
+}

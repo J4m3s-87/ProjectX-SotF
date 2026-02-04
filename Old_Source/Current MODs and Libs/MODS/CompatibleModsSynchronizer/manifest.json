@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+  "id": "CompatibleModsSynchronizer",
+  "author": "tempbito",
+  "version": "1.0.1",
+  "description": "Synchronize settings for compatible mods.",
+  "gameVersion": "1.0.0",
+  "type": "Mod",
+  "url": "..."
+}

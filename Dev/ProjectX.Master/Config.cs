@@ -1,0 +1,835 @@
+using RedLoader;
+using RedLoader.Utils;
+using SUI; // For UI interactions if needed
+using System;
+using SonsSdk;
+using SonsSdk.Attributes;
+
+namespace ProjectX.Master
+{
+    [SettingsUiMode(0)]  // 0 = UseGameSettings - Required for native UI visibility
+    public static class Config
+    {
+        // ======================== CATEGORIES ========================
+        // Multi-category segmentation to fix native UI visibility bug
+        private static ConfigCategory CheatsCategory { get; set; }
+        private static ConfigCategory MovementCategory { get; set; }
+        private static ConfigCategory WorldCategory { get; set; }
+        private static ConfigCategory ModulesCategory { get; set; }
+        private static ConfigCategory ZiplineCategory { get; set; }
+        private static ConfigCategory FeaturesCategory { get; set; }
+        private static ConfigCategory DiscordCategory { get; set; }
+        private static ConfigCategory ScaryCrossCategory { get; set; }
+        private static ConfigCategory KeysCategory { get; set; }
+        private static ConfigCategory StacksCraftingCategory { get; set; }
+        private static ConfigCategory StacksFoodCategory { get; set; }
+        private static ConfigCategory StacksCombatCategory { get; set; }
+        private static ConfigCategory StacksResourcesCategory { get; set; }
+        
+        // X Raids Categories (merged from RaidConfig)
+        private static ConfigCategory XRaidsGeneralCategory { get; set; }
+        private static ConfigCategory XRaidsTimesCategory { get; set; }
+        private static ConfigCategory XRaidsNormalCategory { get; set; }
+        private static ConfigCategory XRaidsBossCategory { get; set; }
+        private static ConfigCategory XRaidsEnemyStatsCategory { get; set; }
+        private static ConfigCategory XRaidsFollowersCategory { get; set; }
+        private static ConfigCategory XRaidsMultiplayerCategory { get; set; }
+        
+        // ======================== PLAYER CHEATS ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsGodMode { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsInfStamina { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsNoHungry { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsNoDehydration { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsNoSleep { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsInfiniteAmmo { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsNoFallDamage { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> InfiniteLogs { get; private set; }
+        
+        // ======================== INVENTORY / STACKS ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> InfiniteInventory { get; private set; }
+        
+        // --- Crafting Items ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxTapeStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxClothStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxWireStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBatteriesStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxRopeStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBoardStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxC4Stack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxVodkaStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxWatchStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxCoinStack { get; private set; }
+        
+        // --- Sticks & Rocks ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxStickStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxRockStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxSmallRockStack { get; private set; }
+        
+        // --- Printing Items ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxResinStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxMeshStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxHookStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxGpsCaseStack { get; private set; }
+        
+        // --- Electricity ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxSolarStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBatteryStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBulbStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxRadioStack { get; private set; }
+        
+        // --- Medication ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxMedsStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxHealthMixStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxHealthMixPlusStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxEnergyMixStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxEnergyMixPlusStack { get; private set; }
+        
+        // --- Food & Drinks ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxPotStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxMeatStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxFishStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxMreStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxEnergyBarStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxEnergyDrinkStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxCannedFoodStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxCatFoodStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxRamenStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxCrunchieStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxOysterStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxEggStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxSteakBiteStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBaconBiteStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBrainBiteStack { get; private set; }
+        
+        // --- Animal Drops ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxShellStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxHideStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxFeatherStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxAnimalHeadStack { get; private set; }
+        
+        // --- Throwables ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxMolotovStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxGrenadeStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBombStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxSpearStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxFlareStack { get; private set; }
+        
+        // --- Body Parts & Bones ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxHeadStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxArmStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxLegStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxSkullStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBoneStack { get; private set; }
+        
+        // --- Armor ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxCreepyArmorStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBoneArmorStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxSolafiteArmorStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxTechArmorStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxLeafArmorStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxHideArmorStack { get; private set; }
+        
+        // --- Ammo ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxAmmoStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxStoneArrowStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxPrintedArrowStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxCarbonArrowStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxBoltStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxZiplineStack { get; private set; }
+        
+        // --- Plants & Seeds ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxLeafStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxPlantStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxSeedStack { get; private set; }
+        
+        // --- Misc ---
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxSolafiteStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxPouchStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxGliderStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxTarpStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxAirTankStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxPaperTargetStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxGolfBallStack { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> MaxCashStack { get; private set; }
+        
+        // ======================== MOVEMENT ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsNoClip { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> NoClipSpeed { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> NoClipUpDownSpeed { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> WalkSpeed { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> RunSpeed { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SwimSpeed { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> JumpMultiplier { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsNoGravity { get; private set; }
+        
+        // ======================== WORLD / ENVIRONMENT ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> FreezeAI { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> IsLockTime { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> DaytimeSpeed { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> TreeRegrowRate { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> WindIntensity { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> KillRadius { get; private set; }
+        
+        // ======================== KEYBINDS ========================
+        [SettingsUiInclude]
+        public static KeybindConfigEntry OpenKey { get; private set; }
+        [SettingsUiInclude]
+        public static KeybindConfigEntry StoneGate_Primary { get; private set; }
+        [SettingsUiInclude]
+        public static KeybindConfigEntry StoneGate_Cycle { get; private set; }
+        [SettingsUiInclude]
+        public static KeybindConfigEntry StoneGate_Finish { get; private set; }
+        
+        // ======================== MODULES ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> RelocatorEnabled { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> OpenSesameEnabled { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> PrefabRepairEnabled { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> StructureDurabilityMultiplier { get; private set; }
+        
+        // ======================== ZIPLINE ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<float> MaxZipLineLength { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> MaxRopeBridgeLength { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> MaxShootingDistance { get; private set; }
+        
+        // ======================== REALISM FEATURES ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<float> WaterCollectorHeatRadius { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> MeatDryerProximityCheckInterval { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> FlashlightIntensity { get; private set; }
+        
+        // ======================== DISCORD BRIDGE ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> EnableDiscordBridge { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> DiscordBotToken { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> DiscordChannelId { get; private set; }
+
+        // ======================== SCARYCROSS (Advanced) ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_TempRiseThreshold { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_BurnThreshold { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_DamageThreshold { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_DamageAfterSec { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_LightIntensityRise { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_LightIntensityReduce { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_TempRisePerSec { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_TempReducePerSec { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_EffigyMinRange { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_EffigyMaxRange { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_EffigyMinStrength { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_EffigyMaxStrength { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_EffigyDisabledRange { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_EffigyDisabledStrength { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_BurnDemonRangeMin { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_BurnDemonRangeMax { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_BurnDemonTimeConfig { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_DemonDetectRadiusMin { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> SC_DemonDetectRadiusMax { get; private set; }
+
+        // ======================== X RAIDS - GENERAL ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_AllowCannibals { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_AllowCreepy { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_AllowMuddies { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_AnnounceRaids { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_PlaySoundWhenAnnounced { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_IncludeEndgameRaids { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_IncludeForestOnlyRaids { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> XR_RaidsPerDay { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> XR_RaidDistribution { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_ConsiderCurrentTime { get; private set; }
+
+        // ======================== X RAIDS - TIMES ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_RaidAtMorning { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_RaidAtDay { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_RaidAtEvening { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_RaidAtNight { get; private set; }
+
+        // ======================== X RAIDS - NORMAL ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_MinSpawnFactor { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_MaxSpawnFactor { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> XR_EnemyLimit { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> XR_NormalCooldown { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_IgnoreDayLimit { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_IgnoreAngerLimit { get; private set; }
+
+        // ======================== X RAIDS - BOSS ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<int> XR_BossCount { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> XR_BossCooldown { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_BossIgnoreDayLimit { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_BossIgnoreAngerLimit { get; private set; }
+
+        // ======================== X RAIDS - ENEMY STATS ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_StatMultiplierEnabled { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_OverrideHealthOnLoad { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_CannibalHealth { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_CannibalDamage { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_CannibalAggression { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_CreepHealth { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_CreepDamage { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_CreepAggression { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_BossHealth { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_BossDamage { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_BossAggression { get; private set; }
+
+        // ======================== X RAIDS - FOLLOWERS ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_KelvinHealth { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> XR_VirginiaHealth { get; private set; }
+
+        // ======================== X RAIDS - MULTIPLAYER ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> XR_AdjustByPlayerCount { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> XR_ExtraSpawnsPerPlayer { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> XR_ExtraRaidsPerPlayer { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> XR_ExtraBossesPerPlayer { get; private set; }
+
+        // Flag for RaidCustomizer module
+        public static bool MustRequeueRaids { get; set; }
+
+        public static void Init()
+        {
+            // Config file - same name for backwards compatibility
+            const string configFile = "ProjectX.Master.cfg";
+            
+            // ===== CATEGORY: CHEATS =====
+            CheatsCategory = ConfigSystem.CreateFileCategory("ProjectX - Cheats", "ProjectX - Cheats", configFile);
+            
+            IsGodMode = CheatsCategory.CreateEntry<bool>("GodMode", false, "GodMode", "Invulnerable to damage");
+            IsInfStamina = CheatsCategory.CreateEntry<bool>("IsInfStamina", false, "Infinite Stamina", "No energy loss");
+            IsNoHungry = CheatsCategory.CreateEntry<bool>("IsNoHungry", false, "No Hunger", "Fullness lock");
+            IsNoDehydration = CheatsCategory.CreateEntry<bool>("IsNoDehydration", false, "No Dehydration", "Hydration lock");
+            IsNoSleep = CheatsCategory.CreateEntry<bool>("IsNoSleep", false, "No Sleep", "Rested lock");
+            IsInfiniteAmmo = CheatsCategory.CreateEntry<bool>("IsInfiniteAmmo", false, "Infinite Ammo", "Never reload");
+            IsNoFallDamage = CheatsCategory.CreateEntry<bool>("IsNoFallDamage", false, "No Fall Damage", "No fall damage");
+            InfiniteLogs = CheatsCategory.CreateEntry<bool>("InfiniteLogs", false, "Infinite Logs", "Never run out of logs");
+            InfiniteInventory = CheatsCategory.CreateEntry<bool>("InfiniteInventory", false, "Infinite Items (Local)", "Sets ALL items to 999999999");
+            
+            // ===== CATEGORY: MOVEMENT =====
+            MovementCategory = ConfigSystem.CreateFileCategory("ProjectX - Movement", "ProjectX - Movement", configFile);
+            
+            IsNoClip = MovementCategory.CreateEntry<bool>("IsNoClip", false, "NoClip", "Fly mode");
+            NoClipSpeed = MovementCategory.CreateEntry<float>("NoClipSpeed", 2.5f, "NoClip Speed", "Flight speed");
+            NoClipSpeed.SetRange(0.5f, 20f);
+            NoClipUpDownSpeed = MovementCategory.CreateEntry<float>("NoClipUpDownSpeed", 0.5f, "NoClip Vertical Speed", "Flight vertical speed");
+            NoClipUpDownSpeed.SetRange(0.1f, 10f);
+            WalkSpeed = MovementCategory.CreateEntry<float>("WalkSpeed", 1f, "Walk Speed", "Base walk speed");
+            WalkSpeed.SetRange(0.1f, 10f);
+            RunSpeed = MovementCategory.CreateEntry<float>("RunSpeed", 1f, "Run Speed", "Base run speed");
+            RunSpeed.SetRange(0.1f, 10f);
+            SwimSpeed = MovementCategory.CreateEntry<float>("SwimSpeed", 1f, "Swim Speed", "Base swim speed");
+            SwimSpeed.SetRange(0.1f, 10f);
+            JumpMultiplier = MovementCategory.CreateEntry<float>("JumpMultiplier", 1f, "Jump Multiplier", "Super jump");
+            JumpMultiplier.SetRange(0.5f, 10f);
+            IsNoGravity = MovementCategory.CreateEntry<bool>("IsNoGravity", false, "No Gravity", "Disable gravity - float when jumping");
+            
+            // ===== CATEGORY: WORLD =====
+            WorldCategory = ConfigSystem.CreateFileCategory("ProjectX - World", "ProjectX - World", configFile);
+            
+            FreezeAI = WorldCategory.CreateEntry<bool>("FreezeAI", false, "Freeze AI", "Pause world simulation - stops all enemy/animal spawning and AI");
+            IsLockTime = WorldCategory.CreateEntry<bool>("IsLockTime", false, "Lock Time", "Freeze current time of day");
+            DaytimeSpeed = WorldCategory.CreateEntry<float>("DaytimeSpeed", 1f, "Daytime Speed", "Speed of day/night cycle (1 = normal)");
+            DaytimeSpeed.SetRange(0f, 10f);
+            TreeRegrowRate = WorldCategory.CreateEntry<float>("TreeRegrowRate", 1f, "Tree Regrow Rate", "Multiplier for tree regrowth speed");
+            TreeRegrowRate.SetRange(0f, 10f);
+            WindIntensity = WorldCategory.CreateEntry<float>("WindIntensity", -1f, "Wind Intensity", "Wind strength (-1 = auto, 0+ = locked value)");
+            WindIntensity.SetRange(-1f, 10f);
+            KillRadius = WorldCategory.CreateEntry<float>("KillRadius", 0f, "Kill/Burn Radius", "Radius for Kill/Burn All (0 = all loaded, >0 = meters from player)");
+            KillRadius.SetRange(0f, 500f);
+
+            // ===== CATEGORY: MODULES =====
+            ModulesCategory = ConfigSystem.CreateFileCategory("ProjectX - Modules", "ProjectX - Modules", configFile);
+            
+            RelocatorEnabled = ModulesCategory.CreateEntry<bool>("RelocatorEnabled", true, "Enable Relocator", "Always-on: Unlock 'C' to move for all structures");
+            OpenSesameEnabled = ModulesCategory.CreateEntry<bool>("OpenSesameEnabled", true, "Open Sesame", "Enable opening locked doors from any side without keys");
+            PrefabRepairEnabled = ModulesCategory.CreateEntry<bool>("PrefabRepairEnabled", true, "Prefab Repair", "Allow repairing furniture with the repair tool");
+            StructureDurabilityMultiplier = ModulesCategory.CreateEntry<float>("StructureDurabilityMultiplier", 1f, "Structure Durability", "Health Multiplier (100 = Invincible-ish)");
+            StructureDurabilityMultiplier.SetRange(0.1f, 100f);
+            
+            // ===== CATEGORY: ZIPLINE =====
+            ZiplineCategory = ConfigSystem.CreateFileCategory("ProjectX - Zipline", "ProjectX - Zipline", configFile);
+            
+            MaxZipLineLength = ZiplineCategory.CreateEntry<float>("MaxZipLineLength", float.MaxValue, "Max Zipline Length", "Maximum zipline rope length (game default ~150)");
+            MaxZipLineLength.DefaultValue = 150f;
+            MaxZipLineLength.SetRange(MaxZipLineLength.DefaultValue, 10000f);
+            MaxShootingDistance = ZiplineCategory.CreateEntry<float>("MaxShootingDistance", float.MaxValue, "Max Shooting Distance", "Max rope gun targeting distance (game default ~50)");
+            MaxShootingDistance.DefaultValue = 50f;
+            MaxShootingDistance.SetRange(MaxShootingDistance.DefaultValue, 10000f);
+            MaxRopeBridgeLength = ZiplineCategory.CreateEntry<float>("MaxRopeBridgeLength", float.MaxValue, "Max Rope Bridge Length (m)", "Maximum rope bridge length in meters (game default ~24m)");
+            MaxRopeBridgeLength.DefaultValue = 24f;
+            MaxRopeBridgeLength.SetRange(5f, 400f);
+            
+            // ===== CATEGORY: FEATURES =====
+            FeaturesCategory = ConfigSystem.CreateFileCategory("ProjectX - Features", "ProjectX - Features", configFile);
+            
+            WaterCollectorHeatRadius = FeaturesCategory.CreateEntry<float>("WaterCollectorHeatRadius", 2.5f, "Water Collector Heat Radius", "Radius to check for fire to melt ice");
+            WaterCollectorHeatRadius.SetRange(0.5f, 10f);
+            MeatDryerProximityCheckInterval = FeaturesCategory.CreateEntry<float>("MeatDryerProximityCheckInterval", 2.0f, "Meat Dryer Check Interval", "How often (seconds) to check for fire proximity");
+            MeatDryerProximityCheckInterval.SetRange(0.5f, 10f);
+            FlashlightIntensity = FeaturesCategory.CreateEntry<float>("FlashlightIntensity", 1.0f, "Flashlight Intensity", "Brightness multiplier");
+            FlashlightIntensity.SetRange(0.1f, 5f);
+
+            // ===== CATEGORY: DISCORD =====
+            DiscordCategory = ConfigSystem.CreateFileCategory("ProjectX - Discord", "ProjectX - Discord", configFile);
+            
+            EnableDiscordBridge = DiscordCategory.CreateEntry<bool>("EnableDiscordBridge", false, "Enable Discord Bridge", "Broadcast chat to Discord");
+            DiscordBotToken = DiscordCategory.CreateEntry<string>("DiscordBotToken", "", "Discord Bot Token", "Your Bot Token");
+            DiscordChannelId = DiscordCategory.CreateEntry<string>("DiscordChannelId", "", "Discord Channel ID", "Channel ID to broadcast to");
+
+            // ===== CATEGORY: KEYBINDS =====
+            KeysCategory = ConfigSystem.CreateFileCategory("ProjectX - Keys", "ProjectX - Keys", configFile);
+            
+            OpenKey = KeysCategory.CreateKeybindEntry("OpenKey", "insert", "Open Menu Key", "Key to open Project X menu");
+            StoneGate_Primary = KeysCategory.CreateKeybindEntry("stone_gate_primary", "<Mouse>/leftButton", "StoneGate: Use Tool", "Hit Tool Key");
+            StoneGate_Cycle = KeysCategory.CreateKeybindEntry("stone_gate_cycle", "c", "StoneGate: Change Mode", "Key changes tool mode");
+            StoneGate_Finish = KeysCategory.CreateKeybindEntry("stone_gate_finish", "e", "StoneGate: Finish/Open", "Open-Close Door / Finish Gate Key");
+            
+            // ===== CATEGORY: STACKS - CRAFTING =====
+            StacksCraftingCategory = ConfigSystem.CreateFileCategory("ProjectX - Stacks Crafting", "ProjectX - Stacks Crafting", configFile);
+            
+            MaxTapeStack = StacksCraftingCategory.CreateEntry<string>("MaxTapeStack", "100", "Max Duct Tape", "1-999999999");
+            MaxClothStack = StacksCraftingCategory.CreateEntry<string>("MaxClothStack", "1000", "Max Cloth", "1-999999999");
+            MaxWireStack = StacksCraftingCategory.CreateEntry<string>("MaxWireStack", "100", "Max Wire", "1-999999999");
+            MaxBatteriesStack = StacksCraftingCategory.CreateEntry<string>("MaxBatteriesStack", "6", "Max Batteries", "1-999999999");
+            MaxRopeStack = StacksCraftingCategory.CreateEntry<string>("MaxRopeStack", "8", "Max Ropes", "1-999999999");
+            MaxBoardStack = StacksCraftingCategory.CreateEntry<string>("MaxBoardStack", "6", "Max Circuit Boards", "1-999999999");
+            MaxC4Stack = StacksCraftingCategory.CreateEntry<string>("MaxC4Stack", "3", "Max C4 Bricks", "1-999999999");
+            MaxVodkaStack = StacksCraftingCategory.CreateEntry<string>("MaxVodkaStack", "6", "Max Vodka", "1-999999999");
+            MaxWatchStack = StacksCraftingCategory.CreateEntry<string>("MaxWatchStack", "10", "Max Watches", "1-999999999");
+            MaxCoinStack = StacksCraftingCategory.CreateEntry<string>("MaxCoinStack", "1000", "Max Coins", "1-999999999");
+            MaxResinStack = StacksCraftingCategory.CreateEntry<string>("MaxResinStack", "1000", "Max Resin", "1-999999999");
+            MaxMeshStack = StacksCraftingCategory.CreateEntry<string>("MaxMeshStack", "10", "Max Tech Mesh", "1-999999999");
+            MaxHookStack = StacksCraftingCategory.CreateEntry<string>("MaxHookStack", "2", "Max Grappling Hooks", "1-999999999");
+            MaxGpsCaseStack = StacksCraftingCategory.CreateEntry<string>("MaxGpsCaseStack", "5", "Max GPS Cases", "1-999999999");
+            MaxSolarStack = StacksCraftingCategory.CreateEntry<string>("MaxSolarStack", "3", "Max Solar Panels", "1-999999999");
+            MaxBatteryStack = StacksCraftingCategory.CreateEntry<string>("MaxBatteryStack", "3", "Max Golfcart Batteries", "1-999999999");
+            MaxBulbStack = StacksCraftingCategory.CreateEntry<string>("MaxBulbStack", "8", "Max Light Bulbs", "1-999999999");
+            MaxRadioStack = StacksCraftingCategory.CreateEntry<string>("MaxRadioStack", "1", "Max Radios", "1-999999999");
+            
+            // ===== CATEGORY: STACKS - FOOD =====
+            StacksFoodCategory = ConfigSystem.CreateFileCategory("ProjectX - Stacks Food", "ProjectX - Stacks Food", configFile);
+            
+            MaxMedsStack = StacksFoodCategory.CreateEntry<string>("MaxMedsStack", "6", "Max Meds", "1-999999999");
+            MaxHealthMixStack = StacksFoodCategory.CreateEntry<string>("MaxHealthMixStack", "3", "Max Health Mix", "1-999999999");
+            MaxHealthMixPlusStack = StacksFoodCategory.CreateEntry<string>("MaxHealthMixPlusStack", "3", "Max Health+ Mix", "1-999999999");
+            MaxEnergyMixStack = StacksFoodCategory.CreateEntry<string>("MaxEnergyMixStack", "3", "Max Energy Mix", "1-999999999");
+            MaxEnergyMixPlusStack = StacksFoodCategory.CreateEntry<string>("MaxEnergyMixPlusStack", "3", "Max Energy+ Mix", "1-999999999");
+            MaxPotStack = StacksFoodCategory.CreateEntry<string>("MaxPotStack", "1", "Max Cooking Pots", "1-999999999");
+            MaxMeatStack = StacksFoodCategory.CreateEntry<string>("MaxMeatStack", "7", "Max Meat", "1-999999999");
+            MaxFishStack = StacksFoodCategory.CreateEntry<string>("MaxFishStack", "3", "Max Fish", "1-999999999");
+            MaxMreStack = StacksFoodCategory.CreateEntry<string>("MaxMreStack", "6", "Max MREs", "1-999999999");
+            MaxEnergyBarStack = StacksFoodCategory.CreateEntry<string>("MaxEnergyBarStack", "10", "Max Energy Bars", "1-999999999");
+            MaxEnergyDrinkStack = StacksFoodCategory.CreateEntry<string>("MaxEnergyDrinkStack", "10", "Max Energy Drinks", "1-999999999");
+            MaxCannedFoodStack = StacksFoodCategory.CreateEntry<string>("MaxCannedFoodStack", "6", "Max Canned Food", "1-999999999");
+            MaxCatFoodStack = StacksFoodCategory.CreateEntry<string>("MaxCatFoodStack", "1", "Max Cat Food", "1-999999999");
+            MaxRamenStack = StacksFoodCategory.CreateEntry<string>("MaxRamenStack", "4", "Max Ramen", "1-999999999");
+            MaxCrunchieStack = StacksFoodCategory.CreateEntry<string>("MaxCrunchieStack", "4", "Max Crunchie Wunchies", "1-999999999");
+            MaxOysterStack = StacksFoodCategory.CreateEntry<string>("MaxOysterStack", "5", "Max Oysters", "1-999999999");
+            MaxEggStack = StacksFoodCategory.CreateEntry<string>("MaxEggStack", "4", "Max Turtle Eggs", "1-999999999");
+            MaxSteakBiteStack = StacksFoodCategory.CreateEntry<string>("MaxSteakBiteStack", "1", "Max Steak Bites", "1-999999999");
+            MaxBaconBiteStack = StacksFoodCategory.CreateEntry<string>("MaxBaconBiteStack", "1", "Max Bacon Bites", "1-999999999");
+            MaxBrainBiteStack = StacksFoodCategory.CreateEntry<string>("MaxBrainBiteStack", "1", "Max Brain Bites", "1-999999999");
+
+            // ===== CATEGORY: STACKS - COMBAT =====
+            StacksCombatCategory = ConfigSystem.CreateFileCategory("ProjectX - Stacks Combat", "ProjectX - Stacks Combat", configFile);
+            
+            MaxMolotovStack = StacksCombatCategory.CreateEntry<string>("MaxMolotovStack", "6", "Max Molotovs", "1-999999999");
+            MaxGrenadeStack = StacksCombatCategory.CreateEntry<string>("MaxGrenadeStack", "5", "Max Grenades", "1-999999999");
+            MaxBombStack = StacksCombatCategory.CreateEntry<string>("MaxBombStack", "3", "Max Sticky Bombs", "1-999999999");
+            MaxSpearStack = StacksCombatCategory.CreateEntry<string>("MaxSpearStack", "5", "Max Spears", "1-999999999");
+            MaxFlareStack = StacksCombatCategory.CreateEntry<string>("MaxFlareStack", "10", "Max Flares", "1-999999999");
+            MaxAmmoStack = StacksCombatCategory.CreateEntry<string>("MaxAmmoStack", "1000", "Max All Ammo", "All ammo types");
+            MaxStoneArrowStack = StacksCombatCategory.CreateEntry<string>("MaxStoneArrowStack", "20", "Max Stone Arrows", "Requires menu restart");
+            MaxPrintedArrowStack = StacksCombatCategory.CreateEntry<string>("MaxPrintedArrowStack", "20", "Max Printed Arrows", "Requires menu restart");
+            MaxCarbonArrowStack = StacksCombatCategory.CreateEntry<string>("MaxCarbonArrowStack", "20", "Max Carbon Arrows", "Requires menu restart");
+            MaxBoltStack = StacksCombatCategory.CreateEntry<string>("MaxBoltStack", "20", "Max Crossbow Bolts", "1-999999999");
+            MaxZiplineStack = StacksCombatCategory.CreateEntry<string>("MaxZiplineStack", "4", "Max Ziplines", "1-999999999");
+            MaxCreepyArmorStack = StacksCombatCategory.CreateEntry<string>("MaxCreepyArmorStack", "10", "Max Creepy Armor", "1-999999999");
+            MaxBoneArmorStack = StacksCombatCategory.CreateEntry<string>("MaxBoneArmorStack", "10", "Max Bone Armor", "1-999999999");
+            MaxSolafiteArmorStack = StacksCombatCategory.CreateEntry<string>("MaxSolafiteArmorStack", "10", "Max Solafite Armor", "1-999999999");
+            MaxTechArmorStack = StacksCombatCategory.CreateEntry<string>("MaxTechArmorStack", "10", "Max Tech Armor", "1-999999999");
+            MaxLeafArmorStack = StacksCombatCategory.CreateEntry<string>("MaxLeafArmorStack", "10", "Max Leaf Armor", "1-999999999");
+            MaxHideArmorStack = StacksCombatCategory.CreateEntry<string>("MaxHideArmorStack", "10", "Max Hide Armor", "1-999999999");
+
+            // ===== CATEGORY: STACKS - RESOURCES =====
+            StacksResourcesCategory = ConfigSystem.CreateFileCategory("ProjectX - Stacks Resources", "ProjectX - Stacks Resources", configFile);
+            
+            MaxStickStack = StacksResourcesCategory.CreateEntry<string>("MaxStickStack", "20", "Max Sticks", "1-999999999");
+            MaxRockStack = StacksResourcesCategory.CreateEntry<string>("MaxRockStack", "10", "Max Rocks", "1-999999999");
+            MaxSmallRockStack = StacksResourcesCategory.CreateEntry<string>("MaxSmallRockStack", "30", "Max Small Rocks", "1-999999999");
+            MaxShellStack = StacksResourcesCategory.CreateEntry<string>("MaxShellStack", "3", "Max Shells", "1-999999999");
+            MaxHideStack = StacksResourcesCategory.CreateEntry<string>("MaxHideStack", "5", "Max Hides", "1-999999999");
+            MaxFeatherStack = StacksResourcesCategory.CreateEntry<string>("MaxFeatherStack", "1000", "Max Feathers", "1-999999999");
+            MaxAnimalHeadStack = StacksResourcesCategory.CreateEntry<string>("MaxAnimalHeadStack", "1", "Max Animal Heads", "1-999999999");
+            MaxHeadStack = StacksResourcesCategory.CreateEntry<string>("MaxHeadStack", "1", "Max Heads", "1-999999999");
+            MaxArmStack = StacksResourcesCategory.CreateEntry<string>("MaxArmStack", "2", "Max Arms", "1-999999999");
+            MaxLegStack = StacksResourcesCategory.CreateEntry<string>("MaxLegStack", "2", "Max Legs", "1-999999999");
+            MaxSkullStack = StacksResourcesCategory.CreateEntry<string>("MaxSkullStack", "3", "Max Skulls", "1-999999999");
+            MaxBoneStack = StacksResourcesCategory.CreateEntry<string>("MaxBoneStack", "16", "Max Bones", "1-999999999");
+            MaxLeafStack = StacksResourcesCategory.CreateEntry<string>("MaxLeafStack", "1000", "Max Leaves", "1-999999999");
+            MaxPlantStack = StacksResourcesCategory.CreateEntry<string>("MaxPlantStack", "20", "Max Plants", "All plant types");
+            MaxSeedStack = StacksResourcesCategory.CreateEntry<string>("MaxSeedStack", "20", "Max Seeds", "All seed types");
+            MaxSolafiteStack = StacksResourcesCategory.CreateEntry<string>("MaxSolafiteStack", "20", "Max Solafite", "1-999999");
+            MaxPouchStack = StacksResourcesCategory.CreateEntry<string>("MaxPouchStack", "6", "Max Skin Pouches", "1-999999999");
+            MaxGliderStack = StacksResourcesCategory.CreateEntry<string>("MaxGliderStack", "1", "Max Hang Gliders", "1-999999999");
+            MaxTarpStack = StacksResourcesCategory.CreateEntry<string>("MaxTarpStack", "4", "Max Tarps", "1-999999999");
+            MaxAirTankStack = StacksResourcesCategory.CreateEntry<string>("MaxAirTankStack", "4", "Max Air Tanks", "1-999999999");
+            MaxPaperTargetStack = StacksResourcesCategory.CreateEntry<string>("MaxPaperTargetStack", "50", "Max Paper Targets", "1-999999999");
+            MaxGolfBallStack = StacksResourcesCategory.CreateEntry<string>("MaxGolfBallStack", "50", "Max Golf Balls", "1-999999999");
+            MaxCashStack = StacksResourcesCategory.CreateEntry<string>("MaxCashStack", "1000000", "Max Cash", "1-999999999");
+
+            // ===== CATEGORY: SCARYCROSS =====
+            ScaryCrossCategory = ConfigSystem.CreateFileCategory("ProjectX - ScaryCross", "ProjectX - ScaryCross", configFile);
+            
+            SC_TempRiseThreshold = ScaryCrossCategory.CreateEntry<float>("SC_TempRiseThreshold", 60f, "SC: Temp Rise Threshold", "Light Intensity threshold for heat increase");
+            SC_TempRiseThreshold.SetRange(1f, 100f);
+            SC_BurnThreshold = ScaryCrossCategory.CreateEntry<float>("SC_BurnThreshold", 60f, "SC: Burn Threshold", "Heat threshold for burning");
+            SC_BurnThreshold.SetRange(1f, 100f);
+            SC_DamageThreshold = ScaryCrossCategory.CreateEntry<float>("SC_DamageThreshold", 95f, "SC: Damage Threshold", "Heat threshold for damage");
+            SC_DamageThreshold.SetRange(1f, 100f);
+            SC_DamageAfterSec = ScaryCrossCategory.CreateEntry<float>("SC_DamageAfterSec", 10f, "SC: Damage After Sec", "Seconds before damage tick");
+            SC_DamageAfterSec.SetRange(1f, 60f);
+            SC_LightIntensityRise = ScaryCrossCategory.CreateEntry<float>("SC_LightIntensityRise", 25f, "SC: Light Rise Rate", "Rate of light increase");
+            SC_LightIntensityRise.SetRange(1f, 50f);
+            SC_LightIntensityReduce = ScaryCrossCategory.CreateEntry<float>("SC_LightIntensityReduce", 8f, "SC: Light Reduce Rate", "Rate of light decrease");
+            SC_LightIntensityReduce.SetRange(1f, 50f);
+            SC_TempRisePerSec = ScaryCrossCategory.CreateEntry<float>("SC_TempRisePerSec", 25f, "SC: Temp Rise Rate", "Rate of temp increase");
+            SC_TempRisePerSec.SetRange(1f, 50f);
+            SC_TempReducePerSec = ScaryCrossCategory.CreateEntry<float>("SC_TempReducePerSec", 8f, "SC: Temp Reduce Rate", "Rate of temp decrease");
+            SC_TempReducePerSec.SetRange(1f, 50f);
+            SC_EffigyMinRange = ScaryCrossCategory.CreateEntry<float>("SC_EffigyMinRange", 24f, "SC: Effigy Min Range", "Min range of effigy effect");
+            SC_EffigyMinRange.SetRange(1f, 100f);
+            SC_EffigyMaxRange = ScaryCrossCategory.CreateEntry<float>("SC_EffigyMaxRange", 48f, "SC: Effigy Max Range", "Max range of effigy effect");
+            SC_EffigyMaxRange.SetRange(1f, 100f);
+            SC_EffigyMinStrength = ScaryCrossCategory.CreateEntry<float>("SC_EffigyMinStrength", 0.5f, "SC: Effigy Min Strength", "Min strength");
+            SC_EffigyMinStrength.SetRange(0.1f, 10f);
+            SC_EffigyMaxStrength = ScaryCrossCategory.CreateEntry<float>("SC_EffigyMaxStrength", 10f, "SC: Effigy Max Strength", "Max strength");
+            SC_EffigyMaxStrength.SetRange(1f, 20f);
+            SC_EffigyDisabledRange = ScaryCrossCategory.CreateEntry<float>("SC_EffigyDisabledRange", 14f, "SC: Effigy Disabled Range", "Range when off");
+            SC_EffigyDisabledRange.SetRange(1f, 50f);
+            SC_EffigyDisabledStrength = ScaryCrossCategory.CreateEntry<float>("SC_EffigyDisabledStrength", 0.25f, "SC: Effigy Disabled Strength", "Strength when off");
+            SC_EffigyDisabledStrength.SetRange(0.1f, 5f);
+            SC_BurnDemonRangeMin = ScaryCrossCategory.CreateEntry<float>("SC_BurnDemonRangeMin", 18f, "SC: Burn Demon Range Min", "Min range of burn effect");
+            SC_BurnDemonRangeMin.SetRange(1f, 50f);
+            SC_BurnDemonRangeMax = ScaryCrossCategory.CreateEntry<float>("SC_BurnDemonRangeMax", 36f, "SC: Burn Demon Range Max", "Max range of burn effect");
+            SC_BurnDemonRangeMax.SetRange(1f, 100f);
+            SC_BurnDemonTimeConfig = ScaryCrossCategory.CreateEntry<float>("SC_BurnDemonTime", 30f, "SC: Burn Demon Time", "Duration of burn effect");
+            SC_BurnDemonTimeConfig.SetRange(1f, 120f);
+            SC_DemonDetectRadiusMin = ScaryCrossCategory.CreateEntry<float>("SC_DemonDetectRadiusMin", 14f, "SC: Detection Radius Min", "Min detection radius");
+            SC_DemonDetectRadiusMin.SetRange(1f, 50f);
+            SC_DemonDetectRadiusMax = ScaryCrossCategory.CreateEntry<float>("SC_DemonDetectRadiusMax", 24f, "SC: Detection Radius Max", "Max detection radius");
+            SC_DemonDetectRadiusMax.SetRange(1f, 100f);
+            
+            // ===== CATEGORY: X RAIDS - GENERAL =====
+            XRaidsGeneralCategory = ConfigSystem.CreateFileCategory("X Raids - General", "X Raids - General", configFile);
+            
+            XR_AllowCreepy = XRaidsGeneralCategory.CreateEntry<bool>("XR_AllowCreepy", true, "Enable Creepy Raids");
+            XR_AllowCreepy.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_AllowCannibals = XRaidsGeneralCategory.CreateEntry<bool>("XR_AllowCannibals", true, "Enable Cannibal Raids");
+            XR_AllowCannibals.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_AllowMuddies = XRaidsGeneralCategory.CreateEntry<bool>("XR_AllowMuddies", true, "Enable Muddy Raids");
+            XR_AllowMuddies.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_AnnounceRaids = XRaidsGeneralCategory.CreateEntry<bool>("XR_AnnounceRaids", true, "Announce Incoming Raids");
+            XR_PlaySoundWhenAnnounced = XRaidsGeneralCategory.CreateEntry<bool>("XR_PlaySound", true, "Play Sound When Announced");
+            XR_IncludeEndgameRaids = XRaidsGeneralCategory.CreateEntry<bool>("XR_IncludeEndgame", false, "Always Include Endgame Raids");
+            XR_IncludeEndgameRaids.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_IncludeForestOnlyRaids = XRaidsGeneralCategory.CreateEntry<bool>("XR_IncludeForest", false, "Always Include Forest-Only Raids");
+            XR_IncludeForestOnlyRaids.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_RaidsPerDay = XRaidsGeneralCategory.CreateEntry<int>("XR_RaidsPerDay", -1, "Max Raids Per Day (-1=Default)");
+            XR_RaidsPerDay.SetRange(-1, 24);
+            XR_RaidsPerDay.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_RaidDistribution = XRaidsGeneralCategory.CreateEntry<string>("XR_Distribution", "Evenly", "Raid Distribution");
+            XR_RaidDistribution.SetOptions(new[] { "Evenly", "Randomly", "Stacked" });
+            XR_RaidDistribution.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_ConsiderCurrentTime = XRaidsGeneralCategory.CreateEntry<bool>("XR_ConsiderTime", false, "Consider Current Time");
+            XR_ConsiderCurrentTime.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            
+            // ===== CATEGORY: X RAIDS - TIMES =====
+            XRaidsTimesCategory = ConfigSystem.CreateFileCategory("X Raids - Times", "X Raids - Times", configFile);
+            
+            XR_RaidAtNight = XRaidsTimesCategory.CreateEntry<bool>("XR_RaidAtNight", true, "Raids at Night");
+            XR_RaidAtNight.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_RaidAtDay = XRaidsTimesCategory.CreateEntry<bool>("XR_RaidAtDay", true, "Raids at Day");
+            XR_RaidAtDay.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_RaidAtEvening = XRaidsTimesCategory.CreateEntry<bool>("XR_RaidAtEvening", true, "Raids at Evening");
+            XR_RaidAtEvening.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_RaidAtMorning = XRaidsTimesCategory.CreateEntry<bool>("XR_RaidAtMorning", true, "Raids at Morning");
+            XR_RaidAtMorning.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            
+            // ===== CATEGORY: X RAIDS - NORMAL =====
+            XRaidsNormalCategory = ConfigSystem.CreateFileCategory("X Raids - Normal", "X Raids - Normal", configFile);
+            
+            XR_MinSpawnFactor = XRaidsNormalCategory.CreateEntry<float>("XR_MinSpawnFactor", 1f, "Min Spawn Count Factor");
+            XR_MinSpawnFactor.SetRange(0.1f, 10f);
+            XR_MinSpawnFactor.OnValueChanged.Subscribe((b, a) => { if (Math.Abs(b - a) > 0.01) MustRequeueRaids = true; });
+            XR_MaxSpawnFactor = XRaidsNormalCategory.CreateEntry<float>("XR_MaxSpawnFactor", 1f, "Max Spawn Count Factor");
+            XR_MaxSpawnFactor.SetRange(0.1f, 10f);
+            XR_MaxSpawnFactor.OnValueChanged.Subscribe((b, a) => { if (Math.Abs(b - a) > 0.01) MustRequeueRaids = true; });
+            XR_EnemyLimit = XRaidsNormalCategory.CreateEntry<int>("XR_EnemyLimit", 20, "Max Enemies Per Raid");
+            XR_EnemyLimit.SetRange(1, 30);
+            XR_EnemyLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_NormalCooldown = XRaidsNormalCategory.CreateEntry<int>("XR_Cooldown", -1, "Cooldown Days (-1=Default, 0=None)");
+            XR_NormalCooldown.SetRange(-1, 50);
+            XR_NormalCooldown.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_IgnoreDayLimit = XRaidsNormalCategory.CreateEntry<bool>("XR_IgnoreDayLimit", false, "Ignore Min/Max Day Limit");
+            XR_IgnoreDayLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_IgnoreAngerLimit = XRaidsNormalCategory.CreateEntry<bool>("XR_IgnoreAngerLimit", false, "Ignore Min/Max Anger Limit");
+            XR_IgnoreAngerLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            
+            // ===== CATEGORY: X RAIDS - BOSS =====
+            XRaidsBossCategory = ConfigSystem.CreateFileCategory("X Raids - Boss", "X Raids - Boss", configFile);
+            
+            XR_BossCount = XRaidsBossCategory.CreateEntry<int>("XR_BossCount", 1, "Boss Spawn Count");
+            XR_BossCount.SetRange(1, 30);
+            XR_BossCount.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_BossCooldown = XRaidsBossCategory.CreateEntry<int>("XR_BossCooldown", -1, "Boss Cooldown Days (-1=Default)");
+            XR_BossCooldown.SetRange(-1, 50);
+            XR_BossCooldown.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_BossIgnoreDayLimit = XRaidsBossCategory.CreateEntry<bool>("XR_BossIgnoreDay", false, "Ignore Boss Day Limit");
+            XR_BossIgnoreDayLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_BossIgnoreAngerLimit = XRaidsBossCategory.CreateEntry<bool>("XR_BossIgnoreAnger", false, "Ignore Boss Anger Limit");
+            XR_BossIgnoreAngerLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            
+            // ===== CATEGORY: X RAIDS - ENEMY STATS =====
+            XRaidsEnemyStatsCategory = ConfigSystem.CreateFileCategory("X Raids - Enemy Stats", "X Raids - Enemy Stats", configFile);
+            
+            XR_StatMultiplierEnabled = XRaidsEnemyStatsCategory.CreateEntry<bool>("XR_EnableStats", false, "Enable Stat Overrides");
+            XR_OverrideHealthOnLoad = XRaidsEnemyStatsCategory.CreateEntry<bool>("XR_OverrideOnLoad", true, "Override Health on Save Load");
+            XR_CannibalHealth = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_CannibalHealth", 1.0f, "Cannibal Health Multiplier");
+            XR_CannibalHealth.SetRange(0.1f, 10f);
+            XR_CannibalDamage = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_CannibalDamage", 1.0f, "Cannibal Damage Multiplier");
+            XR_CannibalDamage.SetRange(0.1f, 10f);
+            XR_CannibalAggression = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_CannibalAggro", 1.0f, "Cannibal Aggression Multiplier");
+            XR_CannibalAggression.SetRange(0.1f, 10f);
+            XR_CreepHealth = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_CreepHealth", 1.0f, "Creep Health Multiplier");
+            XR_CreepHealth.SetRange(0.1f, 10f);
+            XR_CreepDamage = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_CreepDamage", 1.0f, "Creep Damage Multiplier");
+            XR_CreepDamage.SetRange(0.1f, 10f);
+            XR_CreepAggression = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_CreepAggro", 1.0f, "Creep Aggression Multiplier");
+            XR_CreepAggression.SetRange(0.1f, 10f);
+            XR_BossHealth = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_BossHealth", 1.0f, "Boss Health Multiplier");
+            XR_BossHealth.SetRange(0.1f, 10f);
+            XR_BossDamage = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_BossDamage", 1.0f, "Boss Damage Multiplier");
+            XR_BossDamage.SetRange(0.1f, 10f);
+            XR_BossAggression = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_BossAggro", 1.0f, "Boss Aggression Multiplier");
+            XR_BossAggression.SetRange(0.1f, 10f);
+            
+            // ===== CATEGORY: X RAIDS - FOLLOWERS =====
+            XRaidsFollowersCategory = ConfigSystem.CreateFileCategory("X Raids - Followers", "X Raids - Followers", configFile);
+            
+            XR_VirginiaHealth = XRaidsFollowersCategory.CreateEntry<float>("XR_VirginiaHealth", 1.0f, "Virginia Health Multiplier");
+            XR_VirginiaHealth.SetRange(0.1f, 10f);
+            XR_KelvinHealth = XRaidsFollowersCategory.CreateEntry<float>("XR_KelvinHealth", 1.0f, "Kelvin Health Multiplier");
+            XR_KelvinHealth.SetRange(0.1f, 10f);
+            
+            // ===== CATEGORY: X RAIDS - MULTIPLAYER =====
+            XRaidsMultiplayerCategory = ConfigSystem.CreateFileCategory("X Raids - Multiplayer", "X Raids - Multiplayer", configFile);
+            
+            XR_AdjustByPlayerCount = XRaidsMultiplayerCategory.CreateEntry<bool>("XR_AdjustByPlayers", false, "Adjust Raids by Player Count");
+            XR_AdjustByPlayerCount.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_ExtraRaidsPerPlayer = XRaidsMultiplayerCategory.CreateEntry<int>("XR_ExtraRaids", 2, "Extra Raids Per Player");
+            XR_ExtraRaidsPerPlayer.SetRange(0, 10);
+            XR_ExtraRaidsPerPlayer.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_ExtraSpawnsPerPlayer = XRaidsMultiplayerCategory.CreateEntry<int>("XR_ExtraSpawns", 2, "Extra Enemies Per Player");
+            XR_ExtraSpawnsPerPlayer.SetRange(0, 10);
+            XR_ExtraSpawnsPerPlayer.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            XR_ExtraBossesPerPlayer = XRaidsMultiplayerCategory.CreateEntry<int>("XR_ExtraBosses", 1, "Extra Bosses Per Player");
+            XR_ExtraBossesPerPlayer.SetRange(0, 10);
+            XR_ExtraBossesPerPlayer.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+        }
+
+        public static void Save()
+        {
+            // Save all categories
+            CheatsCategory?.SaveToFile();
+            MovementCategory?.SaveToFile();
+            WorldCategory?.SaveToFile();
+            ModulesCategory?.SaveToFile();
+            ZiplineCategory?.SaveToFile();
+            FeaturesCategory?.SaveToFile();
+            DiscordCategory?.SaveToFile();
+            KeysCategory?.SaveToFile();
+            StacksCraftingCategory?.SaveToFile();
+            StacksFoodCategory?.SaveToFile();
+            StacksCombatCategory?.SaveToFile();
+            StacksResourcesCategory?.SaveToFile();
+            ScaryCrossCategory?.SaveToFile();
+            
+            // X Raids Categories
+            XRaidsGeneralCategory?.SaveToFile();
+            XRaidsTimesCategory?.SaveToFile();
+            XRaidsNormalCategory?.SaveToFile();
+            XRaidsBossCategory?.SaveToFile();
+            XRaidsEnemyStatsCategory?.SaveToFile();
+            XRaidsFollowersCategory?.SaveToFile();
+            XRaidsMultiplayerCategory?.SaveToFile();
+        }
+    }
+}

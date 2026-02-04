@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+  "id": "UnstuckBuddy",
+  "author": "Franky",
+  "version": "1.0.2",
+  "description": "Unstuck Kelvin and or Virginia when they inevitably get stuck.",
+  "gameVersion": "1.0.0",
+  "type": "Mod",
+  "url": "..."
+}

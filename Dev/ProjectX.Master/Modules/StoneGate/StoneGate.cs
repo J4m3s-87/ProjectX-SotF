@@ -1,0 +1,238 @@
+using System;
+using System.Drawing;
+using Endnight.Utilities;
+using Il2CppInterop.Runtime.Injection;
+using RedLoader;
+using Sons.Items.Core;
+using SonsSdk;
+using SonsSdk.Attributes;
+using ProjectX.Master.Modules.StoneGate.Mono;
+using ProjectX.Master.Modules.StoneGate.Network;
+using ProjectX.Master.Modules.StoneGate.Objects;
+using ProjectX.Master.Modules.StoneGate.Saving;
+using ProjectX.Master.Modules.StoneGate.Structure;
+using ProjectX.Master.Modules.StoneGate.Testing;
+using SUI;
+using UnityEngine;
+using UnityEngine;
+using Object = UnityEngine.Object;
+using TheForest.Utils;
+
+namespace ProjectX.Master.Modules.StoneGate 
+{
+	// Converted from main Mod class to Module
+	public static class StoneGateModule
+	{
+		// Static references
+		public const int ToolItemId = 751152;
+		public static ItemData stoneGateCreatorItemData;
+		public static GameObject stoneGateCreatorPrefab;
+		public static GameObject stoneGateCreatorHeldPrefab;
+		public static GameObject stoneGateCreatorPickupPrefab;
+		public static Texture2D stoneGateCreatorTexture;
+		internal static GameObject StoneGateToolUI;
+		internal static Texture2D stoneGateOpenCloseIcon;
+		internal static bool isStoneGateToolOneTimeUse = true;
+
+		// Replaces OnInitializeMod
+		public static void Init()
+		{
+			// Config.Init(); // Managed by ProjectX
+			RLog.Msg("[StoneGate] Initializing (Fix V3 - Prefab/Save/Net Patched)");
+			Assets.Instance.LoadAssets();
+			StoneGateModule.stoneGateCreatorTexture = AssetLoaders.LoadTexture(Assets.Instance.GetStoneGateToolPath());
+			StoneGateModule.stoneGateCreatorTexture.hideFlags = (HideFlags)61;
+			StoneGateModule.stoneGateOpenCloseIcon = AssetLoaders.LoadTexture(Assets.Instance.GetOpenCloseIconPath());
+			StoneGateModule.stoneGateOpenCloseIcon.hideFlags = (HideFlags)61;
+			
+			ClassInjector.RegisterTypeInIl2Cpp<StoneGateItemMono>();
+			ClassInjector.RegisterTypeInIl2Cpp<StoneGateStoreMono>();
+			
+			ProjectX.Master.Modules.StoneGate.Network.Manager.Register();
+			
+			bool flag = Assets.Instance.IsLoaded();
+			if (flag)
+			{
+				StoneGateModule.stoneGateCreatorHeldPrefab = Assets.Instance.StoneGateTool;
+				StoneGateModule.stoneGateCreatorHeldPrefab.transform.localScale = Vector3.one * 2f;
+				StoneGateModule.stoneGateCreatorPrefab = CommonExtensions.HideAndDontSave(CommonExtensions.DontDestroyOnLoad(CommonExtensions.Instantiate(StoneGateModule.stoneGateCreatorHeldPrefab, false)));
+				// Manual Recursion using Utils
+				var renderers = StoneGateUtils.GetComponentsInChildrenRecursive<MeshRenderer>(StoneGateModule.stoneGateCreatorPrefab.transform);
+				foreach (MeshRenderer meshRenderer in renderers)
+				{
+					if (meshRenderer.gameObject.GetComponent<Collider>() == null)
+					{
+						TryGetComponentExtensions.GetOrAddComponent<BoxCollider>(meshRenderer.gameObject);
+					}
+					meshRenderer.sharedMaterial.SetFloat("_EnableSnow", 0f);
+				}
+				StoneGateModule.stoneGateCreatorHeldPrefab.AddComponent<StoneGateItemMono>();
+				Misc.Msg("StoneGateTool Set", false);
+			}
+			else
+			{
+				RLog.Error("Asset Not Loaded");
+			}
+		}
+
+		// Replaces OnSdkInitialized
+		public static void OnSdkInitialized()
+		{
+			// SUI-dependent UI creation - guarded to prevent crashes
+			try
+			{
+				StoneGateUi.Create();
+			}
+			catch (System.Exception ex)
+			{
+				RLog.Warning($"[StoneGate] UI creation failed (SUI not available): {ex.Message}");
+				RLog.Msg("[StoneGate] Core functionality will still work - UI panel disabled.");
+			}
+			// SettingsRegistry... (Managed by ProjectX Config)
+			
+			SdkEvents.OnGameActivated.Subscribe(new LemonAction(OnFirstGameActivation), 0, true);
+			
+			StoneGateModule.StoneGateToolUI = Object.Instantiate<GameObject>(Assets.Instance.StoneGateToolUI);
+			CommonExtensions.HideAndDontSave(CommonExtensions.DontDestroyOnLoad(StoneGateModule.StoneGateToolUI));
+			
+			if (StoneGateModule.StoneGateToolUI == null)
+			{
+				RLog.Error("[StoneGate] StoneGateToolUI Asset Not Found");
+			}
+			else
+			{
+				RLog.Msg("[StoneGate] StoneGateToolUI Asset Found");
+				StoneGateModule.StoneGateToolUI.SetActive(false);
+				Misc.Msg("StoneGateToolUI Set", false);
+			}
+			
+			ProjectX.Master.Modules.StoneGate.Saving.Manager manager = new ProjectX.Master.Modules.StoneGate.Saving.Manager();
+			try 
+			{
+				SonsSaveTools.Register<ProjectX.Master.Modules.StoneGate.Saving.Manager.GatesManager>(manager);
+			}
+			catch(Exception)
+			{
+				// Already registered, safe to ignore
+			}
+			
+			CreateGateParent instance = CreateGateParent.Instance;
+			
+			// Input Registration via ProjectX Config
+			ModInputCache.Notify(ProjectX.Master.Config.StoneGate_Primary, () => ActiveItem.OnKeyPress(), null);
+			ModInputCache.Notify(ProjectX.Master.Config.StoneGate_Cycle, () => UiController.ChangeMode(), null);
+			ModInputCache.Notify(ProjectX.Master.Config.StoneGate_Finish, () => 
+			{
+				if (!LocalPlayer.IsInWorld || LocalPlayer.IsInInventory || Sons.Gui.PauseMenu.IsActive || LocalPlayer.InWater) return;
+
+				if (ActiveItem.active != null)
+				{
+					ActiveItem.active.Complete();
+					if (ProjectX.Master.Modules.StoneGate.Testing.Settings.logOnFinishOpenCloseDoorKey)
+						Misc.Msg("[Link] ActiveItem Complete", false);
+				}
+				else
+				{
+					var storedParent = CreateGateParent.Instance.StoredParent;
+					if (storedParent != null)
+					{
+						var children = CommonExtensions.GetChildren(storedParent);
+						foreach (var transform in children)
+						{
+							var component = transform.GetComponent<StoneGateStoreMono>();
+							if (component != null && component.LinkUiElement != null && component.LinkUiElement.IsActive)
+							{
+								component.ToggleGate(true);
+								break;
+							}
+						}
+					}
+				}
+			}, null);
+		}
+
+		// Replaces OnGameStart
+		public static void OnGameStart()
+		{
+			ProjectX.Master.Modules.StoneGate.Network.Manager.RegisterEventHandlers();
+		}
+
+		/// <summary>
+		/// Safety method to ensure StoneGate UI is hidden when not actively using the tool.
+		/// Should be called from the main update loop.
+		/// </summary>
+		public static void EnsureUIHidden()
+		{
+			// Only hide if the StoneGate tool is NOT actively equipped
+			if (ActiveItem.active == null && StoneGateToolUI != null && StoneGateToolUI.activeSelf)
+			{
+				StoneGateToolUI.SetActive(false);
+				StoneGateUi.CloseMainPanel();
+				RLog.Msg("[StoneGate] Safety: Force-closed UI (tool not equipped)");
+			}
+		}
+
+		// Helper removed in favor of StoneGateUtils
+		private static void OnFirstGameActivation()
+		{
+			StoneGateModule.stoneGateCreatorItemData = ItemTools.CreateAndRegisterItem(751152, "Stone Gate Creator", 1, null, "Create Stone Gates");
+			ItemDataExtensions.SetIcon(StoneGateModule.stoneGateCreatorItemData, StoneGateModule.stoneGateCreatorTexture);
+			ItemDataExtensions.SetupHeld(StoneGateModule.stoneGateCreatorItemData, 0, new AnimatorVariables[] { (AnimatorVariables)12 }, (ItemUiData.LeftClickCommands)1, 0, (ItemData.GuiType)1);
+			StoneGateModule.stoneGateCreatorPickupPrefab = StoneGateModule.stoneGateCreatorPrefab;
+			StoneGateModule.stoneGateCreatorItemData._heldPrefab = StoneGateModule.stoneGateCreatorHeldPrefab.transform;
+			
+			OnAfterSpawn();
+		}
+
+		private static void OnAfterSpawn()
+		{
+			try
+			{
+				// Null safety check
+				if (StoneGateModule.stoneGateCreatorPrefab == null || StoneGateModule.stoneGateCreatorItemData == null)
+				{
+					RLog.Warning("[StoneGate] OnAfterSpawn skipped - prefab or itemData is null");
+					return;
+				}
+				
+				new ItemTools.ItemBuilder(StoneGateModule.stoneGateCreatorPrefab, StoneGateModule.stoneGateCreatorItemData, false)
+					.AddInventoryItem(Array.Empty<Vector3>()).AddIngredientItem(Array.Empty<Vector3>()).AddCraftingResultItem(Array.Empty<Vector3>())
+					.SetupHeld(new Vector3?(new Vector3(0f, 0f, 0f)), new Vector3?(new Vector3(0f, 0f, 0f)))
+					.SetupPickup(StoneGateModule.stoneGateCreatorPickupPrefab)
+					.Recipe.AddIngredient(392, 2, false).AddIngredient(393, 2, false).AddResult(StoneGateModule.stoneGateCreatorItemData._id)
+					.Animation("CraftCraftedArrows")
+					.BuildAndAdd();
+					
+				new ItemTools.RecipeBuilder().AddIngredient(StoneGateModule.stoneGateCreatorItemData._id, 2, false).AddResult(392).BuildAndAdd();
+				
+				RLog.Msg(System.Drawing.Color.SeaGreen, "[ ADDED ITEM: StoneGateTool]");
+				
+				// Saving loading logic
+				// Settings.logSavingSystem check...
+				
+				if (CustomEventHandler.Instance != null)
+				{
+					CustomEventHandler.Instance.OnEnterWorld();
+				}
+				
+				bool isMultiplayerClient = BoltNetwork.isRunning && BoltNetwork.isClient;
+				if (isMultiplayerClient)
+				{
+					Misc.Msg("[Loading] Skipped Loading StoneGates On Multiplayer Client", false);
+				}
+				else
+				{
+					while (Load.deferredLoadQueue.Count > 0)
+					{
+						ProjectX.Master.Modules.StoneGate.Saving.Manager.GatesManager gatesManager = Load.deferredLoadQueue.Dequeue();
+						Load.ProcessLoadData(gatesManager);
+					}
+				}
+			}
+			catch (System.Exception ex)
+			{
+				RLog.Warning($"[StoneGate] OnAfterSpawn failed: {ex.Message}");
+			}
+		}
+	}
+}

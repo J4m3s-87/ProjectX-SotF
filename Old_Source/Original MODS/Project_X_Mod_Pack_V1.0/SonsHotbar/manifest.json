@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+  "id": "SonsHotbar",
+  "author": "AE",
+  "version": "1.5.0",
+  "description": "A mod that adds a hotbar",
+  "gameVersion": "1.0.0",
+  "type": "Mod",
+  "url": "..."
+}

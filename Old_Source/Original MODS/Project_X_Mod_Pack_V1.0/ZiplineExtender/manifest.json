@@ -1,0 +1,11 @@
+{
+    "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+    "author": "ThirtyTwelve & SmokyAce / from ElGringo",
+    "dependencies": [ "OptionalDependAPI" ],
+    "description": "Customize Your Ziplines",
+    "gameVersion": "1.1.0",
+    "id": "ZipLineExtender",
+    "type": "Mod",
+    "url": "...",
+    "version": "1.1.0"
+}

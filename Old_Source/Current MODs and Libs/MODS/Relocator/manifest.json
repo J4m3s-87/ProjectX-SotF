@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+  "id": "Relocator",
+  "author": "Toni Macaroni",
+  "version": "1.0.1",
+  "description": "Allows to pick up structures without destroying them.",
+  "gameVersion": "1.0.0",
+  "type": "Mod",
+  "url": "..."
+}

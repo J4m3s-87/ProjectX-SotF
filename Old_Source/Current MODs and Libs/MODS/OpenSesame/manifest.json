@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+  "id": "OpenSesame",
+  "author": "tempbito",
+  "version": "1.0.0",
+  "description": "Allows you to lock and unlock doors from both sides.",
+  "gameVersion": "1.0.0",
+  "type": "Mod",
+  "url": "..."
+}

@@ -101,6 +101,9 @@ namespace ProjectX.Master
             // Note: RaidConfig is now a proxy to Config.cs - no separate SettingsRegistry needed
             Modules.RaidCustomizer.RaidCustomizerModule.Initialize();
             
+            // 15. BroadcastMessage (Discord bridge, chat logging)
+            Modules.BroadcastMessage.BroadcastMessageModule.Init();
+            
             LoggerInstance.Msg("Fresh Merge: All modules enabled");
         }
 

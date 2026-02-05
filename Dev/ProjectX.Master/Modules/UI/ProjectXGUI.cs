@@ -498,6 +498,19 @@ namespace ProjectX.Master.Modules.UI
             }
             GUILayout.EndHorizontal();
             
+            DrawDivider("IN-GAME CHAT");
+            
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Test Chat", ProjectXStyles.Button))
+            {
+                Modules.BroadcastMessage.InGameChat.TestChat();
+            }
+            if (GUILayout.Button("Test Welcome", ProjectXStyles.Button))
+            {
+                Modules.BroadcastMessage.InGameChat.SendWelcome("TestPlayer");
+            }
+            GUILayout.EndHorizontal();
+            
             DrawDivider("DEBUG");
             
             if (GUILayout.Button("Dump Item IDs", ProjectXStyles.Button))

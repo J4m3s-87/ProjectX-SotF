@@ -116,7 +116,7 @@ namespace ProjectX.Master.Modules.BroadcastMessage
         }
 
         /// <summary>
-        /// Log a system event (player join/leave, death, etc.)
+        /// Log a system event (player join/leave, death, etc.) with rich embeds
         /// </summary>
         public static void LogEvent(string eventType, string details)
         {
@@ -125,18 +125,31 @@ namespace ProjectX.Master.Modules.BroadcastMessage
 
             if (Config.EnableDiscordBridge.Value)
             {
-                // Use emoji for different event types
-                string emoji = eventType.ToLower() switch
+                // Use rich embeds for different event types
+                switch (eventType.ToLower())
                 {
-                    "join" => "🟢",
-                    "leave" => "🔴",
-                    "death" => "💀",
-                    "save" => "💾",
-                    _ => "ℹ️"
-                };
-                DiscordBridge.SendMessage($"{emoji} {details}");
+                    case "join":
+                        DiscordBridge.SendPlayerJoin(details, isFirstTime: false);
+                        break;
+                    case "firstjoin":
+                        DiscordBridge.SendPlayerJoin(details, isFirstTime: true);
+                        break;
+                    case "leave":
+                        DiscordBridge.SendPlayerLeave(details);
+                        break;
+                    case "death":
+                        DiscordBridge.SendDeath(details, null);
+                        break;
+                    case "raid":
+                        DiscordBridge.SendRaidAlert(details);
+                        break;
+                    default:
+                        DiscordBridge.SendMessage($"ℹ️ {details}");
+                        break;
+                }
             }
         }
+
 
         private static void LogToFile(string message)
         {
@@ -178,5 +191,51 @@ namespace ProjectX.Master.Modules.BroadcastMessage
             DiscordBridge.SendMessage(testMsg);
             RLog.Msg("[BroadcastMessage] Test message sent to Discord");
         }
+
+        /// <summary>
+        /// Test the welcome embed
+        /// </summary>
+        public static void TestWelcomeEmbed()
+        {
+            if (!Config.EnableDiscordBridge.Value)
+            {
+                RLog.Warning("[BroadcastMessage] Discord Bridge is disabled in config");
+                return;
+            }
+
+            DiscordBridge.SendWelcomeEmbed("TestPlayer");
+            RLog.Msg("[BroadcastMessage] Welcome embed sent to Discord");
+        }
+
+        /// <summary>
+        /// Test player join embed (non-first-time)
+        /// </summary>
+        public static void TestPlayerJoin()
+        {
+            if (!Config.EnableDiscordBridge.Value) return;
+            DiscordBridge.SendPlayerJoin("TestPlayer", isFirstTime: false);
+            RLog.Msg("[BroadcastMessage] Player join embed sent");
+        }
+
+        /// <summary>
+        /// Test player leave embed
+        /// </summary>
+        public static void TestPlayerLeave()
+        {
+            if (!Config.EnableDiscordBridge.Value) return;
+            DiscordBridge.SendPlayerLeave("TestPlayer");
+            RLog.Msg("[BroadcastMessage] Player leave embed sent");
+        }
+
+        /// <summary>
+        /// Test death embed
+        /// </summary>
+        public static void TestDeath()
+        {
+            if (!Config.EnableDiscordBridge.Value) return;
+            DiscordBridge.SendDeath("TestPlayer", "Cannibal");
+            RLog.Msg("[BroadcastMessage] Death embed sent");
+        }
     }
 }
+

@@ -468,14 +468,37 @@ namespace ProjectX.Master.Modules.UI
             bool newFreezeAI = DrawCheckbox("Freeze AI (Stop Spawning)", Config.FreezeAI.Value);
             if (newFreezeAI != Config.FreezeAI.Value) PlayerActions.ToggleFreezeAI(newFreezeAI);
             
-            DrawDivider("DEBUG");
+            DrawDivider("DISCORD");
             
             Config.EnableDiscordBridge.Value = DrawCheckbox("Discord Bridge", Config.EnableDiscordBridge.Value);
             
-            if (GUILayout.Button("Test Discord Connection", ProjectXStyles.Button))
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Test Message", ProjectXStyles.Button))
             {
                 Modules.BroadcastMessage.BroadcastMessageModule.TestDiscordConnection();
             }
+            if (GUILayout.Button("Test Welcome", ProjectXStyles.Button))
+            {
+                Modules.BroadcastMessage.BroadcastMessageModule.TestWelcomeEmbed();
+            }
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Test Join", ProjectXStyles.Button))
+            {
+                Modules.BroadcastMessage.BroadcastMessageModule.TestPlayerJoin();
+            }
+            if (GUILayout.Button("Test Leave", ProjectXStyles.Button))
+            {
+                Modules.BroadcastMessage.BroadcastMessageModule.TestPlayerLeave();
+            }
+            if (GUILayout.Button("Test Death", ProjectXStyles.Button))
+            {
+                Modules.BroadcastMessage.BroadcastMessageModule.TestDeath();
+            }
+            GUILayout.EndHorizontal();
+            
+            DrawDivider("DEBUG");
             
             if (GUILayout.Button("Dump Item IDs", ProjectXStyles.Button))
             {

@@ -1,0 +1,10 @@
+{
+    "Name": "ProjectX Owner Edition",
+    "Author": "J4m3s",
+    "ID": "ProjectX.Owner",
+    "Version": "1.0.0",
+    "Description": "Owner Edition - Full control on your multiplayer server",
+    "GameVersion": "1.0.0",
+    "IsUniversal": true,
+    "Dependencies": []
+}

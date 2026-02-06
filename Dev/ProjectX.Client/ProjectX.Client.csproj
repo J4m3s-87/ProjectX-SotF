@@ -1,0 +1,160 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>ProjectX.Client</AssemblyName>
+    <Description>Client Edition - Friends joining server</Description>
+    <Version>0.0.1</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <DefineConstants>CLIENT</DefineConstants>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.samboy.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+    <RootNamespace>ProjectX.Master</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core RedLoader SDKs -->
+    <Reference Include="RedLoader">
+      <HintPath>..\..\Tools\_Redloader\net6\RedLoader.dll</HintPath>
+    </Reference>
+    <Reference Include="SonsSdk">
+      <HintPath>..\..\Tools\_Redloader\net6\SonsSdk.dll</HintPath>
+    </Reference>
+    <Reference Include="SonsAxLib">
+      <HintPath>..\..\Tools\_Redloader\net6\SonsAxLib.dll</HintPath>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>..\..\Tools\_Redloader\net6\0Harmony.dll</HintPath>
+    </Reference>
+
+    <!-- Game Assemblies -->
+    <Reference Include="Sons">
+      <HintPath>..\..\Tools\_Redloader\Game\Sons.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sons.Ai.Vail">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Ai.Vail.dll</HintPath>
+    </Reference>
+    <Reference Include="Sons.Atmosphere">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Atmosphere.dll</HintPath>
+    </Reference>
+    <Reference Include="Sons.Input">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Input.dll</HintPath>
+    </Reference>
+    <Reference Include="Sons.Electricity">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Electricity.dll</HintPath>
+    </Reference>
+    <Reference Include="TheForest.Utils">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\TheForest.Utils.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Sons.Item">
+      <HintPath>..\..\Tools\_Redloader\Game\Sons.Item.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Unity.InputSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="Sons.StatSystem">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.StatSystem.dll</HintPath>
+    </Reference>
+    
+    <!-- Network Dependencies -->
+    <Reference Include="bolt">
+      <HintPath>..\..\Tools\_Redloader\Game\bolt.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="bolt.user">
+      <HintPath>..\..\Tools\_Redloader\Game\bolt.user.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="udpkit">
+      <HintPath>..\..\Tools\_Redloader\Game\udpkit.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="udpkit.common">
+      <HintPath>..\..\Tools\_Redloader\Game\udpkit.common.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Steamworks">
+      <HintPath>..\..\Tools\_Redloader\Game\com.rlabrecque.steamworks.net.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Il2CppSystem">
+      <HintPath>..\..\Tools\_Redloader\Game\Il2CppSystem.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sons.Gui">
+      <HintPath>..\..\Tools\_Redloader\Game\Sons.Gui.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sons.Debug">
+      <HintPath>..\..\Tools\_Redloader\Game\Sons.Debug.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Endnight">
+      <HintPath>..\..\Tools\_Redloader\Game\Endnight.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Endnight.Utilities.Misc">
+      <HintPath>..\..\Tools\_Redloader\Game\Endnight.Utilities.Misc.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Endnight.Utilities.Configurations">
+      <HintPath>..\..\Tools\_Redloader\Game\Endnight.Utilities.Configurations.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sons.Construction">
+      <HintPath>..\..\Tools\_Redloader\Game\Sons.Construction.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sons.UiElements">
+      <HintPath>..\..\Tools\_Redloader\Game\Sons.UiElements.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>..\..\Tools\_Redloader\Game\Il2Cppmscorlib.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>..\..\Tools\_Redloader\Game\Unity.TextMeshPro.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sons.Multiplayer">
+      <HintPath>..\..\Tools\_Redloader\Game\Sons.Multiplayer.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Share source files with Master (exclude build artifacts) -->
+  <ItemGroup>
+    <Compile Include="..\ProjectX.Master\**\*.cs" 
+             Exclude="..\ProjectX.Master\obj\**;..\ProjectX.Master\bin\**"
+             LinkBase="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\ProjectX.Master\Assets\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Il2CppInterop.Runtime" Version="1.4.5" />
+    <PackageReference Include="UnityEngine.Modules" Version="2021.3.29" IncludeAssets="compile" />
+  </ItemGroup>
+
+</Project>

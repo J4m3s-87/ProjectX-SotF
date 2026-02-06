@@ -5,6 +5,7 @@ using RedLoader;
 using SonsSdk;
 using TheForest.Utils;
 using UnityEngine;
+using ProjectX.Master.Modules.Network;
 
 namespace ProjectX.Master.Modules.BroadcastMessage
 {
@@ -90,9 +91,23 @@ namespace ProjectX.Master.Modules.BroadcastMessage
         /// Log a player chat message. 
         /// Call this if you have access to chat events from another source.
         /// </summary>
-        public static void LogChatMessage(string playerName, string message)
+        public static void LogChatMessage(string playerName, string message, string steamId = null)
         {
             if (string.IsNullOrEmpty(message)) return;
+
+            // Check for /px commands (Server/Owner only)
+#if SERVER || OWNER
+            if (message.StartsWith("/px"))
+            {
+                string senderSteamId = steamId ?? playerName; // Use steamId if available
+                bool handled = CommandBridge.ProcessMessage(senderSteamId, message);
+                if (handled)
+                {
+                    RLog.Msg($"[BroadcastMessage] /px command from {playerName}: {message}");
+                    return; // Don't log commands to chat
+                }
+            }
+#endif
 
             // Deduplicate recent messages
             string key = $"{playerName}:{message}";

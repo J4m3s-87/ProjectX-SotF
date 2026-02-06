@@ -7,6 +7,7 @@ using SonsSdk;
 using TheForest.Utils;
 using UnityEngine;
 using ProjectX.Master.Modules.Player;
+using ProjectX.Master.Modules.Network;
 
 namespace ProjectX.Master.Modules.UI
 {
@@ -95,6 +96,14 @@ namespace ProjectX.Master.Modules.UI
         
         private void ToggleMenu()
         {
+#if CLIENT
+            // Client edition: check permission before allowing menu
+            if (!PermissionSync.HasMenuAccess)
+            {
+                RLog.Msg("[ProjectXGUI] Menu access denied by server");
+                return;
+            }
+#endif
             _showMenu = !_showMenu;
             
             // Use SonsTools.MenuMode for proper input blocking (same as SUI panels)
@@ -115,6 +124,14 @@ namespace ProjectX.Master.Modules.UI
         void OnGUI()
         {
             if (!_showMenu) return;
+#if CLIENT
+            // Safety fallback: hide menu if permission revoked mid-session
+            if (!PermissionSync.HasMenuAccess)
+            {
+                _showMenu = false;
+                return;
+            }
+#endif
             
             try
             {

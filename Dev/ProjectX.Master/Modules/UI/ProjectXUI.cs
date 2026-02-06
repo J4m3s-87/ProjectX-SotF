@@ -1,3 +1,4 @@
+#if !SERVER
 using System;
 using RedLoader;
 using Il2CppInterop.Runtime.Injection;
@@ -83,3 +84,4 @@ namespace ProjectX.Master.Modules.UI
         }
     }
 }
+#endif

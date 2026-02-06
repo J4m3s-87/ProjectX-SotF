@@ -2,6 +2,7 @@ using RedLoader;
 using RedLoader.Utils;
 using SonsSdk;
 using UnityEngine;
+using ProjectX.Master.Modules.Network;
 #if !SERVER
 using SonsAxLib;
 using SUI;
@@ -103,6 +104,12 @@ namespace ProjectX.Master
             
             // 15. BroadcastMessage (Discord bridge, chat logging)
             Modules.BroadcastMessage.BroadcastMessageModule.Init();
+            
+            // 16. Network modules (multi-deployment architecture)
+            PermissionSync.Init();
+            RoleManager.Init();
+            CommandBridge.Init();
+            PermissionEvent.Register();
             
             LoggerInstance.Msg("Fresh Merge: All modules enabled");
         }

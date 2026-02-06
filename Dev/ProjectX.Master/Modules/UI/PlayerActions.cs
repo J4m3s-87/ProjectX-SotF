@@ -1,3 +1,4 @@
+#if !SERVER
 using System;
 using System.Linq;
 using System.Reflection;
@@ -928,3 +929,4 @@ namespace ProjectX.Master.Modules.UI
         }
     }
 }
+#endif

@@ -2,7 +2,7 @@
     "Name": "ProjectX Server Edition",
     "Author": "J4m3s",
     "ID": "ProjectX.Server",
-    "Version": "1.0.0",
+    "Version": "1.7.0-beta",
     "Description": "Server Edition - Headless authoritative server",
     "GameVersion": "1.0.0",
     "IsUniversal": true,

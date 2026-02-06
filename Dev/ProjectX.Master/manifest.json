@@ -2,7 +2,7 @@
     "Name": "ProjectX Master Mod",
     "Author": "J4m3s",
     "ID": "ProjectX.Master",
-    "Version": "1.0.0",
+    "Version": "1.7.0-beta",
     "Description": "The Master Mod for Project X. Integrates functionalities from StackMod, AxelModMenu, and more.",
     "GameVersion": "1.0.0",
     "IsUniversal": true,

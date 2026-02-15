@@ -58,9 +58,13 @@ namespace ProjectX.Master
             Modules.UI.ProjectXUI.Init();
 #endif
             
-            // 2. StoneGate - REMOVED from build
-            // Modules.StoneGate.StoneGateModule.Init();
-            // Modules.StoneGate.StoneGateModule.OnSdkInitialized();
+            // 2. StoneGate (client/owner only — asset loading + UI + keybinds)
+#if !SERVER
+            try { Modules.StoneGate.StoneGateModule.Init(); }
+            catch (System.Exception ex) { LoggerInstance.Error($"[StoneGate] Init failed: {ex}"); }
+            try { Modules.StoneGate.StoneGateModule.OnSdkInitialized(); }
+            catch (System.Exception ex) { LoggerInstance.Error($"[StoneGate] OnSdkInitialized failed: {ex}"); }
+#endif
             
 #if !SERVER
             // 3. Hotbar (client only) — re-enabled with sprite caching + frame throttling

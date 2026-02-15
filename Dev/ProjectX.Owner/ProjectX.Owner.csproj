@@ -157,7 +157,6 @@
 
   <!-- Dead/Removed modules (same exclusions as Server) -->
   <ItemGroup>
-    <Compile Remove="..\ProjectX.Master\Modules\StoneGate\**" />
     <Compile Remove="..\ProjectX.Master\Modules\OpenSesame\**" />
     <Compile Remove="..\ProjectX.Master\Modules\PrefabRepair\**" />
   </ItemGroup>

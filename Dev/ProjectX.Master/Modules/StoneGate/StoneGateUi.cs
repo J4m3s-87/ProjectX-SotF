@@ -36,7 +36,7 @@ namespace ProjectX.Master.Modules.StoneGate {
 		// Token: 0x06000027 RID: 39 RVA: 0x00002C04 File Offset: 0x00000E04
 		internal static void CloseMainPanel()
 		{
-			global::SUI.SUI.TogglePanel("StoneGatePlacePanel", false);
+			try { global::SUI.SUI.TogglePanel("StoneGatePlacePanel", false); } catch { }
 			bool flag = StoneGateModule.StoneGateToolUI != null;
 			if (flag)
 			{
@@ -47,7 +47,7 @@ namespace ProjectX.Master.Modules.StoneGate {
 		// Token: 0x06000028 RID: 40 RVA: 0x00002C3B File Offset: 0x00000E3B
 		internal static void ToggleMainPanel()
 		{
-			global::SUI.SUI.TogglePanel("StoneGatePlacePanel");
+			try { global::SUI.SUI.TogglePanel("StoneGatePlacePanel"); } catch { }
 		}
 
 		// Token: 0x04000016 RID: 22

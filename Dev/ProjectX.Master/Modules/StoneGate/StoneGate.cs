@@ -14,7 +14,6 @@ using ProjectX.Master.Modules.StoneGate.Structure;
 using ProjectX.Master.Modules.StoneGate.Testing;
 using SUI;
 using UnityEngine;
-using UnityEngine;
 using Object = UnityEngine.Object;
 using TheForest.Utils;
 
@@ -37,7 +36,7 @@ namespace ProjectX.Master.Modules.StoneGate
 		// Replaces OnInitializeMod
 		public static void Init()
 		{
-			// Config.Init(); // Managed by ProjectX
+			Config.Init();
 			RLog.Msg("[StoneGate] Initializing (Fix V3 - Prefab/Save/Net Patched)");
 			Assets.Instance.LoadAssets();
 			StoneGateModule.stoneGateCreatorTexture = AssetLoaders.LoadTexture(Assets.Instance.GetStoneGateToolPath());
@@ -118,39 +117,7 @@ namespace ProjectX.Master.Modules.StoneGate
 			
 			CreateGateParent instance = CreateGateParent.Instance;
 			
-			// Input Registration via ProjectX Config
-#if !SERVER
-			ModInputCache.Notify(ProjectX.Master.Config.StoneGate_Primary, () => ActiveItem.OnKeyPress(), null);
-			ModInputCache.Notify(ProjectX.Master.Config.StoneGate_Cycle, () => UiController.ChangeMode(), null);
-			ModInputCache.Notify(ProjectX.Master.Config.StoneGate_Finish, () => 
-			{
-				if (!LocalPlayer.IsInWorld || LocalPlayer.IsInInventory || Sons.Gui.PauseMenu.IsActive || LocalPlayer.InWater) return;
-
-				if (ActiveItem.active != null)
-				{
-					ActiveItem.active.Complete();
-					if (ProjectX.Master.Modules.StoneGate.Testing.Settings.logOnFinishOpenCloseDoorKey)
-						Misc.Msg("[Link] ActiveItem Complete", false);
-				}
-				else
-				{
-					var storedParent = CreateGateParent.Instance.StoredParent;
-					if (storedParent != null)
-					{
-						var children = CommonExtensions.GetChildren(storedParent);
-						foreach (var transform in children)
-						{
-							var component = transform.GetComponent<StoneGateStoreMono>();
-							if (component != null && component.LinkUiElement != null && component.LinkUiElement.IsActive)
-							{
-								component.ToggleGate(true);
-								break;
-							}
-						}
-					}
-				}
-			}, null);
-#endif
+			// Keybinds are now registered in StoneGate Config.Init()
 		}
 
 		// Replaces OnGameStart

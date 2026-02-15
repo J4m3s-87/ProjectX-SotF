@@ -10,7 +10,9 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
     {
         public static void ReviveKelvin()
         {
+#if !SERVER
             if (!LocalPlayer.IsInWorld) return;
+#endif
             RLog.Msg("Attempting to Revive Kelvin (Robbie)...");
 
             // Look for the Actor (Robbie)

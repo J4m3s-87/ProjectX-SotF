@@ -207,7 +207,8 @@ namespace ProjectX.Master.Modules.StoneGate.Mono
 		// Token: 0x060000B9 RID: 185 RVA: 0x00006DA4 File Offset: 0x00004FA4
 		private void TryHitObject()
 		{
-			// if (!flag)
+			bool flag = !this.isAnimRunning;
+			if (!flag)
 			{
 				Transform transform = Camera.main.transform;
 				RaycastHit raycastHit;

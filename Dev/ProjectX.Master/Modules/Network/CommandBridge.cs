@@ -26,6 +26,14 @@ namespace ProjectX.Master.Modules.Network
         }
         
         /// <summary>
+        /// Register a command handler from external modules (e.g. DedicatedSuperuser)
+        /// </summary>
+        public static void RegisterCommand(string command, Action<string, string[]> handler)
+        {
+            _commands[command.ToLower()] = handler;
+        }
+        
+        /// <summary>
         /// Register all /px commands
         /// </summary>
         private static void RegisterCommands()
@@ -40,6 +48,9 @@ namespace ProjectX.Master.Modules.Network
             
             // Effect commands
             _commands["effect"] = HandleEffectCommand;
+            
+            // Broadcast command
+            _commands["broadcast"] = HandleBroadcastCommand;
             
             // Info commands
             _commands["help"] = HandleHelpCommand;
@@ -202,6 +213,22 @@ namespace ProjectX.Master.Modules.Network
 #endif
         
         /// <summary>
+        /// /px broadcast <message> - send a message to all connected players
+        /// </summary>
+        private static void HandleBroadcastCommand(string steamId, string[] args)
+        {
+            if (args.Length == 0)
+            {
+                RLog.Msg("[ProjectX] Usage: /px broadcast <message>");
+                return;
+            }
+            
+            string message = string.Join(" ", args);
+            DedicatedSuperuser.Utility.ChatResponse.Send(message);
+            RLog.Msg($"[ProjectX] Broadcast sent: {message}");
+        }
+
+        /// <summary>
         /// /px help
         /// </summary>
         private static void HandleHelpCommand(string steamId, string[] args)
@@ -213,9 +240,17 @@ namespace ProjectX.Master.Modules.Network
             RLog.Msg("  /px revoke menu <player>   - Revoke menu access");
             RLog.Msg("  /px effect <type> <player> on|off");
             RLog.Msg("  /px players                - List connected players");
-#else
-            RLog.Msg("  /px help - Show this help");
+            RLog.Msg("  /px broadcast <message>    - Send message to all players");
 #endif
+            // Superuser commands (registered dynamically)
+            RLog.Msg("  /px raid start|boss|clear|cooldown|requeue|status");
+            RLog.Msg("  /px world time|season|freeze|trees|revive|weather");
+            RLog.Msg("  /px config get|set|save|list [key] [value]");
+            RLog.Msg("  /px loot status|reset|toggle");
+            RLog.Msg("  /px server save|status|admin");
+            RLog.Msg("  /px save      - Quick save");
+            RLog.Msg("  /px status    - Quick status");
+            RLog.Msg("  /px time <hr> - Quick time set");
         }
     }
 }

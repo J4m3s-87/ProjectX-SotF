@@ -50,13 +50,21 @@ namespace ProjectX.Master.Modules.Player
             if (Config.InfiniteLogs != null)
             {
                 string state = Config.InfiniteLogs.Value ? "on" : "off";
-                /*
                 try 
                 {
-                    TheForest.Utils.DebugConsole.Instance._loghack(state);
+                    TheForest.DebugConsole.Instance._loghack(state);
                 }
                 catch { }
-                */
+            }
+
+            if (Config.InfiniteStones != null)
+            {
+                try 
+                {
+                    string cmd = Config.InfiniteStones.Value ? "stonehack on" : "stonehack off";
+                    TheForest.DebugConsole.Instance.SendCommand(cmd);
+                }
+                catch { }
             }
         }
 

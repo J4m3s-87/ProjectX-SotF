@@ -1,5 +1,6 @@
 #if !SERVER
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
@@ -64,19 +65,12 @@ namespace ProjectX.Master.Modules.UI
         public static void ToggleGodMode(bool on)
         {
             Config.IsGodMode.Value = on;
-            EnsureInit();
             try
             {
-                if (_debugConsoleInstance != null && _godmodeMethod != null)
-                {
-                    string text = on ? "on" : "off";
-                    _godmodeMethod.Invoke(_debugConsoleInstance, new object[] { text });
-                    RLog.Msg($"[PlayerActions] GodMode: {text}");
-                }
-                else
-                {
-                    RLog.Warning("[PlayerActions] GodMode: DebugConsole not available");
-                }
+                // Use SendCommand instead of direct Invoke to avoid CLR/Harmony detour conflicts
+                string cmd = on ? "godmode on" : "godmode off";
+                DebugConsole.Instance.SendCommand(cmd);
+                RLog.Msg($"[PlayerActions] GodMode: {(on ? "on" : "off")}");
             }
             catch (Exception ex)
             {
@@ -87,15 +81,12 @@ namespace ProjectX.Master.Modules.UI
         public static void ToggleInfStamina(bool on)
         {
             Config.IsInfStamina.Value = on;
-            EnsureInit();
             try
             {
-                if (_debugConsoleInstance != null && _energyhackMethod != null)
-                {
-                    string text = on ? "on" : "off";
-                    _energyhackMethod.Invoke(_debugConsoleInstance, new object[] { text });
-                    RLog.Msg($"[PlayerActions] InfStamina: {text}");
-                }
+                // Use SendCommand instead of direct Invoke to avoid CLR/Harmony detour conflicts
+                string cmd = on ? "energyhack on" : "energyhack off";
+                DebugConsole.Instance.SendCommand(cmd);
+                RLog.Msg($"[PlayerActions] InfStamina: {(on ? "on" : "off")}");
             }
             catch (Exception ex)
             {
@@ -291,9 +282,37 @@ namespace ProjectX.Master.Modules.UI
         {
             try
             {
-                // Call directly like AxelModMenu does - "spring", "summer", "autumn", "winter"
-                DebugConsole.Instance._season(season.ToLower());
-                RLog.Msg($"[PlayerActions] Season set to: {season}");
+                // Convert string to Season enum
+                Sons.Atmosphere.SeasonsManager.Season seasonEnum;
+                switch (season.ToLower())
+                {
+                    case "spring": seasonEnum = Sons.Atmosphere.SeasonsManager.Season.Spring; break;
+                    case "summer": seasonEnum = Sons.Atmosphere.SeasonsManager.Season.Summer; break;
+                    case "autumn": case "fall": seasonEnum = Sons.Atmosphere.SeasonsManager.Season.Fall; break;
+                    case "winter": seasonEnum = Sons.Atmosphere.SeasonsManager.Season.Winter; break;
+                    default:
+                        RLog.Warning($"[PlayerActions] Unknown season: {season}");
+                        return;
+                }
+                
+                // Use typed IL2CPP call — same pattern as ToggleForceRain() which works reliably.
+                // SetSeasonPostDeserialize is PUBLIC and fires the full visual pipeline
+                // including UpdateReceiversSeason() to notify all visual systems.
+                // DebugConsole._season() only calls LockSeason() which sets fields
+                // WITHOUT notifying receivers — that's why visuals never updated.
+                var sm = Sons.Atmosphere.SeasonsManager.Instance;
+                if (sm != null)
+                {
+                    float offset = sm.GetStartingDayOffset();
+                    sm.SetSeasonPostDeserialize(seasonEnum, offset);
+                    RLog.Msg($"[PlayerActions] Season set to: {season} — typed IL2CPP call (SetSeasonPostDeserialize)");
+                }
+                else
+                {
+                    // Fallback to debug console command
+                    DebugConsole.Instance._season(season.ToLower());
+                    RLog.Msg($"[PlayerActions] Season set to: {season} — fallback (_season command)");
+                }
             }
             catch (Exception ex)
             {
@@ -377,6 +396,32 @@ namespace ProjectX.Master.Modules.UI
             catch (Exception ex)
             {
                 RLog.Warning($"[PlayerActions] ToggleNoForest failed: {ex.Message}");
+            }
+        }
+        
+        public static void ToggleForceRain(bool on)
+        {
+            try
+            {
+                // Use typed IL2CPP API directly — DebugConsole.SendCommand resolves
+                // but has NO visual effect on the client (server-authority issue).
+                // ForceRain(3) + StopRaining() are typed calls that work locally.
+                // The CheckForRain PREFIX blocker prevents the game from overriding.
+                var ws = TheForest.World.WeatherSystem.Instance;
+                if (ws != null)
+                {
+                    if (on) ws.ForceRain(3);
+                    else ws.StopRaining();
+                    RLog.Msg($"[PlayerActions] Force Rain: {(on ? "ON (ForceRain 3)" : "OFF (StopRaining)")} — typed IL2CPP call");
+                }
+                else
+                {
+                    RLog.Warning("[PlayerActions] WeatherSystem.Instance is null");
+                }
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[PlayerActions] ToggleForceRain failed: {ex.Message}");
             }
         }
         
@@ -926,6 +971,217 @@ namespace ProjectX.Master.Modules.UI
         {
             RLog.Warning("[PlayerActions] Stack modification disabled in Master mod due to IL2CPP instability");
             RLog.Msg("[PlayerActions] Stack settings are managed via StackMod config file");
+        }
+        
+        // ========== NPC SPAWNING ==========
+        
+        // Cached reflection for spawn API
+        private static MethodInfo _spawnActorMethod;
+        private static MethodInfo _convertToRealActorMethod;
+        private static PropertyInfo _graphMaskEverythingProp;
+        private static MethodInfo _newFamilyMethod;
+        private static bool _spawnApiSearched;
+        private static System.Random _spawnRandom = new System.Random();
+        
+        // Cannibal TypeIds that are safe to spawn (regular combat cannibals)
+        private static readonly VailActorTypeId[] SpawnableCannibals = new[]
+        {
+            (VailActorTypeId)11, // Fingers
+            (VailActorTypeId)12, // Carl
+            (VailActorTypeId)13, // Andy
+            (VailActorTypeId)14, // Danny
+            (VailActorTypeId)15, // Billy
+            (VailActorTypeId)28, // MuddyFemale
+            (VailActorTypeId)29, // MuddyMale
+            (VailActorTypeId)30, // HeavyMale
+            (VailActorTypeId)38, // FatMale
+            (VailActorTypeId)39, // FatFemale
+            (VailActorTypeId)43, // PaintedMale
+            (VailActorTypeId)44, // PaintedFemale
+        };
+        
+        private static void InitSpawnReflection()
+        {
+            if (_spawnApiSearched) return;
+            _spawnApiSearched = true;
+            
+            try
+            {
+                // GraphMask.everything (from AstarPathfindingProject)
+                var graphMaskType = AccessTools.TypeByName("Pathfinding.GraphMask");
+                if (graphMaskType != null)
+                {
+                    _graphMaskEverythingProp = AccessTools.Property(graphMaskType, "everything");
+                }
+                
+                // VailWorldSimulation.NewFamily()
+                _newFamilyMethod = AccessTools.Method(typeof(VailWorldSimulation), "NewFamily");
+                
+                RLog.Msg($"[PlayerActions] Spawn API init: GraphMask={_graphMaskEverythingProp != null}, NewFamily={_newFamilyMethod != null}");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[PlayerActions] InitSpawnReflection failed: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Spawn a single NPC of the given type near the player.
+        /// Adapted from VailSpawnControl's VailActorReplacer.Spawn() method.
+        /// </summary>
+        public static void SpawnNPC(VailActorTypeId typeId)
+        {
+            try
+            {
+                InitSpawnReflection();
+                
+                // Get prefab via SonsSdk ActorTools
+                var prefab = ActorTools.GetPrefab(typeId);
+                if (prefab == null)
+                {
+                    RLog.Warning($"[PlayerActions] SpawnNPC: No prefab found for {typeId}");
+                    return;
+                }
+                RLog.Msg($"[PlayerActions] SpawnNPC: Got prefab for {typeId}");
+                
+                // Get VailWorldSimulation instance
+                VailWorldSimulation sim = null;
+                if (!VailWorldSimulation.TryGetInstance(out sim) || sim == null)
+                {
+                    RLog.Warning("[PlayerActions] SpawnNPC: VailWorldSimulation not available");
+                    return;
+                }
+                RLog.Msg("[PlayerActions] SpawnNPC: Got VailWorldSimulation instance");
+                
+                // Calculate spawn position: 5m in front of player
+                Vector3 spawnPos = LocalPlayer.Transform.position + Camera.main.transform.forward * 5f;
+                
+                // Get GraphMask.everything via reflection
+                object graphMask = _graphMaskEverythingProp?.GetValue(null);
+                if (graphMask == null)
+                {
+                    RLog.Warning("[PlayerActions] SpawnNPC: GraphMask.everything is null, trying fallback");
+                    // Fallback: use -1 (all bits set) as raw int for GraphMask struct
+                    var graphMaskType = AccessTools.TypeByName("Pathfinding.GraphMask");
+                    if (graphMaskType != null)
+                    {
+                        graphMask = Activator.CreateInstance(graphMaskType, new object[] { -1 });
+                    }
+                }
+                RLog.Msg($"[PlayerActions] SpawnNPC: GraphMask={graphMask != null}");
+                
+                // Get new family ID
+                object familyId = _newFamilyMethod?.Invoke(null, null) ?? (object)0;
+                RLog.Msg($"[PlayerActions] SpawnNPC: FamilyId={familyId}");
+                
+                // Find SpawnActor method - resolve by parameter count since there may be overloads
+                var simType = typeof(VailWorldSimulation);
+                System.Reflection.MethodInfo spawnMethod = null;
+                foreach (var m in simType.GetMethods(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
+                {
+                    if (m.Name == "SpawnActor" && m.GetParameters().Length == 7)
+                    {
+                        spawnMethod = m;
+                        break;
+                    }
+                }
+                
+                if (spawnMethod == null)
+                {
+                    // Try any SpawnActor overload and log all available
+                    var allSpawn = simType.GetMethods().Where(m => m.Name == "SpawnActor").ToArray();
+                    RLog.Warning($"[PlayerActions] SpawnNPC: No 7-param SpawnActor found. Available overloads: {allSpawn.Length}");
+                    foreach (var m in allSpawn)
+                    {
+                        var parms = m.GetParameters();
+                        RLog.Msg($"  SpawnActor({string.Join(", ", parms.Select(p => p.ParameterType.Name))})");
+                    }
+                    return;
+                }
+                RLog.Msg($"[PlayerActions] SpawnNPC: Found SpawnActor with params: {string.Join(", ", spawnMethod.GetParameters().Select(p => p.ParameterType.Name))}");
+                
+                // SpawnActor(prefab, position, graphMask, null, State.None, familyId, variationId)
+                var worldSimActor = spawnMethod.Invoke(sim, new object[] 
+                { 
+                    prefab, spawnPos, graphMask, null, (int)0, familyId, 0 
+                });
+                
+                if (worldSimActor == null)
+                {
+                    RLog.Warning($"[PlayerActions] SpawnNPC: SpawnActor returned null for {typeId}");
+                    return;
+                }
+                RLog.Msg($"[PlayerActions] SpawnNPC: SpawnActor returned actor of type {worldSimActor.GetType().Name}");
+                
+                // Handle cave/surface area mask
+                try
+                {
+                    var setKeepAbove = AccessTools.Method(worldSimActor.GetType(), "SetKeepAboveTerrain");
+                    var setAreaMask = AccessTools.Method(worldSimActor.GetType(), "SetAreaMask");
+                    var setGraphMask = AccessTools.Method(worldSimActor.GetType(), "SetGraphMask");
+                    
+                    // Check if we're in a cave via CaveEntranceManager.CurrentAreaMask
+                    object areaMask = null;
+                    var caveManagerType = AccessTools.TypeByName("Sons.Areas.CaveEntranceManager"); 
+                    if (caveManagerType != null)
+                    {
+                        var currentAreaProp = AccessTools.Property(caveManagerType, "CurrentAreaMask");
+                        areaMask = currentAreaProp?.GetValue(null);
+                    }
+                    
+                    setKeepAbove?.Invoke(worldSimActor, new object[] { areaMask == null });
+                    setAreaMask?.Invoke(worldSimActor, new object[] { areaMask });
+                    
+                    // Get nav graph mask for area
+                    var getNavMethod = AccessTools.Method(typeof(VailWorldSimulation), "GetNavGraphMaskForArea");
+                    if (getNavMethod != null && setGraphMask != null)
+                    {
+                        var navMask = getNavMethod.Invoke(sim, new object[] { areaMask, false });
+                        setGraphMask.Invoke(worldSimActor, new object[] { navMask });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RLog.Warning($"[PlayerActions] SpawnNPC: Area mask setup warning: {ex.Message}");
+                }
+                
+                // Convert to real actor
+                var convertMethod = AccessTools.Method(typeof(VailWorldSimulation), "ConvertToRealActor");
+                if (convertMethod == null)
+                {
+                    RLog.Warning("[PlayerActions] SpawnNPC: ConvertToRealActor method not found");
+                    return;
+                }
+                convertMethod.Invoke(sim, new object[] { worldSimActor, prefab });
+                
+                RLog.Msg($"[PlayerActions] Spawned {typeId} at {spawnPos}");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[PlayerActions] SpawnNPC({typeId}) failed: {ex}");
+            }
+        }
+        
+        /// <summary>
+        /// Spawn a group of 3 random cannibals near the player.
+        /// Each cannibal spawns at a slightly offset position.
+        /// </summary>
+        public static void SpawnCannibalGroup()
+        {
+            try
+            {
+                int spawnCount = 3;
+                for (int i = 0; i < spawnCount; i++)
+                {
+                    var typeId = SpawnableCannibals[_spawnRandom.Next(SpawnableCannibals.Length)];
+                    SpawnNPC(typeId);
+                }
+                RLog.Msg($"[PlayerActions] Spawned cannibal group ({spawnCount} cannibals)");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[PlayerActions] SpawnCannibalGroup failed: {ex.Message}");
+            }
         }
     }
 }

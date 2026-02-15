@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -7,7 +8,9 @@ using Endnight.Types;
 using RedLoader;
 using Sons.Ai.Vail;
 using Sons.Characters;
+#if !SERVER
 using SonsSdk;
+#endif
 using TheForest.Utils;
 
 namespace ProjectX.Master.Modules.RaidCustomizer
@@ -269,7 +272,9 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                 foreach (var (_, desc) in raids.OrderBy(t => t.Item1))
                 {
                     string msg = $"Queued: {desc}";
+#if !SERVER
                     SonsTools.ShowMessage(msg, 10f);
+#endif
                     RLog.Msg(Color.Orange, msg);
                 }
             }

@@ -119,6 +119,7 @@ namespace ProjectX.Master.Modules.StoneGate
 			CreateGateParent instance = CreateGateParent.Instance;
 			
 			// Input Registration via ProjectX Config
+#if !SERVER
 			ModInputCache.Notify(ProjectX.Master.Config.StoneGate_Primary, () => ActiveItem.OnKeyPress(), null);
 			ModInputCache.Notify(ProjectX.Master.Config.StoneGate_Cycle, () => UiController.ChangeMode(), null);
 			ModInputCache.Notify(ProjectX.Master.Config.StoneGate_Finish, () => 
@@ -149,6 +150,7 @@ namespace ProjectX.Master.Modules.StoneGate
 					}
 				}
 			}, null);
+#endif
 		}
 
 		// Replaces OnGameStart
@@ -159,12 +161,30 @@ namespace ProjectX.Master.Modules.StoneGate
 
 		/// <summary>
 		/// Safety method to ensure StoneGate UI is hidden when not actively using the tool.
-		/// Should be called from the main update loop.
+		/// Uses actual equipped item ID check instead of ActiveItem.active to avoid race
+		/// conditions during animation cycles where the MonoBehaviour is briefly disabled.
 		/// </summary>
+		private static int _safetyFrameCounter = 0;
+		private static float _lastActiveTime = 0f;
 		public static void EnsureUIHidden()
 		{
-			// Only hide if the StoneGate tool is NOT actively equipped
-			if (ActiveItem.active == null && StoneGateToolUI != null && StoneGateToolUI.activeSelf)
+			// Throttle: only check every 60 frames (~1 second at 60fps)
+			if (++_safetyFrameCounter < 60) return;
+			_safetyFrameCounter = 0;
+			
+			// Track when we last saw the tool as active
+			if (ActiveItem.active != null)
+			{
+				_lastActiveTime = Time.time;
+				return; // Tool is active, nothing to do
+			}
+			
+			// Grace period: don't force-close within 3 seconds of the tool being active
+			// This prevents false triggers during animation disable/enable cycles
+			if (Time.time - _lastActiveTime < 3f) return;
+			
+			// Tool is genuinely not equipped — hide UI
+			if (StoneGateToolUI != null && StoneGateToolUI.activeSelf)
 			{
 				StoneGateToolUI.SetActive(false);
 				StoneGateUi.CloseMainPanel();
@@ -175,13 +195,30 @@ namespace ProjectX.Master.Modules.StoneGate
 		// Helper removed in favor of StoneGateUtils
 		private static void OnFirstGameActivation()
 		{
-			StoneGateModule.stoneGateCreatorItemData = ItemTools.CreateAndRegisterItem(751152, "Stone Gate Creator", 1, null, "Create Stone Gates");
-			ItemDataExtensions.SetIcon(StoneGateModule.stoneGateCreatorItemData, StoneGateModule.stoneGateCreatorTexture);
-			ItemDataExtensions.SetupHeld(StoneGateModule.stoneGateCreatorItemData, 0, new AnimatorVariables[] { (AnimatorVariables)12 }, (ItemUiData.LeftClickCommands)1, 0, (ItemData.GuiType)1);
-			StoneGateModule.stoneGateCreatorPickupPrefab = StoneGateModule.stoneGateCreatorPrefab;
-			StoneGateModule.stoneGateCreatorItemData._heldPrefab = StoneGateModule.stoneGateCreatorHeldPrefab.transform;
-			
-			OnAfterSpawn();
+			try
+			{
+				RLog.Msg("[StoneGate] OnFirstGameActivation starting...");
+				RLog.Msg($"[StoneGate] stoneGateCreatorPrefab null? {StoneGateModule.stoneGateCreatorPrefab == null}");
+				RLog.Msg($"[StoneGate] stoneGateCreatorHeldPrefab null? {StoneGateModule.stoneGateCreatorHeldPrefab == null}");
+				RLog.Msg($"[StoneGate] stoneGateCreatorTexture null? {StoneGateModule.stoneGateCreatorTexture == null}");
+
+				StoneGateModule.stoneGateCreatorItemData = ItemTools.CreateAndRegisterItem(751152, "Stone Gate Creator", 1, null, "Create Stone Gates");
+				RLog.Msg($"[StoneGate] ItemData created, id={StoneGateModule.stoneGateCreatorItemData?._id}");
+
+				ItemDataExtensions.SetIcon(StoneGateModule.stoneGateCreatorItemData, StoneGateModule.stoneGateCreatorTexture);
+				ItemDataExtensions.SetupHeld(StoneGateModule.stoneGateCreatorItemData, 0, new AnimatorVariables[] { (AnimatorVariables)12 }, (ItemUiData.LeftClickCommands)1, 0, (ItemData.GuiType)1);
+				StoneGateModule.stoneGateCreatorPickupPrefab = StoneGateModule.stoneGateCreatorPrefab;
+				StoneGateModule.stoneGateCreatorItemData._heldPrefab = StoneGateModule.stoneGateCreatorHeldPrefab.transform;
+				
+				RLog.Msg($"[StoneGate] _heldPrefab set to: {StoneGateModule.stoneGateCreatorItemData._heldPrefab?.name ?? "NULL"}");
+				RLog.Msg($"[StoneGate] _heldPrefab has StoneGateItemMono? {StoneGateModule.stoneGateCreatorHeldPrefab?.GetComponent<StoneGateItemMono>() != null}");
+				
+				OnAfterSpawn();
+			}
+			catch (Exception ex)
+			{
+				RLog.Error($"[StoneGate] OnFirstGameActivation FAILED: {ex}");
+			}
 		}
 
 		private static void OnAfterSpawn()

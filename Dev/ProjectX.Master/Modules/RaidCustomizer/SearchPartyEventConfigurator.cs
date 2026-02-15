@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using Endnight.Utilities;
+using RedLoader;
 using Sons.Characters;
 using UnityEngine;
 
@@ -15,6 +15,33 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         private static readonly Dictionary<int, SearchPartyEventDefaults> SearchPartyDefaults = new();
         
         /// <summary>
+        /// Get search party events via typed IL2CPP access (works on both client and server)
+        /// Falls back to public property if underscore-prefixed field access fails
+        /// </summary>
+        private static IEnumerable<VailWorldEventData.SearchPartyEvent> GetSearchPartyEvents(VailWorldEventData data)
+        {
+            try { return data._searchPartyEvents.ToArray(); }
+            catch { }
+            try { return data.SearchPartyEvents.ToArray(); }
+            catch { }
+            RLog.Warning("[RaidCustomizer] Failed to access search party events");
+            return Array.Empty<VailWorldEventData.SearchPartyEvent>();
+        }
+        
+        /// <summary>
+        /// Get creepy attack events via typed IL2CPP access
+        /// </summary>
+        private static IEnumerable<VailWorldEventData.SearchPartyEvent> GetCreepyAttackEvents(VailWorldEventData data)
+        {
+            try { return data._creepyAttackEvents.ToArray(); }
+            catch { }
+            try { return data.CreepyAttackEvents.ToArray(); }
+            catch { }
+            RLog.Warning("[RaidCustomizer] Failed to access creepy attack events");
+            return Array.Empty<VailWorldEventData.SearchPartyEvent>();
+        }
+        
+        /// <summary>
         /// Prepare all events for a new day with configured settings
         /// </summary>
         public static void PrepareForNewDay(VailWorldEventData vailWorldEventData)
@@ -24,8 +51,8 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                 int spawnCountAdjustment = GetSpawnCountAdjustment();
                 
                 // Collect all search party events
-                var allEvents = new HashSet<VailWorldEventData.SearchPartyEvent>(vailWorldEventData._searchPartyEvents.ToArray());
-                foreach (var evt in vailWorldEventData._creepyAttackEvents)
+                var allEvents = new HashSet<VailWorldEventData.SearchPartyEvent>(GetSearchPartyEvents(vailWorldEventData));
+                foreach (var evt in GetCreepyAttackEvents(vailWorldEventData))
                 {
                     allEvents.Add(evt);
                 }

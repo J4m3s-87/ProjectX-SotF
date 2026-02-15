@@ -87,9 +87,13 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                 }
                 
                 // Get player position for 3D sound
+#if !SERVER
                 var playerPos = TheForest.Utils.LocalPlayer.Transform != null 
                     ? TheForest.Utils.LocalPlayer.Transform.position 
                     : Vector3.zero;
+#else
+                var playerPos = Vector3.zero;
+#endif
                 
                 // Call FMODCommon.PlayOneshot(string path, Vector3 position, object[] parameterValues)
                 // The original mod used "event:/music/ambush"

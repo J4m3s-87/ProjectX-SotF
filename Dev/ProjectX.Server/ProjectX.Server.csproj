@@ -142,7 +142,7 @@
   <!-- Share source files with Master (exclude build artifacts) -->
   <ItemGroup>
     <Compile Include="..\ProjectX.Master\**\*.cs" 
-             Exclude="..\ProjectX.Master\obj\**;..\ProjectX.Master\bin\**"
+             Exclude="..\ProjectX.Master\obj\**;..\ProjectX.Master\bin\**;..\ProjectX.Master\Modules\StoneGate\**"
              LinkBase="" />
   </ItemGroup>
 

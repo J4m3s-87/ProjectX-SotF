@@ -1,5 +1,7 @@
 #if !SERVER
 using System;
+using System.Collections.Generic;
+using Il2CppInterop.Runtime;
 using UnityEngine;
 using UnityEngine.UI;
 using RedLoader;
@@ -9,13 +11,12 @@ using Sons.Items.Core;
 using TheForest.Utils;
 using TheForest.Items.Inventory;
 using Object = UnityEngine.Object;
-using Il2CppInterop.Runtime;
 
 namespace ProjectX.Master.Modules.Hotbar
 {
     /// <summary>
-    /// Hotbar module - Safe implementation with crash guards.
-    /// The original SonsHotbar crashes when accessing _hotkeySaveData during inventory transitions.
+    /// Hotbar module — displays assigned hotkey item icons on-screen.
+    /// Matches the original SonsHotbar mod logic exactly, with sprite caching added.
     /// </summary>
     public static class HotbarModule
     {
@@ -24,14 +25,16 @@ namespace ProjectX.Master.Modules.Hotbar
         private static ItemHotkeyController _hotkeyController;
         private static bool _initialized;
 
+        // Sprite cache: item ID → Sprite (avoid re-creating every frame)
+        private static readonly Dictionary<int, Sprite> _spriteCache = new Dictionary<int, Sprite>();
+
+        // Frame throttling
+        private const int UPDATE_INTERVAL = 10;
+        private static int _frameCounter;
+
         public static void Init()
         {
-            // Assets are loaded automatically by SonsSdk via ModAssets class attributes
-        }
-
-        public static void OnSdkInitialized()
-        {
-            // SonsHotbarUi.Create() was called here in original - it was empty
+            RLog.Msg("[Hotbar] Module initialized.");
         }
 
         public static void OnGameStart()
@@ -40,141 +43,149 @@ namespace ProjectX.Master.Modules.Hotbar
             {
                 if (ModAssets.HotbarPrefab == null)
                 {
-                    RLog.Warning("[Hotbar] HotbarPrefab is null");
+                    RLog.Warning("[Hotbar] HotbarPrefab is null.");
                     return;
                 }
 
-                RLog.Msg($"[Hotbar] Assets available. Prefab: {ModAssets.HotbarPrefab != null}, Icon: {ModAssets.missingIcon != null}");
-
-                // Exactly like original
+                // Exactly like the original SonsHotbar
                 _hotbarRoot = Object.Instantiate(ModAssets.HotbarPrefab).transform.GetChild(0).transform;
                 _hotbarCanvas = _hotbarRoot.transform.root.GetComponent<Canvas>();
-                
-                // Get controller from LocalPlayer - use safe access
-                if (LocalPlayer._instance != null)
-                {
-                    _hotkeyController = LocalPlayer._instance.gameObject.GetComponentInChildren<ItemHotkeyController>();
-                }
+                _hotkeyController = LocalPlayer._instance.gameObject.GetComponentInChildren<ItemHotkeyController>();
 
                 if (_hotkeyController != null)
-                {
-                    RLog.Msg("[Hotbar] Controller found on game start.");
-                }
+                    RLog.Msg("[Hotbar] Controller found.");
                 else
-                {
-                    RLog.Warning("[Hotbar] Controller not found on game start.");
-                }
-                
+                    RLog.Warning("[Hotbar] Controller not found.");
+
+                _spriteCache.Clear();
+                _frameCounter = 0;
                 _initialized = true;
-                RLog.Msg("[Hotbar] Hotbar UI instantiated.");
+                RLog.Msg("[Hotbar] Hotbar active.");
             }
             catch (Exception ex)
             {
-                RLog.Error($"[Hotbar] OnGameStart error: {ex}");
+                RLog.Error($"[Hotbar] OnGameStart: {ex}");
             }
         }
 
         public static void OnUpdate()
         {
-            // Guard: not initialized
-            if (!_initialized) return;
-            if (_hotbarCanvas == null) return;
-            
+            if (!_initialized || _hotbarCanvas == null) return;
+
             try
             {
-                // Safe pause check (avoid _instance._isActive which can crash)
-                bool isPaused = PauseMenu.IsActive;
-                
-                if (isPaused)
+                // Hide during pause — same as original
+                if (PauseMenu.IsActive)
                 {
                     _hotbarCanvas.enabled = false;
                     return;
                 }
-                
+
                 _hotbarCanvas.enabled = true;
-                
-                // Guard: controller must exist
+
                 if (_hotkeyController == null) return;
-                
-                // Safe access to hotkey save data - THIS is the crash source
+
+                // Frame throttle
+                _frameCounter++;
+                if (_frameCounter < UPDATE_INTERVAL) return;
+                _frameCounter = 0;
+
+                // Read save data — same as original
                 HotkeySaveData saveData;
                 try
                 {
                     saveData = _hotkeyController._hotkeySaveData;
                     if (saveData == null) return;
                 }
-                catch
-                {
-                    // _hotkeySaveData access crashes during inventory transitions
-                    return;
-                }
-                
-                // Guard: lists must exist
-                if (saveData.RightHandItemIds == null) return;
-                if (saveData.LeftHandItemIds == null) return;
-                
-                // Update slots
+                catch { return; }
+
+                if (saveData.RightHandItemIds == null || saveData.LeftHandItemIds == null) return;
+
+                // Update each slot — same logic as original SonsHotbar.OnUpdate
                 for (int i = 0; i < saveData.RightHandItemIds.Count; i++)
                 {
                     try
                     {
-                        UpdateSlot(i, saveData);
+                        Transform child = _hotbarRoot.GetChild(GetSlotId(i));
+                        int leftId = saveData.LeftHandItemIds[i];
+                        int rightId = saveData.RightHandItemIds[i];
+                        PlayerInventory inventory = LocalPlayer._instance._inventory;
+                        Sprite sprite = ModAssets.missingIcon;
+
+                        if (rightId != -1 || leftId != -1)
+                        {
+                            // Right hand only
+                            if (rightId != -1 && leftId == -1)
+                            {
+                                if (!inventory._itemInstanceManager.HaveAny(rightId))
+                                {
+                                    sprite = ModAssets.missingIcon;
+                                }
+                                else
+                                {
+                                    sprite = GetCachedSprite(rightId);
+                                }
+                            }
+                            // Left hand only (or both)
+                            else if (rightId == -1 && leftId != -1)
+                            {
+                                if (!inventory._itemInstanceManager.HaveAny(leftId))
+                                {
+                                    sprite = ModAssets.missingIcon;
+                                }
+                                else
+                                {
+                                    sprite = GetCachedSprite(leftId);
+                                }
+                            }
+                        }
+
+                        child.GetChild(1).GetComponent<Image>().sprite = sprite;
                     }
-                    catch
-                    {
-                        // Individual slot update failure - skip
-                    }
+                    catch { }
                 }
+            }
+            catch { }
+        }
+
+        private static Sprite GetCachedSprite(int itemId)
+        {
+            if (_spriteCache.TryGetValue(itemId, out Sprite cached) && cached != null)
+                return cached;
+
+            try
+            {
+                var itemData = ItemDatabaseManager.ItemById(itemId);
+                if (itemData == null) return ModAssets.missingIcon;
+
+                var uiData = itemData.UiData;
+                if (uiData == null) return ModAssets.missingIcon;
+
+                var icon = uiData._icon;
+                if (icon == null) return ModAssets.missingIcon;
+
+                // DummyDll compile-time types: Texture and Texture2D don't inherit Il2CppObjectBase.
+                // At RUNTIME they DO. Use reflection to bypass the generic constraint on Cast<T>().
+                var il2cppBase = (Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase)(object)icon;
+                var castMethod = il2cppBase.GetType().GetMethod("Cast");
+                var genericCast = castMethod.MakeGenericMethod(typeof(Texture2D));
+                var texture = (Texture2D)genericCast.Invoke(il2cppBase, null);
+
+                if (texture == null) return ModAssets.missingIcon;
+
+                var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                _spriteCache[itemId] = sprite;
+                return sprite;
             }
             catch
             {
-                // Silently handle any other crash - hotbar is non-essential
-            }
-        }
-
-        private static void UpdateSlot(int slotIndex, HotkeySaveData saveData)
-        {
-            Transform slotTransform = _hotbarRoot.GetChild(GetSlotId(slotIndex));
-            
-            int leftId = saveData.LeftHandItemIds[slotIndex];
-            int rightId = saveData.RightHandItemIds[slotIndex];
-            
-            Sprite sprite = ModAssets.missingIcon;
-            
-            if (rightId != -1 || leftId != -1)
-            {
-                PlayerInventory inventory = LocalPlayer._instance?._inventory;
-                if (inventory == null) return;
-                
-                int itemId = rightId != -1 ? rightId : leftId;
-                
-                // Check if player has the item
-                bool hasItem = inventory._itemInstanceManager.HaveAny(itemId);
-                
-                if (hasItem)
-                {
-                    // TODO: Icon loading needs texture conversion research
-                    // For now just indicate slot is occupied by leaving missingIcon as-is
-                    // The original used: itemData.UiData._icon.Cast<Texture2D>()
-                }
-            }
-            
-            var imageComponent = slotTransform.GetChild(1)?.GetComponent<Image>();
-            if (imageComponent != null)
-            {
-                imageComponent.sprite = sprite;
+                return ModAssets.missingIcon;
             }
         }
 
         private static int GetSlotId(int index)
         {
             return index == 0 ? 9 : index - 1;
-        }
-
-        private static Sprite ConvertTextureToSprite(Texture2D texture)
-        {
-            if (texture == null) return ModAssets.missingIcon;
-            return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
         }
     }
 }

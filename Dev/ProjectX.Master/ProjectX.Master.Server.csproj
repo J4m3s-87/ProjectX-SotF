@@ -57,14 +57,8 @@
     <Reference Include="Sons.Item">
       <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Item.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\UnityEngine.UI.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.InputSystem">
-      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Unity.InputSystem.dll</HintPath>
-    </Reference>
     
-    <!-- StoneGate Dependencies -->
+    <!-- Multiplayer & Networking -->
     <Reference Include="bolt">
       <HintPath>..\..\Tools\_Redloader\Game\bolt.dll</HintPath>
       <Private>False</Private>
@@ -89,10 +83,6 @@
       <HintPath>..\..\Tools\_Redloader\Game\Il2CppSystem.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Sons.Gui">
-      <HintPath>..\..\Tools\_Redloader\Game\Sons.Gui.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Endnight">
       <HintPath>..\..\Tools\_Redloader\Game\Endnight.dll</HintPath>
       <Private>False</Private>
@@ -109,16 +99,8 @@
       <HintPath>..\..\Tools\_Redloader\Game\Sons.Construction.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Sons.UiElements">
-      <HintPath>..\..\Tools\_Redloader\Game\Sons.UiElements.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Il2Cppmscorlib">
       <HintPath>..\..\Tools\_Redloader\Game\Il2Cppmscorlib.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.TextMeshPro">
-      <HintPath>..\..\Tools\_Redloader\Game\Unity.TextMeshPro.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Sons.Multiplayer">
@@ -131,18 +113,29 @@
     </Reference>
   </ItemGroup>
 
+  <!-- Client-only modules excluded from Server build -->
   <ItemGroup>
+    <!-- Dead/Removed modules -->
+    <Compile Remove="Modules\StoneGate\**" />
+    <Compile Remove="Modules\OpenSesame\**" />
+    <Compile Remove="Modules\PrefabRepair\**" />
+    
+    <!-- Client UI (IMGUI, SUI, SonsAxLib) -->
     <Compile Remove="Modules\UI\AxelUIModule.cs" />
     <Compile Remove="Modules\UI\PlayerActions.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Assets\hotbar_assets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\StoneGate\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Compile Remove="Modules\Hotbar\ModAssets.cs" />
+    
+    <!-- Client-only gameplay modules (use LocalPlayer, no server equivalent) -->
+    <Compile Remove="Modules\Inventory\**" />
+    <Compile Remove="Modules\Player\**" />
+    <Compile Remove="Modules\Compatibility\**" />
+    <Compile Remove="Modules\ScaryCross\**" />
+    <Compile Remove="Modules\Zipline\**" />
+    
+    <!-- MOVED TO SERVER: These gameplay modules are server-safe (Harmony patches, no LocalPlayer/UI) -->
+    <!-- MeatDryer, WaterCollectors, StructureDurability, LootRespawn now compile for Server -->
+    
+    <!-- RaidCustomizer: Refactored for server (reflection for internal fields, QueuedEventHandler/RaidActions client-only) -->
   </ItemGroup>
 
   <ItemGroup>

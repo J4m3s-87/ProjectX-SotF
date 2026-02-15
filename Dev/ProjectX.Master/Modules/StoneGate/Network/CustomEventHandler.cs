@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using Bolt;
 using RedLoader;
+using ProjectX.Master.Modules.Network;
 using ProjectX.Master.Modules.StoneGate.Network.Joining;
 using UnityEngine;
 
@@ -39,6 +40,16 @@ namespace ProjectX.Master.Modules.StoneGate.Network
 				else
 				{
 					Misc.Msg("[CustomEventHandler] [Connected] Player connected", true);
+					
+					// Anti-cheat: request integrity check from connecting client
+					try
+					{
+						IntegrityEvent.Instance?.RequestIntegrityCheck(connection);
+					}
+					catch (Exception ex)
+					{
+						Misc.Msg($"[CustomEventHandler] IntegrityCheck request error: {ex.Message}", true);
+					}
 				}
 			}
 		}

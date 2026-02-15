@@ -1,14 +1,3 @@
-using System;
-using System.Runtime.CompilerServices;
-
-namespace Microsoft.CodeAnalysis
-{
-	// Token: 0x02000002 RID: 2
-	[CompilerGenerated]
-	[Embedded]
-	internal sealed class EmbeddedAttribute : Attribute
-	{
-	}
-}
-
-
+// This file was auto-generated during StoneGate decompilation.
+// It conflicts with the C# compiler's built-in EmbeddedAttribute (CS8336).
+// Excluded from compilation — the compiler provides its own version.

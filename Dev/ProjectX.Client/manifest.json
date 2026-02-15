@@ -1,10 +1,13 @@
 {
-    "Name": "ProjectX Client Edition",
-    "Author": "J4m3s",
-    "ID": "ProjectX.Client",
-    "Version": "1.7.0-beta",
-    "Description": "Client Edition - For friends joining your server",
-    "GameVersion": "1.0.0",
-    "IsUniversal": true,
-    "Dependencies": []
+  "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+  "id": "ProjectX.Client",
+  "name": "ProjectX Client Edition",
+  "author": "J4m3s",
+  "version": "1.7.0",
+  "description": "Client Edition - For friends joining your server",
+  "gameVersion": "1.0.0",
+  "platform": "Universal",
+  "type": "Mod",
+  "dependencies": [],
+  "url": "..."
 }

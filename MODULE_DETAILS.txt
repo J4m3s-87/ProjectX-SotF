@@ -1,28 +1,41 @@
 ================================================================================
                          PROJECT X - MODULE REFERENCE GUIDE
-                              Master Mod v1.5 (Client)
+                              Master Mod v1.7 (Client)
 ================================================================================
 
 This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
+Last Updated: February 08, 2026
+
 ================================================================================
                                 TABLE OF CONTENTS
 ================================================================================
 
-1.  Player Module
-2.  Stack Module
-3.  Zipline Module
-4.  Relocator Module
-5.  Open Sesame Module
-6.  Prefab Repair Module
-7.  Structure Durability Module
-8.  Water Collectors Module
-9.  Meat Dryer Module
-10. Scary Cross Module
-11. Stone Gate Module
-12. Dedicated Superuser Module
+ 1.  Player Module
+ 2.  Stack Module
+ 3.  Zipline Module
+ 4.  Relocator Module
+ 5.  Structure Durability Module
+ 6.  Water Collectors Module
+ 7.  Meat Dryer Module
+ 8.  Scary Cross Module
+ 9.  Faster Crafting Module  *** SUSPENDED - vtable crashes ***
+ 10. RaidCustomizer Module
+ 11. Loot Respawn Module
+ 12. Dedicated Superuser Module
+ 13. Building Cheats Module
+ 14. AmmoUI Module  *** UPDATED ***
+ 15. Builder Stacks Module  *** NEW ***
+ 16. Discord Bridge Module
+ 17. GUI Layout & Menu System
+
+Removed Modules (no longer in build):
+ - Open Sesame (HarmonyPatchAll vtable corruption)
+ - Prefab Repair (HarmonyPatchAll vtable corruption)
+ - Stone Gate (ClassInjector + inventory crash)
+ - Faster Crafting (CraftingCog Harmony patches corrupt IL2CPP vtable)
 
 ================================================================================
                               1. PLAYER MODULE
@@ -34,7 +47,7 @@ Provides player quality-of-life features including teleportation of companions.
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ HOW TO USE                                                                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ 1. Open the Project X menu (default: F1 key)                                │
+│ 1. Open the Project X menu (default: Insert key)                            │
 │ 2. Navigate to the "Player" tab                                             │
 │ 3. Toggle cheats on/off:                                                    │
 │    • God Mode - Makes you invulnerable to all damage                        │
@@ -45,6 +58,8 @@ Provides player quality-of-life features including teleportation of companions.
 │    • Infinite Ammo - Weapons never need reloading                           │
 │    • No Fall Damage - Survive any height                                    │
 │    • Infinite Logs - Carry unlimited logs                                   │
+│    • Infinite Stones - Carry unlimited stones                               │
+│    • Force Rain - Triggers heavy rain instantly                             │
 │                                                                              │
 │ UNSTUCK COMPANIONS:                                                          │
 │ If Kelvin or Virginia gets stuck somewhere:                                  │
@@ -53,8 +68,8 @@ Provides player quality-of-life features including teleportation of companions.
 │ 3. They will teleport 2 meters in front of you                             │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-CONFIG OPTIONS:
-- IsGodMode (bool): Enable invulnerability
+CONFIG OPTIONS (Settings → Mods → ProjectX - Cheats):
+- GodMode (bool): Enable invulnerability
 - IsInfStamina (bool): Enable infinite stamina
 - IsNoHungry (bool): Disable hunger
 - IsNoDehydration (bool): Disable dehydration
@@ -62,6 +77,18 @@ CONFIG OPTIONS:
 - IsInfiniteAmmo (bool): Unlimited ammunition
 - IsNoFallDamage (bool): Disable fall damage
 - InfiniteLogs (bool): Unlimited log carrying
+- InfiniteStones (bool): Unlimited stone carrying
+- InfiniteInventory (bool): Set ALL items to 999,999,999
+
+MOVEMENT OPTIONS (Settings → Mods → ProjectX - Movement):
+- IsNoClip (bool): Fly mode
+- NoClipSpeed (float, 0.5-20): Flight speed
+- NoClipUpDownSpeed (float, 0.1-10): Vertical flight speed
+- WalkSpeed (float, 0.1-10): Walk speed multiplier
+- RunSpeed (float, 0.1-10): Run speed multiplier
+- SwimSpeed (float, 0.1-10): Swim speed multiplier
+- JumpMultiplier (float, 0.5-10): Jump height multiplier
+- IsNoGravity (bool): Float when jumping
 
 INTERNAL MECHANICS:
 - Kelvin internal name: "Robby", "Robby0", "Robby1"...
@@ -80,7 +107,7 @@ greater inventory capacity.
 │ HOW TO USE                                                                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ QUICK MODE - INFINITE STACKS:                                               │
-│ 1. Open the Project X menu (F1)                                             │
+│ 1. Open the Project X menu (Insert)                                         │
 │ 2. Toggle "Infinite Inventory" ON                                           │
 │ 3. All items now stack to 999,999,999                                       │
 │                                                                              │
@@ -294,84 +321,7 @@ INTERNAL MECHANICS:
 - Client-only module (#if !SERVER)
 
 ================================================================================
-                              5. OPEN SESAME MODULE
-================================================================================
-
-PURPOSE:
-Allows doors to be opened from either side, regardless of lock direction.
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ HOW TO USE                                                                   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ This module works AUTOMATICALLY when enabled.                                │
-│                                                                              │
-│ ENABLE THE MODULE:                                                           │
-│ 1. Go to Settings → Mods → Project X                                       │
-│ 2. Enable "OpenSesameEnabled"                                               │
-│                                                                              │
-│ IN-GAME:                                                                     │
-│ 1. Approach any door from EITHER side                                       │
-│ 2. The "Open" prompt appears even if you're on the "wrong" side            │
-│ 3. Press the interact key to open the door                                  │
-│                                                                              │
-│ WHY IS THIS USEFUL?                                                          │
-│ In vanilla, some doors can only be opened from one side (the "front").     │
-│ If you're trapped on the back side, you can't open it.                      │
-│ This mod removes that restriction!                                          │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-ICON POSITIONS:
-- Front: (0, 0, 0.1)
-- Behind: (0.1, 0, -0.3)
-
-CONFIG OPTIONS:
-- OpenSesameEnabled (bool): Enable/disable door unlocking from behind
-
-INTERNAL MECHANICS:
-- Harmony Postfix patch on DoorLock.IsInFront()
-- Forces __result = true to allow opening from any side
-
-================================================================================
-                              6. PREFAB REPAIR MODULE
-================================================================================
-
-PURPOSE:
-Allows damaged structures to be repaired using the repair tool.
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ HOW TO USE                                                                   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ ENABLE THE MODULE:                                                           │
-│ 1. Go to Settings → Mods → Project X                                       │
-│ 2. Enable "PrefabRepairEnabled"                                             │
-│                                                                              │
-│ TO REPAIR A DAMAGED STRUCTURE:                                               │
-│ 1. Find a damaged structure (walls, floors, etc. that took damage)          │
-│ 2. Equip the REPAIR TOOL from your inventory                                │
-│ 3. Stand within 5 meters of the structure                                   │
-│ 4. Aim at the damaged structure                                             │
-│ 5. LEFT-CLICK repeatedly to repair                                          │
-│ 6. Each click restores 1 HP                                                 │
-│ 7. Console shows "Structure fully repaired!" when done                      │
-│                                                                              │
-│ REPAIR COOLDOWN: 0.3 seconds between clicks                                 │
-│                                                                              │
-│ GOLD-PLATED BONUS:                                                           │
-│ Gold-plated structures get boosted max HP (12 instead of standard)          │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-CONFIG OPTIONS:
-- PrefabRepairEnabled (bool): Enable/disable structure repair
-
-INTERNAL MECHANICS:
-- Repair Tool Item ID: 422
-- Repair Range: 5 meters
-- Repair Cooldown: 0.3 seconds
-- Modifies ScrewStructureDestruction._currentHp
-- Gold-plated structures: Sets _structureHp = 12 and _currentHp = 12
-
-================================================================================
-                              7. STRUCTURE DURABILITY MODULE
+                         5. STRUCTURE DURABILITY MODULE
 ================================================================================
 
 PURPOSE:
@@ -406,7 +356,7 @@ INTERNAL MECHANICS:
 - Multiplies both StructureInfo.MaxHealth and StructureInfo.Health
 
 ================================================================================
-                              8. WATER COLLECTORS MODULE
+                          6. WATER COLLECTORS MODULE
 ================================================================================
 
 PURPOSE:
@@ -438,20 +388,24 @@ CONFIG OPTIONS:
 - WaterCollectorHeatRadius (float): Detection radius for fire sources
   Default: 10m
 
-FIRE DETECTION:
-- Searches for objects containing "FireElement" in name
-- Checks for active TemperatureModifierVolume component
-- Uses Physics.OverlapSphere for detection
+FIRE DETECTION (Updated Feb 08 2026):
+- Harmony Postfix on TemperatureModifierVolume.OnEnable() tracks all heat
+  sources in a static list (Physics.OverlapSphere is stripped by IL2CPP)
+- Uses Vector3.Distance checks against tracked heat sources
+- Searches for objects with tag prefix "Fire" (covers all fire variants)
+- State-cached: SetFrozen() only called on state transitions, not every tick
 
 INTERNAL MECHANICS:
-- Recipe ID 56 = Rain Catcher Prefab
-- Injects FireProximityTrigger component into Rain Catcher prefab
-- Sets RainCatcher._currentSeason = 1 (Summer) when fire nearby
-- Sets RainCatcher._currentSeason = 3 (Winter) when no fire
-- Calls RainCatcher.SetFrozen(false/true) accordingly
+- Harmony Postfix on RainCatcher.Attached() to track all catchers
+- OnGuiTick() piggybacked on ProjectXGUI.OnGUI() for scanning loop
+- Uses reflection MethodInfo for SetFrozen(bool) on RainCatcher
+- HashSet<int> tracks unfrozen catcher instance IDs (state caching)
+- Heat source list cleanup every ~60s (null reference pruning)
+- Calls RainCatcher.SetFrozen(false) when fire nearby in winter
+- Calls RainCatcher.SetFrozen(true) when no fire nearby in winter
 
 ================================================================================
-                              9. MEAT DRYER MODULE
+                             7. MEAT DRYER MODULE
 ================================================================================
 
 PURPOSE:
@@ -489,16 +443,6 @@ Meat dries faster when near a fire, with speed varying by season.
 │ • Place racks CLOSE to fires for best results                              │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-SEASON-BASED DRYING BOOST:
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Season  │ Drying Boost │ Min Temperature to Gain Boost                       │
-├─────────┼──────────────┼────────────────────────────────────────────────────┤
-│ Spring  │ 30x          │ 20°C                                               │
-│ Summer  │ 25x          │ 15°C                                               │
-│ Autumn  │ 15x          │ 30°C                                               │
-│ Winter  │ 5x           │ 50°C                                               │
-└──────────────────────────────────────────────────────────────────────────────┘
-
 CONFIG OPTIONS:
 - MeatDryerProximityCheckInterval (float): How often to check temperature
   Default: 5.0 seconds
@@ -513,7 +457,7 @@ INTERNAL MECHANICS:
 - Reads SeasonsManager._activeSeason via cached reflection
 
 ================================================================================
-                             10. SCARY CROSS MODULE
+                            8. SCARY CROSS MODULE
 ================================================================================
 
 PURPOSE:
@@ -550,25 +494,7 @@ effigy that scares away enemies when powered and can even burn them.
 │ • Works best with consistent power supply                                   │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-MECHANICS:
-
-Temperature System:
-- Light intensity rises when demons are in range
-- Temperature rises when light intensity exceeds threshold
-- At burn threshold, the cross catches fire
-- Fire damages the structure over time
-
-Effigy Aura System:
-- When powered: Effigy strength scales with temperature
-- When unpowered: Uses disabled range/strength values
-- Scares demons within range
-
-Demon Burning:
-- Burns demons when temperature is high enough
-- Range scales with temperature (min to max)
-- Triggers ScaryObject burn effect
-
-CONFIG OPTIONS (Advanced):
+CONFIG OPTIONS (Advanced - Settings → Mods → Project X):
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Setting                    │ Purpose                                         │
 ├────────────────────────────┼─────────────────────────────────────────────────┤
@@ -611,61 +537,150 @@ Based on structure HP, lightbulbs fail progressively:
 - HP 5: 2 bulbs out
 
 ================================================================================
-                             11. STONE GATE MODULE
+                    9. FASTER CRAFTING MODULE  *** SUSPENDED ***
+================================================================================
+
+⚠ STATUS: SUSPENDED — Removed from main build (Feb 08 2026)
+
+PURPOSE:
+Speeds up backpack crafting animations, reducing the time required to craft
+items in the inventory screen.
+
+WHY SUSPENDED:
+Harmony patches on CraftingCog caused Fatal CLR Error / vtable corruption
+when opening the backpack (Tab key). Multiple approaches attempted:
+  - Harmony Prefix on CraftingCog.Update() → crash
+  - Direct field access on CraftingCog._craftingSpeed → crash
+  - Property setter CraftingCog.CraftingSpeed → crash
+  - Polling-based approach → IL2CPP strips FindObjectOfType for CraftingCog
+All paths lead to IL2CPP vtable corruption on this specific type.
+The standalone FasterCrafting.dll may work in isolation but is incompatible
+with the monolithic Master DLL architecture.
+
+ORIGINAL CONFIG OPTIONS (for reference):
+- FasterCraftingEnabled (bool): Enable/disable faster crafting
+  Default: true
+- CraftingSpeedMultiplier (float): Speed multiplier
+  Default: 5.0, Range: 1.0-10.0
+
+================================================================================
+                         10. RAIDCUSTOMIZER MODULE
 ================================================================================
 
 PURPOSE:
-Adds a Stone Gate Creator tool that allows building and controlling stone gates.
+Comprehensive raid and enemy customization module. Controls raid scheduling,
+enemy spawn counts, stat multipliers for all enemy types, and multiplayer
+scaling. Also adjusts follower (Kelvin/Virginia) health.
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ HOW TO USE                                                                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ CRAFTING THE STONE GATE TOOL:                                                │
-│ 1. Open your inventory                                                       │
-│ 2. Combine: 2x Stick + 2x Rock                                              │
-│ 3. Craft the "Stone Gate Creator" tool                                      │
+│ All settings are in Settings → Mods → ProjectX - X Raids.                   │
+│ Changes take effect on the next raid cycle.                                  │
 │                                                                              │
-│ CREATING A STONE GATE:                                                       │
-│ 1. Equip the Stone Gate Creator tool                                        │
-│ 2. Press the PRIMARY key (default shown in Settings → Mods → Project X)    │
-│ 3. Place stones to define the gate boundary                                 │
-│ 4. Press the CYCLE key to change modes if needed                            │
-│ 5. Press the FINISH key to complete the gate                                │
+│ RAID SCHEDULING:                                                             │
+│ • XR_RaidsPerDay: How many raids per in-game day                            │
+│ • XR_RaidDistribution: How raids are spread across the day                  │
+│ • XR_ConsiderCurrentTime: Factor current time into scheduling               │
+│ • Time-of-day toggles: Morning / Day / Evening / Night                      │
 │                                                                              │
-│ OPERATING GATES:                                                             │
-│ 1. Approach a completed gate                                                │
-│ 2. Press the FINISH key to open/close it                                    │
+│ ENEMY SPAWN CONTROL:                                                         │
+│ • XR_MinSpawnFactor / XR_MaxSpawnFactor: Spawn count range                  │
+│ • XR_EnemyLimit: Maximum simultaneous enemies                                │
+│ • XR_NormalCooldown: Seconds between normal raids                            │
+│ • XR_IgnoreDayLimit: Raids happen regardless of game day                     │
+│ • XR_IgnoreAngerLimit: Raids happen regardless of anger level                │
 │                                                                              │
-│ DEFAULT KEYBINDS (Configurable in Settings):                                 │
-│ • StoneGate_Primary: Main interaction (place stones)                        │
-│ • StoneGate_Cycle: Switch between placement modes                           │
-│ • StoneGate_Finish: Complete gate / Toggle open-close                       │
+│ BOSS RAIDS:                                                                  │
+│ • XR_BossCount: Number of bosses per boss raid                               │
+│ • XR_BossCooldown: Seconds between boss raids                                │
+│ • XR_BossIgnoreDayLimit / XR_BossIgnoreAngerLimit: Override limits           │
 │                                                                              │
-│ DISMANTLING:                                                                 │
-│ Combine 2x Stone Gate Creator = Stick (recycle your tools)                  │
+│ ENEMY STAT MULTIPLIERS (applied via VailActor.OnEnable Harmony patch):      │
+│ • XR_StatMultiplierEnabled: Master toggle for stat changes                   │
+│ • XR_OverrideHealthOnLoad: Override HP on world load                         │
 │                                                                              │
-│ MULTIPLAYER:                                                                 │
-│ Gates are network-synchronized - all players see the same state!            │
-│ Gates are saved and persist across game sessions                            │
+│ ┌────────────────┬──────────────────┬──────────────────┐                   │
+│ │ Enemy Type     │ Health           │ Damage           │                   │
+│ ├────────────────┼──────────────────┼──────────────────┤                   │
+│ │ Cannibals      │ XR_CannibalHealth│ XR_CannibalDamage│                   │
+│ │ Creepies       │ XR_CreepHealth   │ XR_CreepDamage   │                   │
+│ │ Bosses         │ XR_BossHealth    │ XR_BossDamage    │                   │
+│ └────────────────┴──────────────────┴──────────────────┘                   │
+│ Each type also has an Aggression multiplier.                                 │
+│                                                                              │
+│ FOLLOWER HEALTH:                                                             │
+│ • XR_KelvinHealth: Kelvin HP multiplier                                      │
+│ • XR_VirginiaHealth: Virginia HP multiplier                                  │
+│                                                                              │
+│ MULTIPLAYER SCALING:                                                         │
+│ • XR_AdjustByPlayerCount: Auto-scale difficulty with players                │
+│ • XR_ExtraSpawnsPerPlayer: Extra spawns per connected player                │
+│ • XR_ExtraRaidsPerPlayer: Extra raids per connected player                  │
+│ • XR_ExtraBossesPerPlayer: Extra bosses per connected player                │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-CRAFTING:
-- Recipe: 2x Stick (ID 392) + 2x Rock (ID 393) = Stone Gate Creator
-- Reverse: 2x Stone Gate Creator = Stick
-
-KEYBINDS (Configurable):
-- StoneGate_Primary: Primary action (place/interact)
-- StoneGate_Cycle: Cycle through modes
-- StoneGate_Finish: Complete/open/close gate
-
 INTERNAL MECHANICS:
-- Custom Item ID: 751152
-- Network synchronized (multiplayer compatible)
-- Save/load support via SonsSaveTools
-- Custom asset bundle for 3D models
+- Uses Harmony Postfix on VailActor.OnEnable() for stat application
+- Manual Harmony patching (HarmonyPatchAll=false for IL2CPP safety)
+- Server-authoritative: Raid scheduling runs on host/server
+- Re-queues raids when config changes (MustRequeueRaids flag)
 
 ================================================================================
-                          12. DEDICATED SUPERUSER MODULE
+                         11. LOOT RESPAWN MODULE
+================================================================================
+
+PURPOSE:
+Tracks collected loot items and allows them to respawn after a configurable
+number of in-game days. When items are collected, they are logged with a
+unique identifier. After the respawn timer expires, items can re-appear when
+the area reloads.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ This module works AUTOMATICALLY when enabled.                                │
+│                                                                              │
+│ TO CONFIGURE:                                                                │
+│ 1. Go to Settings → Mods → ProjectX - Modules                              │
+│ 2. Toggle "Enable Loot Respawn" on/off                                      │
+│ 3. Set "Loot Respawn Days" (1-30):                                          │
+│    • Default: 3 days                                                        │
+│    • Lower = items come back faster                                         │
+│    • Higher = more realistic/challenging                                     │
+│                                                                              │
+│ HOW IT WORKS:                                                                │
+│ 1. You pick up any item in the world (supplies, tools, ammo, etc.)         │
+│ 2. The mod records WHAT you took and WHERE (via positional hash)           │
+│ 3. After the configured number of in-game days, the item can respawn       │
+│ 4. On next world load, items past their timer re-appear in the world       │
+│                                                                              │
+│ NOTE:                                                                        │
+│ • Items respawn where they originally spawned                               │
+│ • Works with all PickUp-type objects (food, meds, ammo, materials)         │
+│ • 1 in-game day ≈ 24 real minutes (default cycle)                          │
+│ • At default 3-day respawn: items return after ~72 real minutes             │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+CONFIG OPTIONS:
+- LootRespawnEnabled (bool): Enable/disable loot respawn tracking
+  Default: true
+- LootRespawnDays (int): In-game days until items respawn
+  Default: 3, Range: 1-30
+
+INTERNAL MECHANICS:
+- Harmony Postfix on PickUp.Awake(): Checks suppression table on spawn
+- Harmony Postfix on PickUp.Collect(): Records collection with timestamp
+- Identifier: Integer hash combining (name.GetHashCode() + quantized position)
+  Previously used MD5 — replaced for performance (600+ PickUp.Awake calls
+  during world load made MD5.Create()+ComputeHash() a bottleneck)
+- Timer: RespawnDays × 1440 seconds (1 in-game day ≈ 1440 seconds)
+- Manual Harmony patching (HarmonyPatchAll=false for IL2CPP safety)
+- Runs on all deployment tiers (Solo, Owner, Server, Client)
+- Early-exit guard: if suppression dictionary is empty, Awake hook is no-op
+
+================================================================================
+                       12. DEDICATED SUPERUSER MODULE
 ================================================================================
 
 PURPOSE:
@@ -708,6 +723,235 @@ INTERNAL MECHANICS:
 - Attempts to patch ChatBox.AddLine to intercept commands
 
 ================================================================================
+                         13. BUILDING CHEATS MODULE
+================================================================================
+
+PURPOSE:
+Provides building-related cheats and enhancements via IMGUI toggles.
+All features are accessible from the Project X menu under "Building Cheats".
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 1. Open the Project X menu (default: Insert key)                            │
+│ 2. Scroll to the "BUILDING CHEATS" section                                  │
+│ 3. Toggle features on/off:                                                  │
+│                                                                              │
+│ AVAILABLE TOGGLES:                                                           │
+│ • Free Form Placement - Place structures anywhere without snapping          │
+│   Uses: GameSetupManager.SetFreeFormForcePlaceFullLoadSetting(bool)         │
+│                                                                              │
+│ • Instant Build - Structures complete instantly after placement             │
+│   Uses: DebugConsole.SendCommand("instantbookbuild on/off")                 │
+│                                                                              │
+│ • No Wood Cuttings - Structures build without wood cutting debris           │
+│   Uses: GameSetupManager.SetConstructionSkipCuttingsSpawnSetting(bool)      │
+│                                                                              │
+│ • Log Hack - Infinite log carrying                                          │
+│   Uses: DebugConsole.Instance._loghack("on"/"off")                          │
+│                                                                              │
+│ • Stone Hack - Infinite stone carrying                                      │
+│   Uses: DebugConsole.SendCommand("stonehack on/off")                        │
+│                                                                              │
+│ NOTE: Free Form and No Wood Cuttings use direct game APIs, NOT console      │
+│ commands. These were previously broken (fake commands that didn't exist).    │
+│ Fixed Feb 08 2026 by discovering the real GameSetupManager API in dump.cs.  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+INTERNAL MECHANICS:
+- BuilderEnhancements.cs contains all toggle logic
+- FreeForm and NoCuttings: Direct static API calls on
+  Sons.Gameplay.GameSetup.GameSetupManager (requires Sons.Gameplay.GameSetup.dll)
+- Log Hack and Stone Hack: SendCommand Pivot via DebugConsole.Instance
+- Instant Build: SendCommand("instantbookbuild on/off")
+- All toggles are client-only (#if !SERVER)
+
+API DISCOVERY NOTES:
+- "skipwoodcuttings" and "freeformplace" console commands DO NOT EXIST
+- Real APIs found in dump.cs under GameSetupManager class (line 1187840+)
+- GameSetupManager is in namespace Sons.Gameplay.GameSetup
+- Required adding Sons.Gameplay.GameSetup.dll as a project reference
+
+================================================================================
+                             14. AMMO UI MODULE
+================================================================================
+
+PURPOSE:
+Displays a HUD overlay showing current ammo count when holding a ranged weapon.
+Based on the standalone AmmoUi mod by Axel, now integrated into Project X with
+configurable size and opacity.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ This module works AUTOMATICALLY.                                             │
+│                                                                              │
+│ 1. Equip any ranged weapon (guns, crossbow, etc.)                           │
+│ 2. The ammo counter appears at the bottom-left of the screen:              │
+│    • Large number = remaining ammo in weapon                                │
+│    • Smaller number = total ammo in inventory                               │
+│    • Weapon icon displayed alongside                                        │
+│ 3. The display auto-hides when:                                             │
+│    • Not holding a ranged weapon                                            │
+│    • In pause menu                                                          │
+│    • In inventory screen                                                    │
+│                                                                              │
+│ CUSTOMIZATION:                                                               │
+│ Go to Settings → Mods → ProjectX - AmmoUI:                                  │
+│ • AmmoUI Size (0.1 - 2.0): Scale of the display (default: 1.0)             │
+│   - 0.5 = half size, 1.0 = normal, 2.0 = double size                      │
+│ • AmmoUI Opacity (0 - 1.0): Transparency (default: 1.0)                    │
+│   - 0 = invisible, 0.5 = semi-transparent, 1.0 = fully opaque             │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+CONFIG OPTIONS (Settings → Mods → ProjectX - AmmoUI):
+- AmmoUiSize (float, 0.1-2.0): Scale multiplier for the panel
+  Default: 1.0
+  Applied via RectTransform.localScale (same as original mod)
+- AmmoUiOpacity (float, 0-1.0): Alpha for icon and text color
+  Default: 1.0
+
+INTERNAL MECHANICS:
+- SUI panel: 350×120 pixels base size, AnchorType.BottomLeft
+- Text uses TMP rich text: <size=36> for remaining, <size=28> for total
+- Weapon detection: rightHandItem.Data._weaponType == 2 (ranged)
+- Ammo counting via reflection: LocalPlayer.Inventory.AmountOf()
+- Harmony Postfix on RangedWeapon.SetBulletsAmount for real-time updates
+- Configurable at init time — changes require game restart
+
+================================================================================
+                         15. BUILDER STACKS MODULE
+================================================================================
+
+PURPOSE:
+Allows configurable carrying capacity for builder items (logs, stones) using
+direct memory access. Replaces the problematic InfiniteHack property approach.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ CONFIGURE:                                                                   │
+│ Go to Settings → Mods → ProjectX - Builder Stacks:                          │
+│                                                                              │
+│ • Builder Stacks Enabled (bool): Master toggle                              │
+│ • Max Capacity (int, 1-999): How many logs/stones you can carry             │
+│   Default: 10 (vanilla is ~5 for logs, ~3 for stones)                      │
+│ • Give Delay (float, 0.1-2.0): Seconds between auto-fills                  │
+│   Default: 0.5 seconds                                                      │
+│ • Enable Max Limit (bool): Cap at Max Capacity vs truly infinite            │
+│   Default: true                                                             │
+│                                                                              │
+│ INFINITE MODE:                                                               │
+│ • Disable "Enable Max Limit" → carry unlimited logs/stones                 │
+│ • Uses DebugConsole._loghack() and ._stonehack() silently                  │
+│                                                                              │
+│ BUFFER MODE (Enable Max Limit = ON):                                        │
+│ • Carry up to Max Capacity items                                            │
+│ • Uses direct IL2CPP memory write to _heldCount (offset 0x5C)              │
+│ • Auto-fills when picking up items via TryEquip() polling                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+CONFIG OPTIONS (Settings → Mods → ProjectX - Builder Stacks):
+- BuilderStacksEnabled (bool): Enable/disable module. Default: false
+- BuilderStacksMaxCapacity (int, 1-999): Max items to carry. Default: 10
+- BuilderStacksGiveDelay (float, 0.1-2.0): Delay between fills. Default: 0.5
+- BuilderStacksEnableMaxLimit (bool): Cap vs infinite. Default: true
+
+INTERNAL MECHANICS:
+- Buffer Approach: Writes _heldCount via Marshal.WriteInt32 at offset 0x5C
+- Infinite Mode: Direct calls to DebugConsole.Instance._loghack()/_stonehack()
+  (avoids SendCommand spam — Pattern #14)
+- Uses LocalPlayer.Inventory.TryEquip() for item acquisition
+- No Harmony patches — pure polling in OnUpdate()
+
+================================================================================
+                         16. DISCORD BRIDGE MODULE
+================================================================================
+
+PURPOSE:
+Bridges in-game events (player joins, deaths, chat) to a Discord channel via
+webhook or bot integration. Also provides an in-game chat overlay.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ SETUP:                                                                       │
+│ 1. Open the Project X menu (Insert key)                                     │
+│ 2. Navigate to the "Discord" tab (6th tab)                                  │
+│ 3. Enable "Discord Bridge"                                                  │
+│ 4. Configure bot token and channel ID in native settings:                   │
+│    Settings → Mods → ProjectX - Discord                                     │
+│                                                                              │
+│ TEST BUTTONS (Discord tab):                                                  │
+│ • Test Message - Send a test message to Discord channel                     │
+│ • Test Welcome - Send a welcome embed                                       │
+│ • Test Join - Simulate player join event                                    │
+│ • Test Leave - Simulate player leave event                                  │
+│ • Test Death - Simulate player death event                                  │
+│                                                                              │
+│ IN-GAME CHAT:                                                                │
+│ • Test Chat - Test the in-game chat overlay                                 │
+│ • Test Welcome - Send a welcome message for "TestPlayer"                    │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+CONFIG OPTIONS (Settings → Mods → ProjectX - Discord):
+- EnableDiscordBridge (bool): Master toggle. Default: false
+- DiscordBotToken (string): Bot authentication token
+- DiscordChannelId (string): Target Discord channel ID
+
+INTERNAL MECHANICS:
+- BroadcastMessageModule handles Discord webhook/bot communication
+- InGameChat handles the in-game chat overlay
+- Client-only module (#if !SERVER)
+
+================================================================================
+                     17. GUI LAYOUT & MENU SYSTEM
+================================================================================
+
+PURPOSE:
+The Project X GUI is the main in-game control panel for all modules.
+Uses Unity IMGUI (not SUI) for IL2CPP stability.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ OPENING THE MENU:                                                            │
+│ Press the Insert key (configurable in Settings → Mods → ProjectX - Keys)    │
+│                                                                              │
+│ TABS (6 total):                                                              │
+│ 1. Player      - Cheats, movement, companion unstuck                        │
+│ 2. Environment  - Time, weather, AI, world settings                         │
+│ 3. Teleport     - Quick teleport, coordinate input, location buttons        │
+│ 4. Misc         - Module toggles (Relocator, Durability, etc.)              │
+│ 5. Raids        - X Raids scheduling, enemy types, stat multipliers         │
+│ 6. Discord      - Discord bridge toggle, test buttons, in-game chat         │
+│                                                                              │
+│ NAVIGATION:                                                                  │
+│ Use the ← → arrow buttons at the top to switch between tabs.               │
+│ All panels are scrollable for content that exceeds the visible area.        │
+│                                                                              │
+│ SETTINGS AUTO-APPLY:                                                         │
+│ All toggle and slider changes take effect immediately — no save button      │
+│ needed. Config values are persisted to ProjectX.Master.cfg automatically.   │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+LAYOUT DIMENSIONS:
+- Panel: 1100 × 1150 pixels (positioned top-left, ends above Hotbar)
+- Selector Bar: 800 × 65 pixels (tab navigation)
+- Panel starts at Y=100, leaving room for Hotbar at bottom
+- Red/black theme with glassmorphism-style backgrounds
+
+STYLING (ProjectXStyles.cs):
+- Title: 34px bold, AccentRed
+- Headers: 26px bold, white
+- Dividers: 22px bold, AccentRed ("═══ SECTION ═══" format)
+- Labels: 20px, white
+- Buttons: 20px, 45px height, 16px horizontal padding
+- Toggles: 20px, AccentRed when active
+- Color scheme: PanelColor (deep black 0.97α), ButtonColor (dark red-black),
+  ButtonHoverColor (red), AccentRed (0.85, 0.15, 0.15)
+
+================================================================================
                              RECIPE ID REFERENCE
 ================================================================================
 
@@ -733,6 +977,29 @@ INTERNAL MECHANICS:
 │ 2     │ Autumn │ Moderate drying boost (15x)                 │
 │ 3     │ Winter │ Water collectors freeze, poor drying (5x)   │
 └───────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    REMOVED MODULES (Historical Reference)
+================================================================================
+
+The following modules have been permanently removed from Project X due to
+IL2CPP compatibility issues. They are documented here for historical context.
+
+OPEN SESAME:
+- Allowed doors to be opened from either side regardless of lock direction
+- Removed due to HarmonyPatchAll vtable corruption causing backpack crashes
+- Harmony Postfix on DoorLock.IsInFront() forced __result = true
+
+PREFAB REPAIR:
+- Allowed repairing damaged structures with the repair tool
+- Removed due to HarmonyPatchAll vtable corruption causing backpack crashes
+- Modified ScrewStructureDestruction._currentHp
+
+STONE GATE:
+- Added craftable stone gates with open/close mechanics
+- Removed due to ClassInjector type registrations destabilizing inventory UI
+- Custom Item ID: 751152, used ClassInjector.RegisterTypeInIl2Cpp<T>()
+- Has known upstream crash bug (confirmed by original mod author)
 
 ================================================================================
                               END OF DOCUMENT

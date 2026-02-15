@@ -15,6 +15,13 @@
     <RootNamespace>ProjectX.Master</RootNamespace>
   </PropertyGroup>
 
+  <!-- Exclude removed modules from compilation -->
+  <ItemGroup>
+    <Compile Remove="Modules\StoneGate\**" />
+    <Compile Remove="Modules\OpenSesame\**" />
+    <Compile Remove="Modules\PrefabRepair\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Core RedLoader SDKs -->
     <Reference Include="RedLoader">
@@ -29,6 +36,9 @@
     <Reference Include="0Harmony">
       <HintPath>..\..\Tools\_Redloader\net6\0Harmony.dll</HintPath>
     </Reference>
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>..\..\Tools\_Redloader\net6\Il2CppInterop.Runtime.dll</HintPath>
+    </Reference>
 
     <!-- Game Assemblies (from RedLoader Game InterOp) -->
     <Reference Include="Sons">
@@ -40,6 +50,9 @@
     </Reference>
     <Reference Include="Sons.Atmosphere">
       <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Atmosphere.dll</HintPath>
+    </Reference>
+    <Reference Include="Sons.Gameplay.GameSetup">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Gameplay.GameSetup.dll</HintPath>
     </Reference>
     <Reference Include="Sons.Input">
       <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Input.dll</HintPath>
@@ -54,10 +67,15 @@
       <HintPath>..\..\Tools\Il2CppDumper\DummyDll\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>..\..\Tools\_Redloader\Game\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Sons.Item">
       <HintPath>..\..\Tools\_Redloader\Game\Sons.Item.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sons.Weapon">
+      <HintPath>..\..\Tools\_Redloader\Game\Sons.Weapon.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
@@ -150,9 +168,6 @@
 
   <ItemGroup>
     <Content Include="Assets\hotbar_assets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\StoneGate\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

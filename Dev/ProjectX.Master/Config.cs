@@ -25,6 +25,8 @@ namespace ProjectX.Master
         private static ConfigCategory StacksFoodCategory { get; set; }
         private static ConfigCategory StacksCombatCategory { get; set; }
         private static ConfigCategory StacksResourcesCategory { get; set; }
+        private static ConfigCategory BuilderStacksCategory { get; set; }
+        private static ConfigCategory AmmoUiCategory { get; set; }
         
         // X Raids Categories (merged from RaidConfig)
         private static ConfigCategory XRaidsGeneralCategory { get; set; }
@@ -52,6 +54,8 @@ namespace ProjectX.Master
         public static ConfigEntry<bool> IsNoFallDamage { get; private set; }
         [SettingsUiInclude]
         public static ConfigEntry<bool> InfiniteLogs { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> InfiniteStones { get; private set; }
         
         // ======================== INVENTORY / STACKS ========================
         [SettingsUiInclude]
@@ -274,22 +278,16 @@ namespace ProjectX.Master
         // ======================== KEYBINDS ========================
         [SettingsUiInclude]
         public static KeybindConfigEntry OpenKey { get; private set; }
-        [SettingsUiInclude]
-        public static KeybindConfigEntry StoneGate_Primary { get; private set; }
-        [SettingsUiInclude]
-        public static KeybindConfigEntry StoneGate_Cycle { get; private set; }
-        [SettingsUiInclude]
-        public static KeybindConfigEntry StoneGate_Finish { get; private set; }
         
         // ======================== MODULES ========================
         [SettingsUiInclude]
         public static ConfigEntry<bool> RelocatorEnabled { get; private set; }
         [SettingsUiInclude]
-        public static ConfigEntry<bool> OpenSesameEnabled { get; private set; }
-        [SettingsUiInclude]
-        public static ConfigEntry<bool> PrefabRepairEnabled { get; private set; }
-        [SettingsUiInclude]
         public static ConfigEntry<float> StructureDurabilityMultiplier { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> FasterCraftingEnabled { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> CraftingSpeedMultiplier { get; private set; }
         
         // ======================== ZIPLINE ========================
         [SettingsUiInclude]
@@ -305,7 +303,25 @@ namespace ProjectX.Master
         [SettingsUiInclude]
         public static ConfigEntry<float> MeatDryerProximityCheckInterval { get; private set; }
         [SettingsUiInclude]
+        public static ConfigEntry<float> MeatDryerSpeedMultiplier { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> MeatDryerCureTimeDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> MeatDryerInstantDry { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> MeatDryerNoFireRequired { get; private set; }
+        [SettingsUiInclude]
         public static ConfigEntry<float> FlashlightIntensity { get; private set; }
+        
+        // ======================== AUDIO CONTROL ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<float> WaterfallVolume { get; private set; }
+        
+        // ======================== LOOT RESPAWN ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> LootRespawnEnabled { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LootRespawnDays { get; private set; }
         
         // ======================== DISCORD BRIDGE ========================
         [SettingsUiInclude]
@@ -314,6 +330,16 @@ namespace ProjectX.Master
         public static ConfigEntry<string> DiscordBotToken { get; private set; }
         [SettingsUiInclude]
         public static ConfigEntry<string> DiscordChannelId { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> DiscordWelcomeChannelId { get; private set; }
+        
+        // ======================== WELCOME MESSAGES ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> EnableWelcomeMessage { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> WelcomeMessageDelay { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<string> WelcomeMessageText { get; private set; }
 
         // ======================== SCARYCROSS (Advanced) ========================
         [SettingsUiInclude]
@@ -454,8 +480,25 @@ namespace ProjectX.Master
         // Flag for RaidCustomizer module
         public static bool MustRequeueRaids { get; set; }
 
+        // ======================== BUILDER STACKS ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> BuilderStacksEnabled { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> BuilderStacksMaxCapacity { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> BuilderStacksGiveDelay { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> BuilderStacksEnableMaxLimit { get; private set; }
+
+        // ======================== AMMO UI ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<float> AmmoUiSize { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<float> AmmoUiOpacity { get; private set; }
+
         public static void Init()
         {
+
             // Config file - same name for backwards compatibility
             const string configFile = "ProjectX.Master.cfg";
             
@@ -470,7 +513,8 @@ namespace ProjectX.Master
             IsInfiniteAmmo = CheatsCategory.CreateEntry<bool>("IsInfiniteAmmo", false, "Infinite Ammo", "Never reload");
             IsNoFallDamage = CheatsCategory.CreateEntry<bool>("IsNoFallDamage", false, "No Fall Damage", "No fall damage");
             InfiniteLogs = CheatsCategory.CreateEntry<bool>("InfiniteLogs", false, "Infinite Logs", "Never run out of logs");
-            InfiniteInventory = CheatsCategory.CreateEntry<bool>("InfiniteInventory", false, "Infinite Items (Local)", "Sets ALL items to 999999999");
+            InfiniteStones = CheatsCategory.CreateEntry<bool>("InfiniteStones", false, "Infinite Stones", "Never run out of stones");
+            InfiniteInventory = CheatsCategory.CreateEntry<bool>("InfiniteInventory", false, "Infinite Stacks", "Sets ALL item stack caps to 999999999");
             
             // ===== CATEGORY: MOVEMENT =====
             MovementCategory = ConfigSystem.CreateFileCategory("ProjectX - Movement", "ProjectX - Movement", configFile);
@@ -508,10 +552,80 @@ namespace ProjectX.Master
             ModulesCategory = ConfigSystem.CreateFileCategory("ProjectX - Modules", "ProjectX - Modules", configFile);
             
             RelocatorEnabled = ModulesCategory.CreateEntry<bool>("RelocatorEnabled", true, "Enable Relocator", "Always-on: Unlock 'C' to move for all structures");
-            OpenSesameEnabled = ModulesCategory.CreateEntry<bool>("OpenSesameEnabled", true, "Open Sesame", "Enable opening locked doors from any side without keys");
-            PrefabRepairEnabled = ModulesCategory.CreateEntry<bool>("PrefabRepairEnabled", true, "Prefab Repair", "Allow repairing furniture with the repair tool");
+            LootRespawnEnabled = ModulesCategory.CreateEntry<bool>("LootRespawnEnabled", true, "Enable Loot Respawn", "Respawn picked up items after X days");
+            LootRespawnEnabled.OnValueChanged.Subscribe((_, newVal) => {
+                Modules.LootRespawn.LootRespawnModule.Enabled = newVal;
+            });
+            Modules.LootRespawn.LootRespawnModule.Enabled = LootRespawnEnabled.Value;
+            LootRespawnDays = ModulesCategory.CreateEntry<int>("LootRespawnDays", 3, "Loot Respawn Days", "Days until items respawn (1-30)");
+            LootRespawnDays.SetRange(1, 30);
+            LootRespawnDays.OnValueChanged.Subscribe((_, newVal) => {
+                Modules.LootRespawn.RespawnConfig.RespawnDays = newVal;
+            });
+            Modules.LootRespawn.RespawnConfig.RespawnDays = LootRespawnDays.Value;
+            
+            // Crafting Speed — entries on all builds for ConfigSync, module wiring client-only
+            FasterCraftingEnabled = ModulesCategory.CreateEntry<bool>("FasterCraftingEnabled", true, "Faster Crafting", "Speed up backpack crafting");
+            CraftingSpeedMultiplier = ModulesCategory.CreateEntry<float>("CraftingSpeedMultiplier", 5f, "Crafting Speed Multiplier", "Speed multiplier (1 = normal, 10 = instant)");
+            CraftingSpeedMultiplier.SetRange(1f, 10f);
+#if !SERVER
+            FasterCraftingEnabled.OnValueChanged.Subscribe((_, newVal) => {
+                Modules.Crafting.CraftingSpeed.Enabled = newVal;
+            });
+            Modules.Crafting.CraftingSpeed.Enabled = FasterCraftingEnabled.Value;
+            CraftingSpeedMultiplier.OnValueChanged.Subscribe((_, newVal) => {
+                Modules.Crafting.CraftingSpeed.SpeedMultiplier = newVal;
+            });
+            Modules.Crafting.CraftingSpeed.SpeedMultiplier = CraftingSpeedMultiplier.Value;
+#endif
+            
             StructureDurabilityMultiplier = ModulesCategory.CreateEntry<float>("StructureDurabilityMultiplier", 1f, "Structure Durability", "Health Multiplier (100 = Invincible-ish)");
             StructureDurabilityMultiplier.SetRange(0.1f, 100f);
+            
+            // ===== CATEGORY: BUILDER STACKS =====
+            BuilderStacksCategory = ConfigSystem.CreateFileCategory("ProjectX - Builder Stacks", "ProjectX - Builder Stacks", configFile);
+            
+            BuilderStacksEnabled = BuilderStacksCategory.CreateEntry<bool>("BuilderStacksEnabled", true, "Enable Builder Stacks", "Carry extra logs, planks, and stones beyond vanilla limit");
+            BuilderStacksEnabled.OnValueChanged.Subscribe((_, newVal) => {
+#if !SERVER
+                Modules.BuilderStacks.BuilderStacksModule.Enabled = newVal;
+#endif
+            });
+#if !SERVER
+            Modules.BuilderStacks.BuilderStacksModule.Enabled = BuilderStacksEnabled.Value;
+#endif
+            
+            BuilderStacksMaxCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxCapacity", 10, "Max Carry Capacity", "Maximum building materials you can carry at once");
+            BuilderStacksMaxCapacity.SetRange(2, 50);
+            BuilderStacksMaxCapacity.OnValueChanged.Subscribe((_, newVal) => {
+#if !SERVER
+                Modules.BuilderStacks.BuilderStacksModule.MaxCapacity = newVal;
+#endif
+            });
+#if !SERVER
+            Modules.BuilderStacks.BuilderStacksModule.MaxCapacity = BuilderStacksMaxCapacity.Value;
+#endif
+            
+            BuilderStacksEnableMaxLimit = BuilderStacksCategory.CreateEntry<bool>("BuilderStacksEnableMaxLimit", true, "Enable Max Limit", "If off, carry unlimited materials");
+            BuilderStacksEnableMaxLimit.OnValueChanged.Subscribe((_, newVal) => {
+#if !SERVER
+                Modules.BuilderStacks.BuilderStacksModule.EnableMaxLimit = newVal;
+#endif
+            });
+#if !SERVER
+            Modules.BuilderStacks.BuilderStacksModule.EnableMaxLimit = BuilderStacksEnableMaxLimit.Value;
+#endif
+            
+            BuilderStacksGiveDelay = BuilderStacksCategory.CreateEntry<float>("BuilderStacksGiveDelay", 0.2f, "Re-equip Delay", "Seconds before auto re-equipping from buffer (lower = faster)");
+            BuilderStacksGiveDelay.SetRange(0.1f, 3f);
+            BuilderStacksGiveDelay.OnValueChanged.Subscribe((_, newVal) => {
+#if !SERVER
+                Modules.BuilderStacks.BuilderStacksModule.GiveDelay = newVal;
+#endif
+            });
+#if !SERVER
+            Modules.BuilderStacks.BuilderStacksModule.GiveDelay = BuilderStacksGiveDelay.Value;
+#endif
             
             // ===== CATEGORY: ZIPLINE =====
             ZiplineCategory = ConfigSystem.CreateFileCategory("ProjectX - Zipline", "ProjectX - Zipline", configFile);
@@ -522,9 +636,6 @@ namespace ProjectX.Master
             MaxShootingDistance = ZiplineCategory.CreateEntry<float>("MaxShootingDistance", float.MaxValue, "Max Shooting Distance", "Max rope gun targeting distance (game default ~50)");
             MaxShootingDistance.DefaultValue = 50f;
             MaxShootingDistance.SetRange(MaxShootingDistance.DefaultValue, 10000f);
-            MaxRopeBridgeLength = ZiplineCategory.CreateEntry<float>("MaxRopeBridgeLength", float.MaxValue, "Max Rope Bridge Length (m)", "Maximum rope bridge length in meters (game default ~24m)");
-            MaxRopeBridgeLength.DefaultValue = 24f;
-            MaxRopeBridgeLength.SetRange(5f, 400f);
             
             // ===== CATEGORY: FEATURES =====
             FeaturesCategory = ConfigSystem.CreateFileCategory("ProjectX - Features", "ProjectX - Features", configFile);
@@ -533,8 +644,28 @@ namespace ProjectX.Master
             WaterCollectorHeatRadius.SetRange(0.5f, 10f);
             MeatDryerProximityCheckInterval = FeaturesCategory.CreateEntry<float>("MeatDryerProximityCheckInterval", 2.0f, "Meat Dryer Check Interval", "How often (seconds) to check for fire proximity");
             MeatDryerProximityCheckInterval.SetRange(0.5f, 10f);
+            MeatDryerSpeedMultiplier = FeaturesCategory.CreateEntry<float>("MeatDryerSpeedMultiplier", 1.0f, "Meat Dryer Speed Multiplier", "Multiplier for drying speed near fires (1 = normal, 10 = 10x faster)");
+            MeatDryerSpeedMultiplier.SetRange(1f, 50f);
+            MeatDryerCureTimeDays = FeaturesCategory.CreateEntry<float>("MeatDryerCureTimeDays", -1f, "Meat Dryer Cure Time (Days)", "Override cure time in game days (-1 = use default, 0.1 = very fast)");
+            MeatDryerCureTimeDays.SetRange(-1f, 10f);
+            MeatDryerInstantDry = FeaturesCategory.CreateEntry<bool>("MeatDryerInstantDry", false, "Meat Dryer Instant Dry", "Instantly dry all meat placed on racks");
+            MeatDryerNoFireRequired = FeaturesCategory.CreateEntry<bool>("MeatDryerNoFireRequired", false, "Meat Dryer No Fire Required", "Drying boost always active, no fire needed");
             FlashlightIntensity = FeaturesCategory.CreateEntry<float>("FlashlightIntensity", 1.0f, "Flashlight Intensity", "Brightness multiplier");
             FlashlightIntensity.SetRange(0.1f, 5f);
+            MaxRopeBridgeLength = FeaturesCategory.CreateEntry<float>("MaxRopeBridgeLength", float.MaxValue, "Max Rope Bridge Length (m)", "Maximum rope bridge length in meters (game default ~24m)");
+            MaxRopeBridgeLength.DefaultValue = 24f;
+            MaxRopeBridgeLength.SetRange(5f, 400f);
+            
+            // Audio Control
+            WaterfallVolume = FeaturesCategory.CreateEntry<float>("WaterfallVolume", 1.0f, "Waterfall Volume", "Volume multiplier for waterfalls (0 = mute, 3 = loud)");
+            WaterfallVolume.SetRange(0f, 3f);
+#if !SERVER
+            WaterfallVolume.OnValueChanged.Subscribe((oldVal, newVal) => {
+                Modules.Audio.AudioControl.WaterfallVolume = newVal;
+            });
+#endif
+            
+            // Loot Respawn - moved to Modules category
 
             // ===== CATEGORY: DISCORD =====
             DiscordCategory = ConfigSystem.CreateFileCategory("ProjectX - Discord", "ProjectX - Discord", configFile);
@@ -542,14 +673,19 @@ namespace ProjectX.Master
             EnableDiscordBridge = DiscordCategory.CreateEntry<bool>("EnableDiscordBridge", false, "Enable Discord Bridge", "Broadcast chat to Discord");
             DiscordBotToken = DiscordCategory.CreateEntry<string>("DiscordBotToken", "", "Discord Bot Token", "Your Bot Token");
             DiscordChannelId = DiscordCategory.CreateEntry<string>("DiscordChannelId", "", "Discord Channel ID", "Channel ID to broadcast to");
+            DiscordWelcomeChannelId = DiscordCategory.CreateEntry<string>("DiscordWelcomeChannelId", "", "Discord Welcome Channel ID", "Channel ID to fetch welcome/rules from on player join");
+            
+            // Welcome Messages
+            EnableWelcomeMessage = DiscordCategory.CreateEntry<bool>("EnableWelcomeMessage", true, "Enable Welcome Message", "Send welcome to joining players in-game chat");
+            WelcomeMessageDelay = DiscordCategory.CreateEntry<float>("WelcomeMessageDelay", 30.0f, "Welcome Message Delay", "Seconds to wait before sending welcome");
+            WelcomeMessageDelay.SetRange(1f, 60f);
+            WelcomeMessageText = DiscordCategory.CreateEntry<string>("WelcomeMessageText", "Visit https://discord.gg/GQDfkdUD for the Mod Pack and Server Information", "Welcome Message Text", "Custom text shown to players on join");
 
             // ===== CATEGORY: KEYBINDS =====
             KeysCategory = ConfigSystem.CreateFileCategory("ProjectX - Keys", "ProjectX - Keys", configFile);
             
             OpenKey = KeysCategory.CreateKeybindEntry("OpenKey", "insert", "Open Menu Key", "Key to open Project X menu");
-            StoneGate_Primary = KeysCategory.CreateKeybindEntry("stone_gate_primary", "<Mouse>/leftButton", "StoneGate: Use Tool", "Hit Tool Key");
-            StoneGate_Cycle = KeysCategory.CreateKeybindEntry("stone_gate_cycle", "c", "StoneGate: Change Mode", "Key changes tool mode");
-            StoneGate_Finish = KeysCategory.CreateKeybindEntry("stone_gate_finish", "e", "StoneGate: Finish/Open", "Open-Close Door / Finish Gate Key");
+
             
             // ===== CATEGORY: STACKS - CRAFTING =====
             StacksCraftingCategory = ConfigSystem.CreateFileCategory("ProjectX - Stacks Crafting", "ProjectX - Stacks Crafting", configFile);
@@ -803,6 +939,17 @@ namespace ProjectX.Master
             XR_ExtraBossesPerPlayer = XRaidsMultiplayerCategory.CreateEntry<int>("XR_ExtraBosses", 1, "Extra Bosses Per Player");
             XR_ExtraBossesPerPlayer.SetRange(0, 10);
             XR_ExtraBossesPerPlayer.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
+            
+            // ===== CATEGORY: AMMO UI =====
+            AmmoUiCategory = ConfigSystem.CreateFileCategory("ProjectX - AmmoUI", "ProjectX - AmmoUI", configFile);
+            
+            AmmoUiSize = AmmoUiCategory.CreateEntry<float>("AmmoUiSize", 1.0f, "AmmoUI Size", "Scale of the ammo display (0.1 = tiny, 2.0 = large)");
+            AmmoUiSize.SetRange(0.1f, 2.0f);
+            AmmoUiOpacity = AmmoUiCategory.CreateEntry<float>("AmmoUiOpacity", 1.0f, "AmmoUI Opacity", "Transparency of the ammo display (0 = invisible, 1 = solid)");
+            AmmoUiOpacity.SetRange(0f, 1f);
+            
+            // Register config entries for network sync (must be after all entries created)
+            Modules.Network.ConfigSyncPayload.RegisterEntries();
         }
 
         public static void Save()

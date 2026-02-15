@@ -1,6 +1,5 @@
 using System;
 using System.Drawing;
-using System.Reflection;
 using Endnight.Types;
 using RedLoader;
 using Sons.Characters;
@@ -81,23 +80,17 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         {
             try
             {
-                // Try calling QueueMorningEvents via reflection
-                var method = typeof(VailWorldEvents).GetMethod("QueueMorningEvents", 
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                // Reset the last queued day — the game's Update() loop detects the
+                // day mismatch and re-queues events naturally on the next tick.
+                // NOTE: QueueMorningEvents/QueueEvents don't exist in the IL2CPP dump,
+                // so the old reflection Invoke() calls were silently doing nothing.
+                worldEvents._lastQueuedDay = -1;
                 
-                if (method != null)
+                // Apply our search party configuration to the current event data
+                var eventData = RaidPatches.GetWorldEventData(worldEvents);
+                if (eventData != null)
                 {
-                    method.Invoke(worldEvents, null);
-                    return;
-                }
-                
-                // Alternative: Try QueueEvents or similar
-                var altMethod = typeof(VailWorldEvents).GetMethod("QueueEvents",
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                
-                if (altMethod != null)
-                {
-                    altMethod.Invoke(worldEvents, null);
+                    SearchPartyEventConfigurator.PrepareForNewDay(eventData);
                 }
             }
             catch { }

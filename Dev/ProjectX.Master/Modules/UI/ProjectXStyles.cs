@@ -61,19 +61,19 @@ namespace ProjectX.Master.Modules.UI
             // Panel background - use box style
             PanelBackground = new GUIStyle(GUI.skin.box)
             {
-                padding = new RectOffset(15, 15, 15, 15)
+                padding = new RectOffset(20, 20, 20, 20)
             };
             
             // Selector bar
             SelectorBar = new GUIStyle(GUI.skin.box)
             {
-                padding = new RectOffset(10, 10, 8, 8)
+                padding = new RectOffset(12, 12, 10, 10)
             };
             
             // Title - "Project X Mod Menu" (large, red, bold)
             TitleLabel = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 28,
+                fontSize = 34,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = AccentRed }
@@ -82,7 +82,7 @@ namespace ProjectX.Master.Modules.UI
             // Header - Panel title (large, white, bold)
             HeaderLabel = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 22,
+                fontSize = 26,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = Color.white }
@@ -91,17 +91,17 @@ namespace ProjectX.Master.Modules.UI
             // Divider labels (red accent, like "═══ SECTION ═══")
             DividerLabel = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 18,
+                fontSize = 22,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = AccentRed },
-                margin = new RectOffset(0, 0, 14, 8)
+                margin = new RectOffset(0, 0, 16, 10)
             };
             
             // Normal text label
             NormalLabel = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 18,
+                fontSize = 20,
                 normal = { textColor = Color.white },
                 alignment = TextAnchor.MiddleLeft
             };
@@ -109,7 +109,7 @@ namespace ProjectX.Master.Modules.UI
             // Value display (right-aligned numbers, red tinted)
             ValueLabel = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 18,
+                fontSize = 20,
                 normal = { textColor = new Color(1f, 0.7f, 0.7f) },
                 alignment = TextAnchor.MiddleRight
             };
@@ -117,78 +117,78 @@ namespace ProjectX.Master.Modules.UI
             // Standard button
             Button = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 18,
+                fontSize = 20,
                 fontStyle = FontStyle.Normal,
                 normal = { textColor = Color.white },
                 hover = { textColor = Color.white },
                 active = { textColor = Color.white },
-                padding = new RectOffset(14, 14, 12, 12),
-                margin = new RectOffset(3, 3, 4, 4)
+                padding = new RectOffset(16, 16, 14, 14),
+                margin = new RectOffset(4, 4, 5, 5)
             };
             
             // Arrow buttons (← →)
             ArrowButton = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 28,
+                fontSize = 32,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
-                fixedWidth = 60,
-                fixedHeight = 50
+                fixedWidth = 70,
+                fixedHeight = 55
             };
             
             // Green button (for special actions)
             GreenButton = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 18,
+                fontSize = 20,
                 fontStyle = FontStyle.Normal,
                 normal = { textColor = Color.white },
                 hover = { textColor = Color.white },
-                padding = new RectOffset(14, 14, 12, 12),
-                margin = new RectOffset(3, 3, 4, 4)
+                padding = new RectOffset(16, 16, 14, 14),
+                margin = new RectOffset(4, 4, 5, 5)
             };
             
             // Red button (accent actions)
             RedButton = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 16,
+                fontSize = 18,
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = AccentRed },
                 hover = { textColor = Color.white },
-                padding = new RectOffset(14, 14, 10, 10),
-                margin = new RectOffset(3, 3, 3, 3)
+                padding = new RectOffset(16, 16, 12, 12),
+                margin = new RectOffset(4, 4, 4, 4)
             };
             
             // Toggle/Checkbox (red when on)
             Toggle = new GUIStyle(GUI.skin.toggle)
             {
-                fontSize = 16,
+                fontSize = 20,
                 normal = { textColor = Color.white },
                 hover = { textColor = new Color(1f, 0.85f, 0.85f) },
                 onNormal = { textColor = AccentRed },
-                padding = new RectOffset(28, 0, 4, 4),
-                margin = new RectOffset(6, 6, 4, 4)
+                padding = new RectOffset(32, 0, 6, 6),
+                margin = new RectOffset(8, 8, 6, 6)
             };
             
             // Slider background
             HorizontalSlider = new GUIStyle(GUI.skin.horizontalSlider)
             {
-                fixedHeight = 12
+                fixedHeight = 18
             };
             
             // Slider thumb
             HorizontalSliderThumb = new GUIStyle(GUI.skin.horizontalSliderThumb)
             {
-                fixedWidth = 16,
-                fixedHeight = 16
+                fixedWidth = 22,
+                fixedHeight = 22
             };
             
             // Text input field
             InputField = new GUIStyle(GUI.skin.textField)
             {
-                fontSize = 14,
+                fontSize = 18,
                 normal = { textColor = Color.white },
                 focused = { textColor = Color.white },
-                padding = new RectOffset(8, 8, 6, 6)
+                padding = new RectOffset(10, 10, 8, 8)
             };
             
             // Scroll view

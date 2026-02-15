@@ -49,6 +49,17 @@ namespace ProjectX.Master.Modules.BroadcastMessage
                 RLog.Msg($"[BroadcastMessage] Chat log: {_logPath}");
                 
                 _initialized = true;
+
+                // Register welcome message handler (server/owner)
+#if SERVER || OWNER
+                WelcomeHandler.Register();
+                
+                // Start Discord → Game chat relay (polls Discord for new messages)
+                if (Config.EnableDiscordBridge.Value)
+                {
+                    DiscordBridge.StartPolling();
+                }
+#endif
             }
             catch (Exception ex)
             {

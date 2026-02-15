@@ -25,14 +25,19 @@ namespace ProjectX.Master.Modules.StructureDurability
         [HarmonyPostfix]
         public static void PostfixGetStructureInfo(ref StructureInfo __result, Structure structure)
         {
-            if (structure == null) return;
-
-            float multiplier = Config.StructureDurabilityMultiplier.Value;
-            if (multiplier > 1.01f || multiplier < 0.99f)
+            try
             {
-                __result.MaxHealth *= multiplier;
-                __result.Health *= multiplier;
+                if (structure == null) return;
+                if (__result.MaxHealth <= 0f) return; // guard against default/zeroed structs
+
+                float multiplier = Config.StructureDurabilityMultiplier.Value;
+                if (multiplier > 1.01f || multiplier < 0.99f)
+                {
+                    __result.MaxHealth *= multiplier;
+                    __result.Health *= multiplier;
+                }
             }
+            catch { /* Never crash the game from a postfix */ }
         }
     }
 }

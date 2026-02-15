@@ -6,6 +6,7 @@ using Il2CppInterop.Runtime.Injection;
 using SonsSdk;
 using TheForest.Utils;
 using UnityEngine;
+using TheForest;
 using ProjectX.Master.Modules.Player;
 using ProjectX.Master.Modules.Network;
 
@@ -23,13 +24,13 @@ namespace ProjectX.Master.Modules.UI
         // State
         private bool _showMenu = false;
         private int _currentPanel = 0;
-        private readonly string[] _panelNames = { "Player", "Environment", "Teleport", "System", "Misc", "Raids" };
+        private readonly string[] _panelNames = { "Player", "Environment", "Teleport", "Misc", "Raids", "Discord", "Server Admin" };
         
-        // Layout dimensions (2x size for better readability)
-        private const float PANEL_WIDTH = 900f;
-        private const float PANEL_HEIGHT = 900f;
-        private const float SELECTOR_WIDTH = 600f;
-        private const float SELECTOR_HEIGHT = 60f;
+        // Layout dimensions (enlarged for better readability)
+        private const float PANEL_WIDTH = 1100f;
+        private const float PANEL_HEIGHT = 1150f;
+        private const float SELECTOR_WIDTH = 800f;
+        private const float SELECTOR_HEIGHT = 65f;
         
         private Rect _selectorRect;
         private Rect _panelRect;
@@ -40,6 +41,7 @@ namespace ProjectX.Master.Modules.UI
         private string _timeInput = "12:00";
         private string _speedInput = "1";
         private string _stackInput = "999";
+        private bool _forceRainActive = false;
         
         // Teleport locations (matches Axel's)
         private static readonly Dictionary<string, Vector3> TeleportLocations = new Dictionary<string, Vector3>
@@ -57,7 +59,8 @@ namespace ProjectX.Master.Modules.UI
             { "Shovel Cave", new Vector3(-531, 200, 124) },
             { "Rope Gun Cave", new Vector3(-1113, 132, -171) },
             { "Crossbow Bunker", new Vector3(-1014, 102, 1024) },
-            { "End Game Bunker", new Vector3(1756, 45, 553) }
+            { "End Game Bunker", new Vector3(1756, 45, 553) },
+            { "Modern Bow", new Vector3(-1121, 270, -1041) }
         };
 
         void Awake()
@@ -97,12 +100,10 @@ namespace ProjectX.Master.Modules.UI
         private void ToggleMenu()
         {
 #if CLIENT
-            // Client edition: check permission before allowing menu
-            if (!PermissionSync.HasMenuAccess)
-            {
-                RLog.Msg("[ProjectXGUI] Menu access denied by server");
-                return;
-            }
+            // Client edition: menu is locked — all settings controlled by server ConfigSync.
+            // Future: server-wide cheats toggle could unlock specific panels.
+            RLog.Msg("[ProjectXGUI] Client build: menu disabled (server-authoritative)");
+            return;
 #endif
             _showMenu = !_showMenu;
             
@@ -123,6 +124,11 @@ namespace ProjectX.Master.Modules.UI
 
         void OnGUI()
         {
+            // Piggyback MeatDryer scanner on this proven OnGUI loop
+            try { MeatDryer.MeatDryerModule.OnGuiTick(); } catch { }
+            // Piggyback WaterCollectors fire proximity check
+            try { WaterCollectors.WaterCollectorsModule.OnGuiTick(); } catch { }
+            
             if (!_showMenu) return;
 #if CLIENT
             // Safety fallback: hide menu if permission revoked mid-session
@@ -215,9 +221,10 @@ namespace ProjectX.Master.Modules.UI
                 case 0: DrawPlayerPanel(); break;
                 case 1: DrawEnvironmentPanel(); break;
                 case 2: DrawTeleportPanel(); break;
-                case 3: DrawSystemPanel(); break;
-                case 4: DrawMiscPanel(); break;
-                case 5: DrawRaidsPanel(); break;
+                case 3: DrawMiscPanel(); break;
+                case 4: DrawRaidsPanel(); break;
+                case 5: DrawDiscordPanel(); break;
+                case 6: DrawServerAdminPanel(); break;
             }
             
             GUILayout.EndScrollView();
@@ -230,37 +237,62 @@ namespace ProjectX.Master.Modules.UI
         {
             // Stats section
             DrawDivider("STATS");
+            float colW = (Screen.width * 0.55f - 40f) / 2f; // half the menu width minus padding
             
-            // Checkboxes that trigger actions when changed
-            bool newGodMode = DrawCheckbox("God Mode", Config.IsGodMode.Value);
+            // Row 1: God Mode | Infinite Stamina
+            GUILayout.BeginHorizontal();
+            bool newGodMode = GUILayout.Toggle(Config.IsGodMode.Value, "  God Mode", ProjectXStyles.Toggle, GUILayout.Width(colW));
             if (newGodMode != Config.IsGodMode.Value) PlayerActions.ToggleGodMode(newGodMode);
-            
-            bool newInfStamina = DrawCheckbox("Infinite Stamina", Config.IsInfStamina.Value);
+            bool newInfStamina = GUILayout.Toggle(Config.IsInfStamina.Value, "  Infinite Stamina", ProjectXStyles.Toggle, GUILayout.Width(colW));
             if (newInfStamina != Config.IsInfStamina.Value) PlayerActions.ToggleInfStamina(newInfStamina);
+            GUILayout.EndHorizontal();
             
-            bool newNoHunger = DrawCheckbox("No Hunger", Config.IsNoHungry.Value);
+            // Row 2: No Hunger | No Thirst
+            GUILayout.BeginHorizontal();
+            bool newNoHunger = GUILayout.Toggle(Config.IsNoHungry.Value, "  No Hunger", ProjectXStyles.Toggle, GUILayout.Width(colW));
             if (newNoHunger != Config.IsNoHungry.Value) PlayerActions.ToggleNoHunger(newNoHunger);
-            
-            bool newNoThirst = DrawCheckbox("No Thirst", Config.IsNoDehydration.Value);
+            bool newNoThirst = GUILayout.Toggle(Config.IsNoDehydration.Value, "  No Thirst", ProjectXStyles.Toggle, GUILayout.Width(colW));
             if (newNoThirst != Config.IsNoDehydration.Value) PlayerActions.ToggleNoDehydration(newNoThirst);
+            GUILayout.EndHorizontal();
             
-            bool newNoSleep = DrawCheckbox("No Sleep", Config.IsNoSleep.Value);
+            // Row 3: No Sleep | No Fall Damage
+            GUILayout.BeginHorizontal();
+            bool newNoSleep = GUILayout.Toggle(Config.IsNoSleep.Value, "  No Sleep", ProjectXStyles.Toggle, GUILayout.Width(colW));
             if (newNoSleep != Config.IsNoSleep.Value) PlayerActions.ToggleNoSleep(newNoSleep);
-            
-            bool newInfAmmo = DrawCheckbox("Infinite Ammo (NYI)", Config.IsInfiniteAmmo.Value);
-            if (newInfAmmo != Config.IsInfiniteAmmo.Value) PlayerActions.ToggleInfAmmo(newInfAmmo);
-            
-            bool newNoFall = DrawCheckbox("No Fall Damage", Config.IsNoFallDamage.Value);
+            bool newNoFall = GUILayout.Toggle(Config.IsNoFallDamage.Value, "  No Fall Damage", ProjectXStyles.Toggle, GUILayout.Width(colW));
             if (newNoFall != Config.IsNoFallDamage.Value) PlayerActions.ToggleNoFallDamage(newNoFall);
+            GUILayout.EndHorizontal();
             
-            // Infinite Items - apply immediately when changed
+            // Row 4: Infinite Ammo | Infinite Stacks
+            GUILayout.BeginHorizontal();
+            bool newInfAmmo = GUILayout.Toggle(Config.IsInfiniteAmmo.Value, "  Infinite Ammo (NYI)", ProjectXStyles.Toggle, GUILayout.Width(colW));
+            if (newInfAmmo != Config.IsInfiniteAmmo.Value) PlayerActions.ToggleInfAmmo(newInfAmmo);
             bool prevInfinite = Config.InfiniteInventory.Value;
-            Config.InfiniteInventory.Value = DrawCheckbox("Infinite Items", Config.InfiniteInventory.Value);
+            Config.InfiniteInventory.Value = GUILayout.Toggle(Config.InfiniteInventory.Value, "  Infinite Stacks", ProjectXStyles.Toggle, GUILayout.Width(colW));
             if (Config.InfiniteInventory.Value != prevInfinite)
             {
                 Modules.Stack.StackModule.Apply();
-                RLog.Msg($"[ProjectXGUI] Infinite Items: {Config.InfiniteInventory.Value}");
+                RLog.Msg($"[ProjectXGUI] Infinite Stacks: {Config.InfiniteInventory.Value}");
             }
+            GUILayout.EndHorizontal();
+            
+            // Row 5: Fill Inventory (standalone action)
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Toggle(false, "  Fill Inventory", ProjectXStyles.Toggle, GUILayout.Width(colW)))
+            {
+                try
+                {
+                    SonsSdk.SonsTools.ShowMessage("Filling inventory...");
+                    DebugConsole.Instance.SendCommand("addallitems");
+                    RLog.Msg("[ProjectXGUI] Fill Inventory triggered via addallitems");
+                }
+                catch (System.Exception ex)
+                {
+                    RLog.Warning($"[ProjectXGUI] Fill Inventory failed: {ex.Message}");
+                }
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
             
             // NoClip section
             DrawDivider("NO CLIP");
@@ -301,19 +333,51 @@ namespace ProjectX.Master.Modules.UI
                 PlayerActions.SetJumpMultiplier(jumpMult);
             }
             
-            // Companions section
-            DrawDivider("COMPANIONS");
+            // Enemy Actions section (moved from Misc panel)
+            DrawDivider("ENEMY ACTIONS");
             
+            // Re-enabled with per-actor exception handling for IL2CPP stability
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Unstuck Kelvin", ProjectXStyles.Button))
+            if (GUILayout.Button("Kill All Enemies", ProjectXStyles.Button))
             {
-                PlayerModule.UnstuckKelvin();
+                PlayerActions.KillAllEnemies();
             }
-            if (GUILayout.Button("Unstuck Virginia", ProjectXStyles.Button))
+            if (GUILayout.Button("Burn All Enemies", ProjectXStyles.Button))
             {
-                PlayerModule.UnstuckVirginia();
+                PlayerActions.BurnAllEnemies();
             }
             GUILayout.EndHorizontal();
+            
+            if (GUILayout.Button("Kill All Animals", ProjectXStyles.Button))
+            {
+                PlayerActions.KillAllAnimals();
+            }
+            
+            // Kill Radius slider (0 = all loaded)
+            Config.KillRadius.Value = DrawSlider("Kill Radius (0=ALL)", Config.KillRadius.Value, 0f, 500f);
+            
+            // Freeze AI toggle
+            bool newFreezeAI = DrawCheckbox("Freeze AI (Stop Spawning)", Config.FreezeAI.Value);
+            if (newFreezeAI != Config.FreezeAI.Value) PlayerActions.ToggleFreezeAI(newFreezeAI);
+            
+            // Spawn NPC section
+            DrawDivider("SPAWN NPC");
+            
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("End Boss", ProjectXStyles.Button))
+            {
+                PlayerActions.SpawnNPC((Sons.Ai.Vail.VailActorTypeId)45);
+            }
+            if (GUILayout.Button("Armsy", ProjectXStyles.Button))
+            {
+                PlayerActions.SpawnNPC((Sons.Ai.Vail.VailActorTypeId)50);
+            }
+            GUILayout.EndHorizontal();
+            
+            if (GUILayout.Button("Cannibal Group (x3)", ProjectXStyles.Button))
+            {
+                PlayerActions.SpawnCannibalGroup();
+            }
         }
         
         private void DrawEnvironmentPanel()
@@ -360,9 +424,9 @@ namespace ProjectX.Master.Modules.UI
             
             // Daytime Speed - button-based to avoid rapid reflection calls
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Speed:", ProjectXStyles.NormalLabel, GUILayout.Width(50));
-            _speedInput = GUILayout.TextField(_speedInput, ProjectXStyles.InputField, GUILayout.Width(50));
-            if (GUILayout.Button("Set", ProjectXStyles.Button, GUILayout.Width(40)))
+            GUILayout.Label("Speed:", ProjectXStyles.NormalLabel, GUILayout.Width(70));
+            _speedInput = GUILayout.TextField(_speedInput, ProjectXStyles.InputField, GUILayout.Width(60));
+            if (GUILayout.Button("Set", ProjectXStyles.Button, GUILayout.Width(75), GUILayout.Height(45)))
             {
                 if (float.TryParse(_speedInput, out float speed))
                 {
@@ -370,16 +434,40 @@ namespace ProjectX.Master.Modules.UI
                 }
             }
             // Quick preset buttons
-            if (GUILayout.Button("0.5x", ProjectXStyles.Button, GUILayout.Width(40))) PlayerActions.SetDaytimeSpeed(0.5f);
-            if (GUILayout.Button("1x", ProjectXStyles.Button, GUILayout.Width(35))) PlayerActions.SetDaytimeSpeed(1f);
-            if (GUILayout.Button("2x", ProjectXStyles.Button, GUILayout.Width(35))) PlayerActions.SetDaytimeSpeed(2f);
-            if (GUILayout.Button("5x", ProjectXStyles.Button, GUILayout.Width(35))) PlayerActions.SetDaytimeSpeed(5f);
+            if (GUILayout.Button("0.5x", ProjectXStyles.Button, GUILayout.Width(70), GUILayout.Height(45))) PlayerActions.SetDaytimeSpeed(0.5f);
+            if (GUILayout.Button("1x", ProjectXStyles.Button, GUILayout.Width(55), GUILayout.Height(45))) PlayerActions.SetDaytimeSpeed(1f);
+            if (GUILayout.Button("2x", ProjectXStyles.Button, GUILayout.Width(55), GUILayout.Height(45))) PlayerActions.SetDaytimeSpeed(2f);
+            if (GUILayout.Button("5x", ProjectXStyles.Button, GUILayout.Width(55), GUILayout.Height(45))) PlayerActions.SetDaytimeSpeed(5f);
             GUILayout.EndHorizontal();
             
             DrawDivider("ENVIRONMENT");
             
-            // Tree Regrow and Wind disabled due to JIT crash on rapid slider updates
-            GUILayout.Label("Tree/Wind: Use config file", ProjectXStyles.NormalLabel);
+            Config.TreeRegrowRate.Value = DrawSlider("Tree Regrow Rate", Config.TreeRegrowRate.Value, 0f, 10f);
+            Config.WindIntensity.Value = DrawSlider("Wind Intensity (-1=Auto)", Config.WindIntensity.Value, -1f, 10f);
+            
+            // Force Rain (moved from Misc panel)
+            bool newRain = DrawCheckbox("Force Rain", _forceRainActive);
+            if (newRain != _forceRainActive)
+            {
+                _forceRainActive = newRain;
+                PlayerActions.ToggleForceRain(newRain);
+            }
+            
+            DrawDivider("LOOT RESPAWN");
+            
+            // Enable toggle
+            bool newLootRespawn = DrawCheckbox("Enable Loot Respawn", Config.LootRespawnEnabled.Value);
+            if (newLootRespawn != Config.LootRespawnEnabled.Value) Config.LootRespawnEnabled.Value = newLootRespawn;
+            
+            // Days slider
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Respawn Days: {Config.LootRespawnDays.Value}", ProjectXStyles.NormalLabel, GUILayout.Width(160));
+            int newDays = (int)GUILayout.HorizontalSlider(Config.LootRespawnDays.Value, 1, 30, GUILayout.Width(200));
+            if (newDays != Config.LootRespawnDays.Value) Config.LootRespawnDays.Value = newDays;
+            GUILayout.EndHorizontal();
+            
+            // Status display
+            GUILayout.Label(Modules.LootRespawn.LootRespawnModule.GetStatus(), ProjectXStyles.NormalLabel);
         }
         
         private void DrawTeleportPanel()
@@ -387,9 +475,9 @@ namespace ProjectX.Master.Modules.UI
             DrawDivider("QUICK TELEPORT");
             
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Coords:", ProjectXStyles.NormalLabel, GUILayout.Width(60));
-            _teleportInput = GUILayout.TextField(_teleportInput, ProjectXStyles.InputField, GUILayout.Width(200));
-            if (GUILayout.Button("Go", ProjectXStyles.Button, GUILayout.Width(50)))
+            GUILayout.Label("Coords:", ProjectXStyles.NormalLabel, GUILayout.Width(80));
+            _teleportInput = GUILayout.TextField(_teleportInput, ProjectXStyles.InputField, GUILayout.Width(350));
+            if (GUILayout.Button("Go", ProjectXStyles.Button, GUILayout.Width(60)))
             {
                 TryTeleportToCoords(_teleportInput);
             }
@@ -411,7 +499,7 @@ namespace ProjectX.Master.Modules.UI
             GUILayout.BeginHorizontal();
             foreach (var loc in TeleportLocations)
             {
-                if (GUILayout.Button(loc.Key, ProjectXStyles.Button, GUILayout.Width(230)))
+                if (GUILayout.Button(loc.Key, ProjectXStyles.Button, GUILayout.Width(300)))
                 {
                     TeleportTo(loc.Value);
                 }
@@ -424,23 +512,25 @@ namespace ProjectX.Master.Modules.UI
                 }
             }
             GUILayout.EndHorizontal();
-        }
-        
-        private void DrawSystemPanel()
-        {
-            DrawDivider("MODULES");
             
-            Config.RelocatorEnabled.Value = DrawCheckbox("Relocator (C to move)", Config.RelocatorEnabled.Value);
-            Config.OpenSesameEnabled.Value = DrawCheckbox("Open Sesame", Config.OpenSesameEnabled.Value);
-            Config.PrefabRepairEnabled.Value = DrawCheckbox("Prefab Repair", Config.PrefabRepairEnabled.Value);
+            // Companions section (moved from Player panel)
+            DrawDivider("COMPANIONS");
             
-            GUILayout.Space(20);
-            
-            GUILayout.Label("Per-item stacks: Settings > Mods > ProjectX", ProjectXStyles.NormalLabel);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Unstuck Kelvin", ProjectXStyles.Button))
+            {
+                PlayerModule.UnstuckKelvin();
+            }
+            if (GUILayout.Button("Unstuck Virginia", ProjectXStyles.Button))
+            {
+                PlayerModule.UnstuckVirginia();
+            }
+            GUILayout.EndHorizontal();
         }
         
         private void DrawMiscPanel()
         {
+            
             DrawDivider("STRUCTURES");
             
             float durabilityOld = Config.StructureDurabilityMultiplier.Value;
@@ -459,37 +549,74 @@ namespace ProjectX.Master.Modules.UI
                 RLog.Msg($"[ProjectX] Water Collector Heat Radius: {heatNew:F1}");
             }
             
-            DrawDivider("ENEMY ACTIONS");
+            DrawDivider("BUILDING CHEATS");
             
-            // Re-enabled with per-actor exception handling for IL2CPP stability
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Kill All Enemies", ProjectXStyles.Button))
+            // FreeForm placement - restored with GameSetupManager API
+            bool newFreeForm = DrawCheckbox("Free Form Placement", Modules.Building.BuilderEnhancements.FreeFormPlacement);
+            if (newFreeForm != Modules.Building.BuilderEnhancements.FreeFormPlacement)
             {
-                PlayerActions.KillAllEnemies();
-            }
-            if (GUILayout.Button("Burn All Enemies", ProjectXStyles.Button))
-            {
-                PlayerActions.BurnAllEnemies();
-            }
-            GUILayout.EndHorizontal();
-            
-            if (GUILayout.Button("Kill All Animals", ProjectXStyles.Button))
-            {
-                PlayerActions.KillAllAnimals();
+                Modules.Building.BuilderEnhancements.FreeFormPlacement = newFreeForm;
             }
             
-            // Kill Radius slider (0 = all loaded)
-            Config.KillRadius.Value = DrawSlider("Kill Radius (0=ALL)", Config.KillRadius.Value, 0f, 500f);
+            // Instant Build - uses game's instantbookbuild command
+            bool newInstantBuild = DrawCheckbox("Instant Build", Modules.Building.BuilderEnhancements.InstantBuild);
+            if (newInstantBuild != Modules.Building.BuilderEnhancements.InstantBuild)
+            {
+                Modules.Building.BuilderEnhancements.InstantBuild = newInstantBuild;
+            }
             
-            // Freeze AI toggle
-            bool newFreezeAI = DrawCheckbox("Freeze AI (Stop Spawning)", Config.FreezeAI.Value);
-            if (newFreezeAI != Config.FreezeAI.Value) PlayerActions.ToggleFreezeAI(newFreezeAI);
+            // No Cuttings - confirmed working
+            bool newNoCuttings = DrawCheckbox("No Wood Cuttings", Modules.Building.BuilderEnhancements.NoCuttingsSpawn);
+            if (newNoCuttings != Modules.Building.BuilderEnhancements.NoCuttingsSpawn)
+            {
+                Modules.Building.BuilderEnhancements.NoCuttingsSpawn = newNoCuttings;
+            }
             
-            DrawDivider("DISCORD");
+            // Log Hack - uses _loghack command
+            bool newLogHack = DrawCheckbox("Log Hack", Modules.Building.BuilderEnhancements.LogHack);
+            if (newLogHack != Modules.Building.BuilderEnhancements.LogHack)
+            {
+                Modules.Building.BuilderEnhancements.LogHack = newLogHack;
+            }
+            
+            // Stone Hack - uses stonehack command
+            bool newStoneHack = DrawCheckbox("Stone Hack", Modules.Building.BuilderEnhancements.StoneHack);
+            if (newStoneHack != Modules.Building.BuilderEnhancements.StoneHack)
+            {
+                Modules.Building.BuilderEnhancements.StoneHack = newStoneHack;
+            }
+            
+            DrawDivider("CRAFTING");
+            
+            // Faster Crafting - patches CraftingCog.OnCraftBeginEvent for backpack crafting
+            bool newFasterCrafting = DrawCheckbox("Faster Crafting", Modules.Crafting.CraftingSpeed.Enabled);
+            if (newFasterCrafting != Modules.Crafting.CraftingSpeed.Enabled)
+            {
+                Modules.Crafting.CraftingSpeed.Enabled = newFasterCrafting;
+            }
+            
+            // Speed multiplier (only shown when enabled)
+            if (Modules.Crafting.CraftingSpeed.Enabled)
+            {
+                float speedOld = Modules.Crafting.CraftingSpeed.SpeedMultiplier;
+                float speedNew = DrawSlider("Max Craft Speed", speedOld, 1f, 10f);
+                if (Math.Abs(speedNew - speedOld) > 0.1f)
+                {
+                    Modules.Crafting.CraftingSpeed.SpeedMultiplier = speedNew;
+                }
+            }
+            
+            
+        }
+        
+        private void DrawDiscordPanel()
+        {
+            DrawDivider("DISCORD BRIDGE");
             
             Config.EnableDiscordBridge.Value = DrawCheckbox("Discord Bridge", Config.EnableDiscordBridge.Value);
             
             GUILayout.BeginHorizontal();
+#if !CLIENT
             if (GUILayout.Button("Test Message", ProjectXStyles.Button))
             {
                 Modules.BroadcastMessage.BroadcastMessageModule.TestDiscordConnection();
@@ -498,9 +625,11 @@ namespace ProjectX.Master.Modules.UI
             {
                 Modules.BroadcastMessage.BroadcastMessageModule.TestWelcomeEmbed();
             }
+#endif
             GUILayout.EndHorizontal();
             
             GUILayout.BeginHorizontal();
+#if !CLIENT
             if (GUILayout.Button("Test Join", ProjectXStyles.Button))
             {
                 Modules.BroadcastMessage.BroadcastMessageModule.TestPlayerJoin();
@@ -513,11 +642,13 @@ namespace ProjectX.Master.Modules.UI
             {
                 Modules.BroadcastMessage.BroadcastMessageModule.TestDeath();
             }
+#endif
             GUILayout.EndHorizontal();
             
             DrawDivider("IN-GAME CHAT");
             
             GUILayout.BeginHorizontal();
+#if !CLIENT
             if (GUILayout.Button("Test Chat", ProjectXStyles.Button))
             {
                 Modules.BroadcastMessage.InGameChat.TestChat();
@@ -526,28 +657,7 @@ namespace ProjectX.Master.Modules.UI
             {
                 Modules.BroadcastMessage.InGameChat.SendWelcome("TestPlayer");
             }
-            GUILayout.EndHorizontal();
-            
-            DrawDivider("DEBUG");
-            
-            if (GUILayout.Button("Dump Item IDs", ProjectXStyles.Button))
-            {
-                // Debug.DumpItemsId();
-                RLog.Msg("[ProjectX] Item ID dump triggered");
-            }
-            
-            GUILayout.Space(20);
-            
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Save Config", ProjectXStyles.Button, GUILayout.Height(45)))
-            {
-                Config.Save();
-                RLog.Msg("[ProjectX] Config saved!");
-            }
-            if (GUILayout.Button("Close Menu", ProjectXStyles.Button, GUILayout.Height(45)))
-            {
-                ToggleMenu();
-            }
+#endif
             GUILayout.EndHorizontal();
         }
         
@@ -575,6 +685,7 @@ namespace ProjectX.Master.Modules.UI
             
             DrawDivider("ENEMY TYPES");
             
+            GUILayout.BeginHorizontal();
             bool cannibals = DrawCheckbox("Allow Cannibals", RaidCustomizer.RaidConfig.AllowCannibals.Value);
             if (cannibals != RaidCustomizer.RaidConfig.AllowCannibals.Value) RaidCustomizer.RaidConfig.AllowCannibals.Value = cannibals;
             
@@ -583,6 +694,7 @@ namespace ProjectX.Master.Modules.UI
             
             bool muddies = DrawCheckbox("Allow Muddies", RaidCustomizer.RaidConfig.AllowMuddies.Value);
             if (muddies != RaidCustomizer.RaidConfig.AllowMuddies.Value) RaidCustomizer.RaidConfig.AllowMuddies.Value = muddies;
+            GUILayout.EndHorizontal();
             
             DrawDivider("SPAWN SETTINGS");
             
@@ -623,11 +735,11 @@ namespace ProjectX.Master.Modules.UI
             
             // Row 1: Main actions
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Run Random Raid", ProjectXStyles.Button, GUILayout.Height(35)))
+            if (GUILayout.Button("Run Random Raid", ProjectXStyles.Button, GUILayout.Height(45)))
             {
                 RaidCustomizer.RaidActions.RunRandomRaid();
             }
-            if (GUILayout.Button("Clear Queued Raids", ProjectXStyles.Button, GUILayout.Height(35)))
+            if (GUILayout.Button("Clear Queued Raids", ProjectXStyles.Button, GUILayout.Height(45)))
             {
                 RaidCustomizer.RaidActions.ClearQueuedRaids();
             }
@@ -635,11 +747,11 @@ namespace ProjectX.Master.Modules.UI
             
             // Row 2: Clear actions
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Clear All Events", ProjectXStyles.Button, GUILayout.Height(30)))
+            if (GUILayout.Button("Clear All Events", ProjectXStyles.Button, GUILayout.Height(45)))
             {
                 RaidCustomizer.RaidActions.ClearAllEvents();
             }
-            if (GUILayout.Button("Clear Cooldowns", ProjectXStyles.Button, GUILayout.Height(30)))
+            if (GUILayout.Button("Clear Cooldowns", ProjectXStyles.Button, GUILayout.Height(45)))
             {
                 RaidCustomizer.RaidActions.ClearRaidCooldowns();
             }
@@ -647,15 +759,673 @@ namespace ProjectX.Master.Modules.UI
             
             // Row 3: Utility actions
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Requeue Raids", ProjectXStyles.Button, GUILayout.Height(30)))
+            if (GUILayout.Button("Requeue Raids", ProjectXStyles.Button, GUILayout.Height(45)))
             {
                 RaidCustomizer.RaidActions.RequeueRaids();
             }
-            if (GUILayout.Button("Print Queued (Log)", ProjectXStyles.Button, GUILayout.Height(30)))
+            if (GUILayout.Button("Print Queued (Log)", ProjectXStyles.Button, GUILayout.Height(45)))
             {
                 RaidCustomizer.RaidActions.PrintQueuedRaids();
             }
             GUILayout.EndHorizontal();
+        }
+        
+        /// <summary>
+        /// Send a /px command to the server for execution via game chat network.
+        /// Commands should be in CommandBridge format (e.g. "world time 12", "save").
+        /// The /px prefix is added automatically by AdminCommandEvent.SendToServer().
+        /// </summary>
+        private void ServerCmd(string command)
+        {
+            try { Network.AdminCommandEvent.SendToServer(command); }
+            catch (System.Exception ex) { RLog.Warning($"[ServerAdmin] Command error: {ex.Message}"); }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════
+        // Season/Weather: IL2CPP-safe overrides using Marshal offsets
+        // AccessTools.Field is STRIPPED for SeasonsManager (confirmed in logs).
+        // Must use Marshal.WriteInt32/ReadInt32 on IL2CPP object pointer.
+        // Offsets from dump.cs:
+        //   SeasonsManager._activeSeason   = 0x70 (int32 enum)
+        //   SeasonsManager._seasonIsLocked  = 0x75 (bool)
+        // Season uses PREFIX on LateUpdate (not postfix!) to write BEFORE
+        // the game's season calculation runs, so it sees our locked state.
+        // Weather uses WeatherSystem direct APIs (ForceRain/StopRaining).
+        // ═══════════════════════════════════════════════════════════════
+        
+        private const int SEASON_ACTIVE_OFFSET = 0x70;
+        private const int SEASON_LOCKED_OFFSET = 0x75;
+        private const int SEASON_PREVIOUS_OFFSET = 0x7C;
+        
+        private static int? _forcedSeason = null; // null=no override, 0=Spring,1=Summer,2=Fall,3=Winter
+        private static bool _seasonPatchApplied = false;
+        private static System.Reflection.PropertyInfo _smPointerProp;
+        private static HarmonyLib.Harmony _seasonHarmony;
+        
+        // Weather PREFIX override (same pattern as seasons)
+        private static bool? _forcedRain = null; // null=no override, true=rain, false=sunny
+        private static bool _weatherPatchApplied = false;
+        private static HarmonyLib.Harmony _weatherHarmony;
+        private static System.Reflection.PropertyInfo _wsPointerProp;
+        private static System.Reflection.MethodInfo _wsStartRaining;
+        private static System.Reflection.MethodInfo _wsStopRaining;
+        
+        /// <summary>
+        /// Force season via Harmony PREFIX using Marshal offsets.
+        /// PREFIX runs BEFORE LateUpdate so the game sees _seasonIsLocked=true
+        /// and skips recalculation. Postfix was too late (confirmed: 1-second flash).
+        /// </summary>
+        private void LocalSetSeason(string season)
+        {
+            try
+            {
+                season = season.ToLower();
+                if (season == "fall") season = "autumn";
+                
+                int seasonVal = season switch
+                {
+                    "spring" => 0,
+                    "summer" => 1,
+                    "autumn" => 2,
+                    "winter" => 3,
+                    _ => -1
+                };
+                
+                if (seasonVal < 0) { RLog.Warning($"[ServerAdmin] Unknown season: {season}"); return; }
+                
+                // Apply Harmony patch on first use
+                if (!_seasonPatchApplied)
+                {
+                    try
+                    {
+                        var smType = HarmonyLib.AccessTools.TypeByName("SeasonsManager");
+                        if (smType == null) { RLog.Warning("[ServerAdmin] SeasonsManager type not found"); return; }
+                        
+                        // Get SeasonsManager instance to cache Pointer property
+                        var sm = HarmonyLib.AccessTools.Property(smType, "Instance")?.GetValue(null);
+                        if (sm != null)
+                        {
+                            _smPointerProp = sm.GetType().GetProperty("Pointer",
+                                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public |
+                                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.FlattenHierarchy);
+                            
+                            RLog.Msg($"[ServerAdmin] Pointer property: {(_smPointerProp != null ? "found" : "NULL")}");
+                            
+                            if (_smPointerProp != null)
+                            {
+                                System.IntPtr ptr = (System.IntPtr)_smPointerProp.GetValue(sm);
+                                int currentSeason = System.Runtime.InteropServices.Marshal.ReadInt32(ptr + SEASON_ACTIVE_OFFSET);
+                                byte currentLocked = System.Runtime.InteropServices.Marshal.ReadByte(ptr + SEASON_LOCKED_OFFSET);
+                                RLog.Msg($"[ServerAdmin] OFFSET VERIFY: _activeSeason={currentSeason}, _seasonIsLocked={currentLocked}");
+                            }
+                        }
+                        else
+                        {
+                            RLog.Warning("[ServerAdmin] SeasonsManager.Instance is null");
+                        }
+                        
+                        _seasonHarmony = new HarmonyLib.Harmony("ProjectX.SeasonOverride");
+                        
+                        // PREFIX on LateUpdate — writes our season value every frame
+                        var lateUpdate = HarmonyLib.AccessTools.Method(smType, "LateUpdate");
+                        if (lateUpdate != null)
+                        {
+                            var prefix = new HarmonyLib.HarmonyMethod(typeof(ProjectXGUI), nameof(SeasonsManagerLateUpdatePrefix));
+                            _seasonHarmony.Patch(lateUpdate, prefix: prefix);
+                            RLog.Msg("[ServerAdmin] Harmony PREFIX on SeasonsManager.LateUpdate applied");
+                        }
+                        
+                        // PREFIX on UpdateTime — BLOCKS the game's time-based season recalculation
+                        // UpdateTime is a virtual override from TimeOfDayBehaviour, called on a
+                        // separate code path from LateUpdate. Without blocking this, it overrides
+                        // our Marshal writes between frames.
+                        var updateTime = HarmonyLib.AccessTools.Method(smType, "UpdateTime");
+                        if (updateTime != null)
+                        {
+                            var utPrefix = new HarmonyLib.HarmonyMethod(typeof(ProjectXGUI), nameof(SeasonsManagerUpdateTimePrefix));
+                            _seasonHarmony.Patch(updateTime, prefix: utPrefix);
+                            RLog.Msg("[ServerAdmin] Harmony PREFIX on SeasonsManager.UpdateTime applied");
+                        }
+                        
+                        // PREFIX on SetSeasonPostDeserialize — BLOCKS Bolt network season sync
+                        // The server replicates season state to clients via this method,
+                        // which overrides the visual systems even though our PREFIX holds _activeSeason.
+                        // This is the primary cause of the "summer flickers back to winter" bug.
+                        var postDeserialize = HarmonyLib.AccessTools.Method(smType, "SetSeasonPostDeserialize");
+                        if (postDeserialize != null)
+                        {
+                            var pdPrefix = new HarmonyLib.HarmonyMethod(typeof(ProjectXGUI), nameof(SetSeasonPostDeserializePrefix));
+                            _seasonHarmony.Patch(postDeserialize, prefix: pdPrefix);
+                            RLog.Msg("[ServerAdmin] Harmony PREFIX on SeasonsManager.SetSeasonPostDeserialize applied");
+                        }
+                        
+                        _seasonPatchApplied = (lateUpdate != null || updateTime != null);
+                    }
+                    catch (System.Exception ex) { RLog.Warning($"[ServerAdmin] Harmony patch failed: {ex.Message}\n{ex.StackTrace}"); }
+                }
+                
+                // Update forced season FIRST — PREFIX runs every frame and would
+                // overwrite the transition back to the old season if we don't
+                _forcedSeason = seasonVal;
+                
+                // CLEAR any active weather override — season takes priority
+                // If user had "Sunny" active, _forcedRain=false blocks CheckForRain
+                // which prevents the new season's natural weather (e.g. snow in winter)
+                if (_forcedRain != null)
+                {
+                    RLog.Msg($"[ServerAdmin] Clearing weather override (_forcedRain was {_forcedRain}) — season takes priority");
+                    _forcedRain = null;
+                    // Re-enable rain system in case Sunny disabled it via enablerain off
+                    PlayerActions.ToggleForceRain(false); // StopRaining to reset state
+                    // Let the season's natural weather system take over
+                }
+                
+                RLog.Msg($"[ServerAdmin] _forcedSeason set to {seasonVal} ({season}), calling PlayerActions.SetSeason...");
+                
+                // Trigger the season change via typed IL2CPP call
+                // Set bypass flag so our SetSeasonPostDeserialize PREFIX allows our own call through
+                _bypassDeserializeBlock = true;
+                PlayerActions.SetSeason(season);
+                
+                // Readback verification — confirm memory state after typed IL2CPP call
+                try
+                {
+                    var smType = HarmonyLib.AccessTools.TypeByName("SeasonsManager");
+                    var sm = HarmonyLib.AccessTools.Property(smType, "Instance")?.GetValue(null);
+                    if (sm != null && _smPointerProp != null)
+                    {
+                        System.IntPtr ptr = (System.IntPtr)_smPointerProp.GetValue(sm);
+                        int readBack = System.Runtime.InteropServices.Marshal.ReadInt32(ptr + SEASON_ACTIVE_OFFSET);
+                        byte readLocked = System.Runtime.InteropServices.Marshal.ReadByte(ptr + SEASON_LOCKED_OFFSET);
+                        int readPrev = System.Runtime.InteropServices.Marshal.ReadInt32(ptr + SEASON_PREVIOUS_OFFSET);
+                        RLog.Msg($"[ServerAdmin] POST-SetSeason readback: active={readBack}, locked={readLocked}, prev={readPrev}, forced={_forcedSeason}");
+                    }
+                }
+                catch (System.Exception ex) { RLog.Warning($"[ServerAdmin] Readback failed: {ex.Message}"); }
+                
+                RLog.Msg($"[ServerAdmin] ✓ Season FORCED to {season} (val={seasonVal}) — PREFIX holds every frame");
+                
+                // Also send to server — season change clears weather override
+                ServerCmd($"world season {season}");
+            }
+            catch (System.Exception ex) { RLog.Warning($"[ServerAdmin] LocalSetSeason error: {ex.Message}"); }
+        }
+        
+        /// <summary>
+        /// Harmony PREFIX on SeasonsManager.LateUpdate — runs BEFORE the game's
+        /// season calculation. Writes _activeSeason and _seasonIsLocked=FALSE via
+        /// Marshal offsets. _seasonIsLocked=false allows LateUpdate to detect
+        /// _activeSeason != _previousSeason and fire the native SetSeason() call
+        /// which notifies all visual receivers (ground, trees, snow, lighting).
+        /// UpdateTime is blocked separately to prevent game-clock recalculation.
+        /// (Postfix was too late — caused 1-second flash, confirmed in testing.)
+        /// </summary>
+        private static int _prefixLogCounter = 0;
+        private static void SeasonsManagerLateUpdatePrefix(object __instance)
+        {
+            if (_forcedSeason == null || _smPointerProp == null) return;
+            
+            try
+            {
+                System.IntPtr ptr = (System.IntPtr)_smPointerProp.GetValue(__instance);
+                if (ptr == System.IntPtr.Zero) return;
+                
+                // Read CURRENT value before we write (for diagnostics)
+                int currentSeason = System.Runtime.InteropServices.Marshal.ReadInt32(ptr + SEASON_ACTIVE_OFFSET);
+                
+                // Write _activeSeason and _seasonIsLocked=FALSE
+                // KEY INSIGHT: _seasonIsLocked=false lets LateUpdate detect _activeSeason != _previousSeason
+                // and call the game's native SetSeason() which fires UpdateReceiversSeason() to notify
+                // ALL visual systems (ground snow, trees, lighting, weather).
+                // This is the same typed IL2CPP call pattern that makes the Sunny toggle work.
+                // UpdateTime is blocked separately to prevent game-clock recalculation.
+                // We do NOT write _previousSeason — let LateUpdate see the mismatch and fire receivers.
+                System.Runtime.InteropServices.Marshal.WriteInt32(ptr + SEASON_ACTIVE_OFFSET, _forcedSeason.Value);
+                System.Runtime.InteropServices.Marshal.WriteByte(ptr + SEASON_LOCKED_OFFSET, 0);
+                
+                // Log once every ~300 frames (approx every 5 seconds) to reduce spam
+                _prefixLogCounter++;
+                if (_prefixLogCounter % 300 == 1 || currentSeason != _forcedSeason.Value)
+                {
+                    RLog.Msg($"[ServerAdmin] LateUpdate PREFIX: was={currentSeason}, wrote={_forcedSeason.Value}, drift={currentSeason != _forcedSeason.Value}");
+                }
+            }
+            catch { } // Silent — runs every frame
+        }
+        
+        /// <summary>
+        /// Harmony PREFIX on SeasonsManager.UpdateTime — BLOCKS the game's
+        /// time-based season recalculation when a forced season is active.
+        /// UpdateTime is called from TimeOfDayBehaviour on a separate path
+        /// from LateUpdate, and was overriding our Marshal writes.
+        /// </summary>
+        private static int _updateTimeBlockCount = 0;
+        private static bool SeasonsManagerUpdateTimePrefix()
+        {
+            if (_forcedSeason == null) return true; // No override, run original
+            
+            // Block UpdateTime — it recalculates season from game clock.
+            // Receiver notifications are fired via typed SetSeasonPostDeserialize call in LocalSetSeason.
+            _updateTimeBlockCount++;
+            if (_updateTimeBlockCount % 300 == 1)
+            {
+                RLog.Msg($"[ServerAdmin] UpdateTime BLOCKED (forced={_forcedSeason.Value}, blocks={_updateTimeBlockCount})");
+            }
+            return false;
+        }
+        
+        /// <summary>
+        /// Harmony PREFIX on SeasonsManager.SetSeasonPostDeserialize — serves dual purpose:
+        /// 1. ALLOWS our own typed IL2CPP call through (via _bypassDeserializeBlock flag)
+        ///    to fire the full visual pipeline including UpdateReceiversSeason().
+        /// 2. BLOCKS Bolt network season sync from overriding our forced visual state.
+        /// </summary>
+        private static int _postDeserializeBlockCount = 0;
+        private static bool _bypassDeserializeBlock = false; // Allow our own typed call through
+        private static bool SetSeasonPostDeserializePrefix()
+        {
+            if (_forcedSeason == null) return true; // No override, run original
+            
+            // Allow our own typed call through
+            if (_bypassDeserializeBlock)
+            {
+                _bypassDeserializeBlock = false;
+                RLog.Msg($"[ServerAdmin] SetSeasonPostDeserialize ALLOWED (our own typed call, forced={_forcedSeason.Value})");
+                return true;
+            }
+            
+            // Block Bolt's network season sync — it would override our forced visual state
+            _postDeserializeBlockCount++;
+            if (_postDeserializeBlockCount % 300 == 1)
+            {
+                RLog.Msg($"[ServerAdmin] SetSeasonPostDeserialize BLOCKED (forced={_forcedSeason.Value}, blocks={_postDeserializeBlockCount})");
+            }
+            return false;
+        }
+        
+        /// <summary>
+        /// Change weather using typed API + Harmony PREFIX blocker.
+        /// PlayerActions.ToggleForceRain uses typed IL2CPP calls (ForceRain/StopRaining)
+        /// which work. PREFIX blocks CheckForRain from overriding our forced state.
+        /// Reflection Invoke() fails silently in IL2CPP — do NOT use it.
+        /// </summary>
+        private void LocalSetWeather(string mode)
+        {
+            try
+            {
+                bool rainOn = (mode == "on" || mode == "rain");
+                
+                // Apply Harmony patch on first use — blocks CheckForRain dice roll
+                if (!_weatherPatchApplied)
+                {
+                    try
+                    {
+                        var wsType = HarmonyLib.AccessTools.TypeByName("TheForest.World.WeatherSystem");
+                        if (wsType == null) { RLog.Warning("[ServerAdmin] WeatherSystem type not found"); return; }
+                        
+                        var checkForRain = HarmonyLib.AccessTools.Method(wsType, "CheckForRain");
+                        if (checkForRain != null)
+                        {
+                            _weatherHarmony = new HarmonyLib.Harmony("ProjectX.WeatherOverride");
+                            var prefix = new HarmonyLib.HarmonyMethod(typeof(ProjectXGUI), nameof(WeatherSystemCheckForRainPrefix));
+                            _weatherHarmony.Patch(checkForRain, prefix: prefix);
+                            _weatherPatchApplied = true;
+                            RLog.Msg("[ServerAdmin] \u2713 Harmony PREFIX on WeatherSystem.CheckForRain applied!");
+                        }
+                        else
+                        {
+                            RLog.Warning("[ServerAdmin] WeatherSystem.CheckForRain not found");
+                        }
+                    }
+                    catch (System.Exception ex) { RLog.Warning($"[ServerAdmin] Weather patch failed: {ex.Message}\n{ex.StackTrace}"); }
+                }
+                
+                // Set the forced weather — PREFIX will BLOCK CheckForRain from overriding
+                _forcedRain = rainOn;
+                
+                // Typed IL2CPP call for initial trigger (reflection Invoke fails silently!)
+                PlayerActions.ToggleForceRain(rainOn);
+                RLog.Msg($"[ServerAdmin] \u2713 Weather FORCED to {(rainOn ? "Rain" : "Sunny")} — typed call + PREFIX blocker");
+                
+                // Also send to server for other clients
+                string weatherName = rainOn ? "rain" : "sunny";
+                ServerCmd($"world weather {weatherName}");
+            }
+            catch (System.Exception ex) { RLog.Warning($"[ServerAdmin] LocalSetWeather error: {ex.Message}"); }
+        }
+        
+        /// <summary>
+        /// Harmony PREFIX on WeatherSystem.CheckForRain — BLOCKER ONLY.
+        /// When _forcedRain is set, skips the original dice roll so the game
+        /// can't override the weather state we set via PlayerActions.ToggleForceRain.
+        /// Does NOT invoke methods via reflection (fails silently in IL2CPP).
+        /// </summary>
+        private static bool WeatherSystemCheckForRainPrefix(object __instance)
+        {
+            if (_forcedRain == null) return true; // No override, run original
+            return false; // Block CheckForRain — preserve forced weather state
+        }
+        
+        private void DrawServerAdminPanel()
+        {
+            try
+            {
+                DrawDivider("WORLD CONTROL");
+                
+                // Time of day — sent to server via /px world time
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Time of Day:", ProjectXStyles.NormalLabel, GUILayout.Width(120));
+                _timeInput = GUILayout.TextField(_timeInput ?? "12:00", ProjectXStyles.InputField, GUILayout.Width(80));
+                if (GUILayout.Button("Set Time", ProjectXStyles.Button, GUILayout.Height(45), GUILayout.Width(140)))
+                {
+                    // Strip HH:MM to just hours — server expects float (e.g., "12" not "12:00")
+                    string timeForCmd = _timeInput?.Trim() ?? "12";
+                    if (timeForCmd.Contains(":"))
+                    {
+                        var parts = timeForCmd.Split(':');
+                        if (float.TryParse(parts[0], out float h))
+                        {
+                            float mins = parts.Length > 1 && float.TryParse(parts[1], out float m) ? m / 60f : 0;
+                            timeForCmd = (h + mins).ToString("F1");
+                        }
+                    }
+                    ServerCmd($"world time {timeForCmd}");
+                }
+                GUILayout.EndHorizontal();
+                
+                // Season buttons — execute LOCALLY (season is a client-side visual system)
+                // Server-side execution (SeasonsManager, _season(), SendCommand) all fail silently
+                // Client direct call proven working in PlayerActions.cs:285
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Spring", ProjectXStyles.Button, GUILayout.Height(45)))
+                    LocalSetSeason("spring");
+                if (GUILayout.Button("Summer", ProjectXStyles.Button, GUILayout.Height(45)))
+                    LocalSetSeason("summer");
+                if (GUILayout.Button("Fall", ProjectXStyles.Button, GUILayout.Height(45)))
+                    LocalSetSeason("autumn");
+                if (GUILayout.Button("Winter", ProjectXStyles.Button, GUILayout.Height(45)))
+                    LocalSetSeason("winter");
+                if (GUILayout.Button("Unlock", ProjectXStyles.Button, GUILayout.Height(45)))
+                {
+                    _forcedSeason = null; // Release local PREFIX lock
+                    _forcedRain = null;   // Also clear weather override
+                    ServerCmd("world season unlock");
+                }
+                GUILayout.EndHorizontal();
+                
+                // Weather buttons — execute LOCALLY (weather is a client-side visual system)
+                // Uses _forcerain() on DebugConsole (discovered via method dump)
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Sunny", ProjectXStyles.Button, GUILayout.Height(45)))
+                    LocalSetWeather("off");
+                if (GUILayout.Button("Rain", ProjectXStyles.Button, GUILayout.Height(45)))
+                    LocalSetWeather("on");
+                if (GUILayout.Button("Snow", ProjectXStyles.Button, GUILayout.Height(45)))
+                {
+                    // Set local overrides directly (no ServerCmd from each helper)
+                    _forcedSeason = 3; // winter
+                    _forcedRain = true; // PREFIX blocker
+                    PlayerActions.ToggleForceRain(true); // typed IL2CPP trigger
+                    // Single server command handles both season + rain
+                    ServerCmd("world weather snow");
+                }
+                GUILayout.EndHorizontal();
+                
+                // AI Freeze toggle — /px world freeze
+                if (GUILayout.Button("Toggle AI Freeze", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("world freeze");
+                
+                // Tree regrow — /px world trees
+                if (GUILayout.Button("Force Tree Regrow", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("world trees");
+                
+                DrawDivider("COMPANIONS");
+                
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Revive Kelvin", ProjectXStyles.Button, GUILayout.Height(42)))
+                    ServerCmd("world revive kelvin");
+                if (GUILayout.Button("Revive Virginia", ProjectXStyles.Button, GUILayout.Height(42)))
+                    ServerCmd("world revive virginia");
+                GUILayout.EndHorizontal();
+                
+                DrawDivider("RAID SCHEDULE");
+                
+                // Time of day toggles — sync to server on change
+                GUILayout.BeginHorizontal();
+                bool morning = DrawCheckbox("Morning", RaidCustomizer.RaidConfig.SearchPartiesAtMorning.Value);
+                if (morning != RaidCustomizer.RaidConfig.SearchPartiesAtMorning.Value)
+                {
+                    RaidCustomizer.RaidConfig.SearchPartiesAtMorning.Value = morning;
+                    ServerCmd($"config set XR_RaidAtMorning {morning}");
+                    ServerCmd("raid requeue");
+                }
+                bool dayTime = DrawCheckbox("Day", RaidCustomizer.RaidConfig.SearchPartiesAtDay.Value);
+                if (dayTime != RaidCustomizer.RaidConfig.SearchPartiesAtDay.Value)
+                {
+                    RaidCustomizer.RaidConfig.SearchPartiesAtDay.Value = dayTime;
+                    ServerCmd($"config set XR_RaidAtDay {dayTime}");
+                    ServerCmd("raid requeue");
+                }
+                GUILayout.EndHorizontal();
+                
+                GUILayout.BeginHorizontal();
+                bool evening = DrawCheckbox("Evening", RaidCustomizer.RaidConfig.SearchPartiesAtEvening.Value);
+                if (evening != RaidCustomizer.RaidConfig.SearchPartiesAtEvening.Value)
+                {
+                    RaidCustomizer.RaidConfig.SearchPartiesAtEvening.Value = evening;
+                    ServerCmd($"config set XR_RaidAtEvening {evening}");
+                    ServerCmd("raid requeue");
+                }
+                bool night = DrawCheckbox("Night", RaidCustomizer.RaidConfig.SearchPartiesAtNight.Value);
+                if (night != RaidCustomizer.RaidConfig.SearchPartiesAtNight.Value)
+                {
+                    RaidCustomizer.RaidConfig.SearchPartiesAtNight.Value = night;
+                    ServerCmd($"config set XR_RaidAtNight {night}");
+                    ServerCmd("raid requeue");
+                }
+                GUILayout.EndHorizontal();
+                
+                // Raids per day
+                int newRaidsPerDay = (int)DrawSlider("Raids/Day (-1=Def)", RaidCustomizer.RaidConfig.RaidsPerDay.Value, -1, 24);
+                if (newRaidsPerDay != RaidCustomizer.RaidConfig.RaidsPerDay.Value)
+                {
+                    RaidCustomizer.RaidConfig.RaidsPerDay.Value = newRaidsPerDay;
+                    ServerCmd($"config set XR_RaidsPerDay {newRaidsPerDay}");
+                    ServerCmd("raid requeue");
+                }
+                
+                DrawDivider("ENEMY TYPES");
+                
+                GUILayout.BeginHorizontal();
+                bool cannibals = DrawCheckbox("Allow Cannibals", RaidCustomizer.RaidConfig.AllowCannibals.Value);
+                if (cannibals != RaidCustomizer.RaidConfig.AllowCannibals.Value)
+                {
+                    RaidCustomizer.RaidConfig.AllowCannibals.Value = cannibals;
+                    ServerCmd($"config set XR_AllowCannibals {cannibals}");
+                    ServerCmd("raid requeue");
+                }
+                
+                bool creepy = DrawCheckbox("Allow Creepy", RaidCustomizer.RaidConfig.AllowCreepy.Value);
+                if (creepy != RaidCustomizer.RaidConfig.AllowCreepy.Value)
+                {
+                    RaidCustomizer.RaidConfig.AllowCreepy.Value = creepy;
+                    ServerCmd($"config set XR_AllowCreepy {creepy}");
+                    ServerCmd("raid requeue");
+                }
+                
+                bool muddies = DrawCheckbox("Allow Muddies", RaidCustomizer.RaidConfig.AllowMuddies.Value);
+                if (muddies != RaidCustomizer.RaidConfig.AllowMuddies.Value)
+                {
+                    RaidCustomizer.RaidConfig.AllowMuddies.Value = muddies;
+                    ServerCmd($"config set XR_AllowMuddies {muddies}");
+                    ServerCmd("raid requeue");
+                }
+                GUILayout.EndHorizontal();
+                
+                DrawDivider("SPAWN SETTINGS");
+                
+                float newMinSpawn = DrawSlider("Min Spawn Factor", RaidCustomizer.RaidConfig.SpawnCountFactor.Value, 0.1f, 10f);
+                if (Math.Abs(newMinSpawn - RaidCustomizer.RaidConfig.SpawnCountFactor.Value) > 0.01f)
+                {
+                    RaidCustomizer.RaidConfig.SpawnCountFactor.Value = newMinSpawn;
+                    ServerCmd($"config set XR_MinSpawnFactor {newMinSpawn}");
+                }
+                float newMaxSpawn = DrawSlider("Max Spawn Factor", RaidCustomizer.RaidConfig.MaxSpawnCountFactor.Value, 0.1f, 10f);
+                if (Math.Abs(newMaxSpawn - RaidCustomizer.RaidConfig.MaxSpawnCountFactor.Value) > 0.01f)
+                {
+                    RaidCustomizer.RaidConfig.MaxSpawnCountFactor.Value = newMaxSpawn;
+                    ServerCmd($"config set XR_MaxSpawnFactor {newMaxSpawn}");
+                }
+                int newEnemyLimit = (int)DrawSlider("Enemy Limit", RaidCustomizer.RaidConfig.EnemyLimit.Value, 1, 30);
+                if (newEnemyLimit != RaidCustomizer.RaidConfig.EnemyLimit.Value)
+                {
+                    RaidCustomizer.RaidConfig.EnemyLimit.Value = newEnemyLimit;
+                    ServerCmd($"config set XR_EnemyLimit {newEnemyLimit}");
+                }
+                int newBossCount = (int)DrawSlider("Boss Spawn Count", RaidCustomizer.RaidConfig.BossSpawnCount.Value, 1, 30);
+                if (newBossCount != RaidCustomizer.RaidConfig.BossSpawnCount.Value)
+                {
+                    RaidCustomizer.RaidConfig.BossSpawnCount.Value = newBossCount;
+                    ServerCmd($"config set XR_BossCount {newBossCount}");
+                }
+                
+                DrawDivider("STAT MULTIPLIERS");
+                
+                bool enableStats = DrawCheckbox("Enable Stat Overrides", RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value);
+                if (enableStats != RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value)
+                {
+                    RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value = enableStats;
+                    ServerCmd($"config set XR_StatMultiplierEnabled {enableStats}");
+                }
+                
+                if (RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value)
+                {
+                    float chp = DrawSlider("Cannibal HP", RaidCustomizer.RaidConfig.CannibalHealthMultiplier.Value, 0.1f, 10f);
+                    if (Math.Abs(chp - RaidCustomizer.RaidConfig.CannibalHealthMultiplier.Value) > 0.01f)
+                    { RaidCustomizer.RaidConfig.CannibalHealthMultiplier.Value = chp; ServerCmd($"config set XR_CannibalHealth {chp}"); }
+                    
+                    float cdmg = DrawSlider("Cannibal DMG", RaidCustomizer.RaidConfig.CannibalDamageMultiplier.Value, 0.1f, 10f);
+                    if (Math.Abs(cdmg - RaidCustomizer.RaidConfig.CannibalDamageMultiplier.Value) > 0.01f)
+                    { RaidCustomizer.RaidConfig.CannibalDamageMultiplier.Value = cdmg; ServerCmd($"config set XR_CannibalDamage {cdmg}"); }
+                    
+                    float crhp = DrawSlider("Creep HP", RaidCustomizer.RaidConfig.CreepHealthMultiplier.Value, 0.1f, 10f);
+                    if (Math.Abs(crhp - RaidCustomizer.RaidConfig.CreepHealthMultiplier.Value) > 0.01f)
+                    { RaidCustomizer.RaidConfig.CreepHealthMultiplier.Value = crhp; ServerCmd($"config set XR_CreepHealth {crhp}"); }
+                    
+                    float crdmg = DrawSlider("Creep DMG", RaidCustomizer.RaidConfig.CreepDamageMultiplier.Value, 0.1f, 10f);
+                    if (Math.Abs(crdmg - RaidCustomizer.RaidConfig.CreepDamageMultiplier.Value) > 0.01f)
+                    { RaidCustomizer.RaidConfig.CreepDamageMultiplier.Value = crdmg; ServerCmd($"config set XR_CreepDamage {crdmg}"); }
+                    
+                    float bhp = DrawSlider("Boss HP", RaidCustomizer.RaidConfig.BossHealthMultiplier.Value, 0.1f, 10f);
+                    if (Math.Abs(bhp - RaidCustomizer.RaidConfig.BossHealthMultiplier.Value) > 0.01f)
+                    { RaidCustomizer.RaidConfig.BossHealthMultiplier.Value = bhp; ServerCmd($"config set XR_BossHealth {bhp}"); }
+                    
+                    float bdmg = DrawSlider("Boss DMG", RaidCustomizer.RaidConfig.BossDamageMultiplier.Value, 0.1f, 10f);
+                    if (Math.Abs(bdmg - RaidCustomizer.RaidConfig.BossDamageMultiplier.Value) > 0.01f)
+                    { RaidCustomizer.RaidConfig.BossDamageMultiplier.Value = bdmg; ServerCmd($"config set XR_BossDamage {bdmg}"); }
+                }
+                
+                DrawDivider("ANNOUNCEMENTS");
+                
+                bool announce = DrawCheckbox("Announce Raids", RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value);
+                if (announce != RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value)
+                {
+                    RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value = announce;
+                    ServerCmd($"config set XR_AnnounceRaids {announce}");
+                }
+                
+                DrawDivider("RAID ACTIONS");
+                
+                // Quick actions — execute locally for feedback + dispatch to dedicated server
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Start Random Raid", ProjectXStyles.Button, GUILayout.Height(42)))
+                {
+                    try { RaidCustomizer.RaidActions.RunRandomRaid(); } catch { }
+                    ServerCmd("raid start");
+                }
+                if (GUILayout.Button("Clear Queued Raids", ProjectXStyles.Button, GUILayout.Height(42)))
+                {
+                    try { RaidCustomizer.RaidActions.ClearQueuedRaids(); } catch { }
+                    ServerCmd("raid clear");
+                }
+                GUILayout.EndHorizontal();
+                
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Clear All Events", ProjectXStyles.Button, GUILayout.Height(45)))
+                {
+                    try { RaidCustomizer.RaidActions.ClearAllEvents(); } catch { }
+                    ServerCmd("raid clear");
+                }
+                if (GUILayout.Button("Clear Cooldowns", ProjectXStyles.Button, GUILayout.Height(45)))
+                {
+                    try { RaidCustomizer.RaidActions.ClearRaidCooldowns(); } catch { }
+                    ServerCmd("raid cooldown");
+                }
+                GUILayout.EndHorizontal();
+                
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Requeue Raids", ProjectXStyles.Button, GUILayout.Height(45)))
+                {
+                    try { RaidCustomizer.RaidActions.RequeueRaids(); } catch { }
+                    ServerCmd("raid requeue");
+                }
+                if (GUILayout.Button("Show Raid Status", ProjectXStyles.Button, GUILayout.Height(45)))
+                {
+                    try { RaidCustomizer.RaidActions.PrintQueuedRaids(); } catch { }
+                    ServerCmd("raid status");
+                }
+                GUILayout.EndHorizontal();
+                
+                DrawDivider("LOOT RESPAWN");
+                
+                // Loot toggle — local mod state
+                try
+                {
+                    bool lootEnabled = DrawCheckbox("Loot Respawn Enabled", LootRespawn.LootRespawnModule.Enabled);
+                    if (lootEnabled != LootRespawn.LootRespawnModule.Enabled)
+                    {
+                        LootRespawn.LootRespawnModule.Enabled = lootEnabled;
+                        Config.Save();
+                    }
+                }
+                catch { GUILayout.Label("Loot module not loaded", ProjectXStyles.NormalLabel); }
+                
+                // Respawn days slider — null-safe
+                if (Config.LootRespawnDays != null)
+                {
+                    Config.LootRespawnDays.Value = (int)DrawSlider("Respawn Days", Config.LootRespawnDays.Value, 1, 30);
+                }
+                
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Reset Loot Tracker", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("loot reset");
+                if (GUILayout.Button("Show Loot Status", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("loot status");
+                GUILayout.EndHorizontal();
+                
+                DrawDivider("SERVER");
+                
+                // Structure Durability — local config
+                if (Config.StructureDurabilityMultiplier != null)
+                {
+                    Config.StructureDurabilityMultiplier.Value = DrawSlider("Structure Durability", Config.StructureDurabilityMultiplier.Value, 0.1f, 100f);
+                }
+                
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Force Save World", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("save");
+                if (GUILayout.Button("Save Config", ProjectXStyles.Button, GUILayout.Height(45)))
+                { try { Config.Save(); RLog.Msg("[ServerAdmin] Config saved"); } catch {} }
+                GUILayout.EndHorizontal();
+                
+                if (GUILayout.Button("Show Server Status", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("status");
+            }
+            catch (System.Exception ex)
+            {
+                GUILayout.Label($"Server Admin panel error: {ex.Message}", ProjectXStyles.NormalLabel);
+                RLog.Warning($"[ServerAdmin] Panel render error: {ex}");
+            }
         }
         
         #endregion
@@ -684,6 +1454,11 @@ namespace ProjectX.Master.Modules.UI
             GUILayout.Label(newVal.ToString("F1"), ProjectXStyles.ValueLabel, GUILayout.Width(60));
             GUILayout.EndHorizontal();
             return newVal;
+        }
+        
+        private bool DrawButton(string label)
+        {
+            return GUILayout.Button(label, ProjectXStyles.Button, GUILayout.Height(32));
         }
         
         private void TryTeleportToCoords(string input)

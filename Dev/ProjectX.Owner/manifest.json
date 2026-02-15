@@ -1,10 +1,13 @@
 {
-    "Name": "ProjectX Owner Edition",
-    "Author": "J4m3s",
-    "ID": "ProjectX.Owner",
-    "Version": "1.7.0-beta",
-    "Description": "Owner Edition - Full control on your multiplayer server",
-    "GameVersion": "1.0.0",
-    "IsUniversal": true,
-    "Dependencies": []
+  "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+  "id": "ProjectX.Owner",
+  "name": "ProjectX Owner Edition",
+  "author": "J4m3s",
+  "version": "1.7.0",
+  "description": "Owner Edition - Full control on your multiplayer server",
+  "gameVersion": "1.0.0",
+  "platform": "Universal",
+  "type": "Mod",
+  "dependencies": [],
+  "url": "..."
 }

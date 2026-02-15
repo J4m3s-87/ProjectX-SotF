@@ -1,3 +1,4 @@
+#if !SERVER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -200,19 +201,68 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         }
         
         /// <summary>
-        /// Print queued raids to log
+        /// Show raid status as a single aggregated message
         /// </summary>
         public static void PrintQueuedRaids()
         {
             try
             {
-                QueuedEventHandler.PrintQueuedRaids();
-                SonsTools.ShowMessage("Queued raids printed to log");
+                var worldEvents = SingletonBehaviour<VailWorldEvents>._instance;
+                if (worldEvents == null)
+                {
+                    SonsTools.ShowMessage("Raids not ready - load a save first");
+                    return;
+                }
+                
+                var eventData = RaidPatches.GetWorldEventData(worldEvents);
+                if (eventData == null)
+                {
+                    SonsTools.ShowMessage("Cannot access raid data");
+                    return;
+                }
+                
+                // Count active/total raids
+                int total = 0;
+                int active = 0;
+                foreach (var evt in eventData._searchPartyEvents)
+                {
+                    if (EventTools.IsActualSearchParty(evt))
+                    {
+                        total++;
+                        if (!SearchPartyEventConfigurator.ShouldDisable(evt))
+                            active++;
+                    }
+                }
+                
+                // Count queued raid events
+                var queuedNames = new List<string>();
+                foreach (var evt in worldEvents._queuedEvents)
+                {
+                    if (EventTools.IsActualSearchParty(evt._event))
+                    {
+                        queuedNames.Add(evt._event.name);
+                    }
+                }
+                
+                // Build single status message
+                string status = $"Raids: {active}/{total} active | Queued: {queuedNames.Count} | Day: {worldEvents._lastQueuedDay}";
+                if (queuedNames.Count > 0)
+                {
+                    var preview = queuedNames.Count <= 3 
+                        ? string.Join(", ", queuedNames) 
+                        : string.Join(", ", queuedNames.GetRange(0, 3)) + $" +{queuedNames.Count - 3} more";
+                    status += $"\n{preview}";
+                }
+                
+                SonsTools.ShowMessage(status, 12f);
+                RLog.Msg($"[RaidCustomizer] {status}");
             }
             catch (Exception ex)
             {
-                RLog.Warning($"[RaidCustomizer] PrintQueuedRaids failed: {ex.Message}");
+                RLog.Warning($"[RaidCustomizer] ShowRaidStatus failed: {ex.Message}");
+                SonsTools.ShowMessage("Failed to get raid status");
             }
         }
     }
 }
+#endif

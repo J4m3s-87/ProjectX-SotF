@@ -42,6 +42,16 @@
     <Reference Include="Sons.Atmosphere">
       <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Atmosphere.dll</HintPath>
     </Reference>
+    <Reference Include="Sons.Gameplay.GameSetup">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Gameplay.GameSetup.dll</HintPath>
+    </Reference>
+    <Reference Include="Sons.Items">
+      <HintPath>..\..\Tools\_Redloader\Game\Sons.Item.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sons.Weapon">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Weapon.dll</HintPath>
+    </Reference>
     <Reference Include="Sons.Input">
       <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Input.dll</HintPath>
     </Reference>
@@ -143,6 +153,13 @@
     <Compile Include="..\ProjectX.Master\**\*.cs" 
              Exclude="..\ProjectX.Master\obj\**;..\ProjectX.Master\bin\**"
              LinkBase="" />
+  </ItemGroup>
+
+  <!-- Dead/Removed modules (same exclusions as Server) -->
+  <ItemGroup>
+    <Compile Remove="..\ProjectX.Master\Modules\StoneGate\**" />
+    <Compile Remove="..\ProjectX.Master\Modules\OpenSesame\**" />
+    <Compile Remove="..\ProjectX.Master\Modules\PrefabRepair\**" />
   </ItemGroup>
 
   <ItemGroup>

@@ -33,7 +33,33 @@ namespace ProjectX.Master.Modules.StoneGate
 		internal static Texture2D stoneGateOpenCloseIcon;
 		internal static bool isStoneGateToolOneTimeUse = true;
 
-		// Replaces OnInitializeMod
+		// Replaces OnInitializeMod — server-only lightweight init
+		/// <summary>
+		/// Server-only init: registers network events + save system.
+		/// No assets, UI, keybinds, or tool prefabs.
+		/// </summary>
+		public static void InitServer()
+		{
+			RLog.Msg("[StoneGate] Server-side init (network + save only)");
+			
+			// IL2CPP type registration (needed for networking MonoBehaviours)
+			ClassInjector.RegisterTypeInIl2Cpp<StoneGateStoreMono>();
+			ClassInjector.RegisterTypeInIl2Cpp<ProjectX.Master.Modules.StoneGate.Network.CustomEventHandler>();
+			
+			// Register Bolt network event types
+			ProjectX.Master.Modules.StoneGate.Network.Manager.Register();
+			ProjectX.Master.Modules.StoneGate.Network.Manager.RegisterEventHandlers();
+			
+			// Save system
+			var manager = new ProjectX.Master.Modules.StoneGate.Saving.Manager();
+			try { SonsSaveTools.Register<ProjectX.Master.Modules.StoneGate.Saving.Manager.GatesManager>(manager); }
+			catch (Exception) { /* Already registered */ }
+			
+			// Gate state tracking
+			CreateGateParent instance = CreateGateParent.Instance;
+		}
+
+		// Replaces OnInitializeMod — full client init
 		public static void Init()
 		{
 			Config.Init();

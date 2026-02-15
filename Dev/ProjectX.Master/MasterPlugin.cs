@@ -58,8 +58,11 @@ namespace ProjectX.Master
             Modules.UI.ProjectXUI.Init();
 #endif
             
-            // 2. StoneGate (client/owner only — asset loading + UI + keybinds)
-#if !SERVER
+            // 2. StoneGate
+#if SERVER
+            try { Modules.StoneGate.StoneGateModule.InitServer(); }
+            catch (System.Exception ex) { LoggerInstance.Error($"[StoneGate] Server init failed: {ex}"); }
+#else
             try { Modules.StoneGate.StoneGateModule.Init(); }
             catch (System.Exception ex) { LoggerInstance.Error($"[StoneGate] Init failed: {ex}"); }
             try { Modules.StoneGate.StoneGateModule.OnSdkInitialized(); }

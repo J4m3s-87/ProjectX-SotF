@@ -273,6 +273,7 @@ namespace ProjectX.Master.Modules.StoneGate.Mono
 								bool flag11 = mode == Enumerable.ElementAt<string>(UiController.GetAllowedModes(), 0);
 								if (flag11)
 								{
+									RLog.Msg($"[StoneGate] [TryHitObject] MARK mode — calling ValidateAndPerformMark for {gameObject.name}");
 									this.ValidateAndPerformMark(gameObject);
 								}
 								else
@@ -402,9 +403,12 @@ namespace ProjectX.Master.Modules.StoneGate.Mono
 					}
 				}
 			}
+			RLog.Msg($"[StoneGate] [ValidateAndPerformMark] Calling MarkHit for {rootGo.name}");
 			this.MarkHit(rootGo, default(Color?));
+			RLog.Msg($"[StoneGate] [ValidateAndPerformMark] MarkHit completed, adding object with mode");
 			this.AddObjectWithMode(Enumerable.ElementAt<string>(UiController.GetAllowedModes(), 0), rootGo);
 			this.CheckIfReadyToComplete();
+			RLog.Msg($"[StoneGate] [ValidateAndPerformMark] All done for {rootGo.name}");
 		}
 
 		// Token: 0x060000BB RID: 187 RVA: 0x0000738C File Offset: 0x0000558C
@@ -451,20 +455,42 @@ namespace ProjectX.Master.Modules.StoneGate.Mono
 		// Token: 0x060000BC RID: 188 RVA: 0x00007538 File Offset: 0x00005738
 		private void MarkHit(GameObject rootGo, Color? color = null)
 		{
-			Misc.Msg($"[StoneGateItemMono] [MarkHit] Object: {rootGo.name}, InstanceID: {rootGo.GetInstanceID()}", false);
-			Renderer[] array = rootGo.GetComponentsInChildren<Renderer>(true);
-			bool flag = array == null || array.Length == 0;
-			if (flag)
+			try
 			{
-				bool logMaterialChanges = Settings.logMaterialChanges;
-				if (logMaterialChanges)
+				RLog.Msg($"[StoneGate] [MarkHit] START — Object: {rootGo.name}, InstanceID: {rootGo.GetInstanceID()}");
+				Renderer[] array = rootGo.GetComponentsInChildren<Renderer>(true);
+				bool flag = array == null || array.Length == 0;
+				if (flag)
 				{
-					Misc.Msg("Failed To Mark Objects - No renderers found", false);
+					RLog.Warning("[StoneGate] [MarkHit] No renderers found on " + rootGo.name);
+					return;
 				}
-			}
-			else
-			{
-				Shader shader = ShaderRuntimeLookup.Find("Sons/Outline/StructuresGhostHLSL");
+				RLog.Msg($"[StoneGate] [MarkHit] Found {array.Length} renderers");
+				
+				// Shader lookup with fallback chain
+				Shader shader = null;
+				try
+				{
+					shader = ShaderRuntimeLookup.Find("Sons/Outline/StructuresGhostHLSL");
+				}
+				catch (System.Exception ex)
+				{
+					RLog.Warning($"[StoneGate] [MarkHit] ShaderRuntimeLookup.Find failed: {ex.Message}");
+				}
+				
+				if (shader == null)
+				{
+					RLog.Msg("[StoneGate] [MarkHit] Trying Shader.Find fallback...");
+					shader = Shader.Find("Sons/Outline/StructuresGhostHLSL");
+				}
+				if (shader == null)
+				{
+					RLog.Warning("[StoneGate] [MarkHit] Ghost shader not found, using Sprites/Default");
+					shader = Shader.Find("Sprites/Default");
+				}
+				
+				RLog.Msg($"[StoneGate] [MarkHit] Shader: {(shader != null ? shader.name : "NULL")}");
+				
 				Color color2 = color ?? new Color(0.8784314f, 0.35686275f, 0.43529412f, 1f);
 				Material material = new Material(shader)
 				{
@@ -486,11 +512,6 @@ namespace ProjectX.Master.Modules.StoneGate.Mono
 						Material[] array3 = new Material[renderer.sharedMaterials.Length];
 						Array.Copy(renderer.sharedMaterials, array3, renderer.sharedMaterials.Length);
 						this.originalMaterials[instanceID][instanceID2] = array3;
-						bool logMaterialChanges2 = Settings.logMaterialChanges;
-						if (logMaterialChanges2)
-						{
-							Misc.Msg($"[StoneGateItemMono] [MarkHit] Stored {array3.Length} original materials for renderer: {renderer.name}, ID: {instanceID2}", false);
-						}
 					}
 					Material[] array4 = new Material[renderer.sharedMaterials.Length];
 					for (int j = 0; j < array4.Length; j++)
@@ -498,13 +519,14 @@ namespace ProjectX.Master.Modules.StoneGate.Mono
 						array4[j] = material;
 					}
 					renderer.sharedMaterials = array4;
-					bool logMaterialChanges3 = Settings.logMaterialChanges;
-					if (logMaterialChanges3)
-					{
-						Misc.Msg("[StoneGateItemMono] [MarkHit] Applied ghost materials to: " + renderer.name, false);
-					}
 				}
 				this.markedObjects.Add(rootGo);
+				RLog.Msg($"[StoneGate] [MarkHit] DONE — Applied ghost material to {array.Length} renderers on {rootGo.name}");
+			}
+			catch (System.Exception ex)
+			{
+				RLog.Error($"[StoneGate] [MarkHit] FAILED: {ex.Message}");
+				RLog.Warning($"[StoneGate] [MarkHit] Stack: {ex.StackTrace}");
 			}
 		}
 

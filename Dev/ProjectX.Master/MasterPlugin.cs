@@ -5,6 +5,7 @@ using SonsSdk;
 using UnityEngine;
 using Bolt;
 using HarmonyLib;
+using SonsSdk.Attributes;
 using ProjectX.Master.Modules.Network;
 #if !SERVER
 using SonsAxLib;
@@ -13,7 +14,7 @@ using SUI;
 
 namespace ProjectX.Master
 {
-    public class ProjectXMaster : SonsMod
+    public class ProjectXMaster : SonsMod, IOnAfterSpawnReceiver
     {
         public static ProjectXMaster Instance { get; private set; }
 
@@ -70,7 +71,7 @@ namespace ProjectX.Master
 #endif
             
 #if !SERVER
-            // 3. Hotbar (client only) — re-enabled with sprite caching + frame throttling
+            // 3. Hotbar (client only) — re-enabled (NOT the Tab crash cause, confirmed test #11)
             if (!isDedicated)
             {
                 Modules.Hotbar.HotbarModule.Init();
@@ -125,7 +126,7 @@ namespace ProjectX.Master
             Modules.Stack.StackModule.Init();
             
             // 16b. CraftingSpeed - DISABLED (CraftingCog IL2CPP incompatible)
-            Modules.Crafting.CraftingSpeed.Init();
+            // Modules.Crafting.CraftingSpeed.Init();
 #endif
             
             
@@ -154,6 +155,17 @@ namespace ProjectX.Master
             LoggerInstance.Msg("Fresh Merge: All modules enabled");
 #if SERVER || OWNER
             ConfigSyncPayload.EnableBroadcast();
+#endif
+        }
+
+        // IOnAfterSpawnReceiver — called by RedLoader at exactly the right lifecycle point.
+        // The original StoneGate mod used this interface on its SonsMod class.
+        // StoneGate's ItemBuilder MUST run here (not OnGameActivated or SdkEvents.OnAfterSpawn).
+        public void OnAfterSpawn()
+        {
+#if !SERVER
+            try { Modules.StoneGate.StoneGateModule.OnAfterSpawn(); }
+            catch (Exception ex) { LoggerInstance.Error($"[OnAfterSpawn] StoneGate failed: {ex.Message}"); }
 #endif
         }
 

@@ -549,6 +549,37 @@ namespace ProjectX.Master.Modules.UI
                 RLog.Msg($"[ProjectX] Water Collector Heat Radius: {heatNew:F1}");
             }
             
+            // Stone Gate tool — equips the tool into the player's hand
+            if (DrawButton("Spawn Stone Gate"))
+            {
+                try
+                {
+                    int itemId = StoneGate.StoneGateModule.stoneGateCreatorItemData._id;
+                    var heldPrefab = ItemTools.GetHeldPrefab(itemId);
+                    if (heldPrefab != null)
+                    {
+                        // Parent to player's camera so it follows their view (acts like held item)
+                        var cam = Camera.main.transform;
+                        var toolInstance = UnityEngine.Object.Instantiate(heldPrefab.gameObject, cam);
+                        toolInstance.transform.localPosition = new Vector3(0.3f, -0.3f, 0.5f);
+                        toolInstance.transform.localRotation = UnityEngine.Quaternion.identity;
+                        toolInstance.transform.localScale = Vector3.one;
+                        toolInstance.SetActive(true);
+                        RLog.Msg("[StoneGate] Tool parented to camera");
+                        SonsTools.ShowMessage("Stone Gate tool equipped! LMB=Mark, C=Mode, E=Complete", 5f);
+                    }
+                    else
+                    {
+                        SonsTools.ShowMessage("Stone Gate not ready. Try after game loads.", 3f);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RLog.Error($"[StoneGate] Menu equip failed: {ex.Message}");
+                    SonsTools.ShowMessage("Failed to equip tool. Check logs.", 3f);
+                }
+            }
+            
             DrawDivider("BUILDING CHEATS");
             
             // FreeForm placement - restored with GameSetupManager API

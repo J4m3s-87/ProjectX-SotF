@@ -115,7 +115,9 @@ namespace ProjectX.Master.Modules.StoneGate
 			}
 			// SettingsRegistry... (Managed by ProjectX Config)
 			
-			SdkEvents.OnGameActivated.Subscribe(new LemonAction(OnFirstGameActivation), 0, true);
+			SdkEvents.OnGameActivated.Subscribe(new LemonAction(OnFirstGameActivation), 0, false);
+			// OnAfterSpawn is now called by RedLoader via IOnAfterSpawnReceiver on ProjectXMaster
+			// (matching the original standalone StoneGate mod's lifecycle exactly)
 			
 			StoneGateModule.StoneGateToolUI = Object.Instantiate<GameObject>(Assets.Instance.StoneGateToolUI);
 			CommonExtensions.HideAndDontSave(CommonExtensions.DontDestroyOnLoad(StoneGateModule.StoneGateToolUI));
@@ -186,17 +188,41 @@ namespace ProjectX.Master.Modules.StoneGate
 		}
 
 		// Helper removed in favor of StoneGateUtils
+		// Matches original: OnFirstGameActivation creates ItemData ONLY.
+		// ItemBuilder + Recipe run later in OnAfterSpawn (when crafting systems are ready).
 		private static void OnFirstGameActivation()
 		{
 			try
 			{
-				RLog.Msg("[StoneGate] OnFirstGameActivation starting...");
-				RLog.Msg($"[StoneGate] stoneGateCreatorPrefab null? {StoneGateModule.stoneGateCreatorPrefab == null}");
-				RLog.Msg($"[StoneGate] stoneGateCreatorHeldPrefab null? {StoneGateModule.stoneGateCreatorHeldPrefab == null}");
-				RLog.Msg($"[StoneGate] stoneGateCreatorTexture null? {StoneGateModule.stoneGateCreatorTexture == null}");
+				// Idempotent: skip if already initialized this session
+				if (StoneGateModule.stoneGateCreatorItemData != null)
+				{
+					RLog.Msg("[StoneGate] OnGameActivation — ItemData already exists, skipping");
+					return;
+				}
+				
+				RLog.Msg("[StoneGate] OnGameActivation starting...");
 
+				// Try to create and register. If already registered (save reload), retrieve existing.
 				StoneGateModule.stoneGateCreatorItemData = ItemTools.CreateAndRegisterItem(751152, "Stone Gate Creator", 1, null, "Create Stone Gates");
-				RLog.Msg($"[StoneGate] ItemData created, id={StoneGateModule.stoneGateCreatorItemData?._id}");
+				
+				if (StoneGateModule.stoneGateCreatorItemData == null)
+				{
+					// Item already registered from previous session — retrieve it
+					RLog.Msg("[StoneGate] Item 751152 already registered, retrieving existing ItemData...");
+					StoneGateModule.stoneGateCreatorItemData = ItemDatabaseManager.ItemById(751152);
+					
+					if (StoneGateModule.stoneGateCreatorItemData == null)
+					{
+						RLog.Error("[StoneGate] Failed to retrieve ItemData for id=751152!");
+						return;
+					}
+					RLog.Msg($"[StoneGate] Retrieved existing ItemData, id={StoneGateModule.stoneGateCreatorItemData._id}");
+				}
+				else
+				{
+					RLog.Msg($"[StoneGate] ItemData created, id={StoneGateModule.stoneGateCreatorItemData._id}");
+				}
 
 				ItemDataExtensions.SetIcon(StoneGateModule.stoneGateCreatorItemData, StoneGateModule.stoneGateCreatorTexture);
 				ItemDataExtensions.SetupHeld(StoneGateModule.stoneGateCreatorItemData, 0, new AnimatorVariables[] { (AnimatorVariables)12 }, (ItemUiData.LeftClickCommands)1, 0, (ItemData.GuiType)1);
@@ -204,45 +230,82 @@ namespace ProjectX.Master.Modules.StoneGate
 				StoneGateModule.stoneGateCreatorItemData._heldPrefab = StoneGateModule.stoneGateCreatorHeldPrefab.transform;
 				
 				RLog.Msg($"[StoneGate] _heldPrefab set to: {StoneGateModule.stoneGateCreatorItemData._heldPrefab?.name ?? "NULL"}");
-				RLog.Msg($"[StoneGate] _heldPrefab has StoneGateItemMono? {StoneGateModule.stoneGateCreatorHeldPrefab?.GetComponent<StoneGateItemMono>() != null}");
-				
-				OnAfterSpawn();
 			}
 			catch (Exception ex)
 			{
-				RLog.Error($"[StoneGate] OnFirstGameActivation FAILED: {ex}");
+				RLog.Error($"[StoneGate] OnGameActivation FAILED: {ex}");
 			}
 		}
 
-		private static void OnAfterSpawn()
+		// Called by ProjectXMaster.OnAfterSpawn() via IOnAfterSpawnReceiver
+		// Matches original: ItemBuilder + Recipe registration runs HERE (crafting systems ready)
+		// Then world entry + save loading
+		public static void OnAfterSpawn()
 		{
+			// Block 1: Register /px stonegate command to give player the StoneGate tool
+			// NOTE: AddInventoryItem causes an engine-level native crash when the backpack opens
+			// (confirmed bug — affects original standalone mod too). Using /px command instead.
 			try
 			{
-				// Null safety check
-				if (StoneGateModule.stoneGateCreatorPrefab == null || StoneGateModule.stoneGateCreatorItemData == null)
+				RLog.Msg("[StoneGate] OnAfterSpawn — Registering /px stonegate command");
+				
+				ProjectX.Master.Modules.Network.CommandBridge.RegisterCommand("stonegate", (string senderSteamId, string[] args) =>
 				{
-					RLog.Warning("[StoneGate] OnAfterSpawn skipped - prefab or itemData is null");
-					return;
-				}
+					try
+					{
+#if !SERVER
+						int itemId = StoneGateModule.stoneGateCreatorItemData._id;
+						RLog.Msg($"[StoneGate] /px stonegate: Equipping tool (id={itemId}) for {senderSteamId}");
+						
+						// Parent to player's camera so it follows their view (acts like held item)
+						var heldPrefab = ItemTools.GetHeldPrefab(itemId);
+						if (heldPrefab != null)
+						{
+							var cam = UnityEngine.Camera.main.transform;
+							var toolInstance = Object.Instantiate(heldPrefab.gameObject, cam);
+							toolInstance.transform.localPosition = new Vector3(0.3f, -0.3f, 0.5f);
+							toolInstance.transform.localRotation = Quaternion.identity;
+							toolInstance.transform.localScale = Vector3.one;
+							toolInstance.SetActive(true);
+							RLog.Msg("[StoneGate] Tool parented to camera");
+							SonsTools.ShowMessage("Stone Gate tool equipped! LMB=Mark, C=Mode, E=Complete", 5f);
+						}
+						else
+						{
+							RLog.Error("[StoneGate] Held prefab is null");
+							SonsTools.ShowMessage("Stone Gate tool not ready. Try after loading.", 3f);
+						}
+#else
+						RLog.Msg("[StoneGate] /px stonegate: Server-side — no action taken");
+#endif
+					}
+					catch (System.Exception ex)
+					{
+						RLog.Error($"[StoneGate] /px stonegate failed: {ex.Message}");
+						RLog.Warning($"[StoneGate] Stack: {ex.StackTrace}");
+					}
+				});
 				
-				new ItemTools.ItemBuilder(StoneGateModule.stoneGateCreatorPrefab, StoneGateModule.stoneGateCreatorItemData, false)
-					.AddInventoryItem(Array.Empty<Vector3>()).AddIngredientItem(Array.Empty<Vector3>()).AddCraftingResultItem(Array.Empty<Vector3>())
-					.SetupHeld(new Vector3?(new Vector3(0f, 0f, 0f)), new Vector3?(new Vector3(0f, 0f, 0f)))
-					.SetupPickup(StoneGateModule.stoneGateCreatorPickupPrefab)
-					.Recipe.AddIngredient(392, 2, false).AddIngredient(393, 2, false).AddResult(StoneGateModule.stoneGateCreatorItemData._id)
-					.Animation("CraftCraftedArrows")
-					.BuildAndAdd();
-					
-				new ItemTools.RecipeBuilder().AddIngredient(StoneGateModule.stoneGateCreatorItemData._id, 2, false).AddResult(392).BuildAndAdd();
-				
-				RLog.Msg(System.Drawing.Color.SeaGreen, "[ ADDED ITEM: StoneGateTool]");
-				
-				// Saving loading logic
-				// Settings.logSavingSystem check...
+				RLog.Msg(System.Drawing.Color.SeaGreen, "[ StoneGate: Type '/px stonegate' in chat to get the tool ]");
+			}
+			catch (System.Exception ex)
+			{
+				RLog.Error($"[StoneGate] OnAfterSpawn command registration failed: {ex.Message}");
+				RLog.Warning($"[StoneGate] Stack: {ex.StackTrace}");
+			}
+			
+			// Block 2: World entry and save loading (independent — NRE here shouldn't break item registration)
+			try
+			{
+				RLog.Msg("[StoneGate] OnAfterSpawn — world entry + save loading");
 				
 				if (CustomEventHandler.Instance != null)
 				{
 					CustomEventHandler.Instance.OnEnterWorld();
+				}
+				else
+				{
+					RLog.Warning("[StoneGate] CustomEventHandler.Instance is null — skipping OnEnterWorld");
 				}
 				
 				bool isMultiplayerClient = BoltNetwork.isRunning && BoltNetwork.isClient;
@@ -261,7 +324,8 @@ namespace ProjectX.Master.Modules.StoneGate
 			}
 			catch (System.Exception ex)
 			{
-				RLog.Warning($"[StoneGate] OnAfterSpawn failed: {ex.Message}");
+				RLog.Warning($"[StoneGate] OnAfterSpawn world-entry failed: {ex.Message}");
+				RLog.Warning($"[StoneGate] World-entry stack: {ex.StackTrace}");
 			}
 		}
 	}

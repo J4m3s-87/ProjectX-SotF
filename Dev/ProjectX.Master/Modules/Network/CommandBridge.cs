@@ -251,6 +251,7 @@ namespace ProjectX.Master.Modules.Network
             RLog.Msg("  /px save      - Quick save");
             RLog.Msg("  /px status    - Quick status");
             RLog.Msg("  /px time <hr> - Quick time set");
+            RLog.Msg("  /px stonegate - Spawn Stone Gate tool");
         }
     }
 }

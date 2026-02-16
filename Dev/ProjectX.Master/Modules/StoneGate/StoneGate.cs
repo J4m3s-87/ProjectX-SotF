@@ -232,17 +232,21 @@ namespace ProjectX.Master.Modules.StoneGate
 					return;
 				}
 				
-				new ItemTools.ItemBuilder(StoneGateModule.stoneGateCreatorPrefab, StoneGateModule.stoneGateCreatorItemData, false)
-					.AddInventoryItem(Array.Empty<Vector3>()).AddIngredientItem(Array.Empty<Vector3>()).AddCraftingResultItem(Array.Empty<Vector3>())
-					.SetupHeld(new Vector3?(new Vector3(0f, 0f, 0f)), new Vector3?(new Vector3(0f, 0f, 0f)))
-					.SetupPickup(StoneGateModule.stoneGateCreatorPickupPrefab)
-					.Recipe.AddIngredient(392, 2, false).AddIngredient(393, 2, false).AddResult(StoneGateModule.stoneGateCreatorItemData._id)
-					.Animation("CraftCraftedArrows")
-					.BuildAndAdd();
-					
-				new ItemTools.RecipeBuilder().AddIngredient(StoneGateModule.stoneGateCreatorItemData._id, 2, false).AddResult(392).BuildAndAdd();
+				// DISABLED: ItemBuilder + AddInventoryItem causes Tab crash (native engine AV)
+				// Also breaks stone arrow crafting — recipe uses item 392 (stone arrows) as ingredient
+				// See stonegate_crash_matrix.md for full analysis
+				// new ItemTools.ItemBuilder(StoneGateModule.stoneGateCreatorPrefab, StoneGateModule.stoneGateCreatorItemData, false)
+				// 	.AddInventoryItem(Array.Empty<Vector3>()).AddIngredientItem(Array.Empty<Vector3>()).AddCraftingResultItem(Array.Empty<Vector3>())
+				// 	.SetupHeld(new Vector3?(new Vector3(0f, 0f, 0f)), new Vector3?(new Vector3(0f, 0f, 0f)))
+				// 	.SetupPickup(StoneGateModule.stoneGateCreatorPickupPrefab)
+				// 	.Recipe.AddIngredient(392, 2, false).AddIngredient(393, 2, false).AddResult(StoneGateModule.stoneGateCreatorItemData._id)
+				// 	.Animation("CraftCraftedArrows")
+				// 	.BuildAndAdd();
 				
-				RLog.Msg(System.Drawing.Color.SeaGreen, "[ ADDED ITEM: StoneGateTool]");
+				// DISABLED: Reverse recipe (2x StoneGate → stone arrows) may override normal crafting
+				// new ItemTools.RecipeBuilder().AddIngredient(StoneGateModule.stoneGateCreatorItemData._id, 2, false).AddResult(392).BuildAndAdd();
+				
+				RLog.Msg(System.Drawing.Color.SeaGreen, "[ StoneGate: ItemBuilder DISABLED — use /px stonegate or INSERT menu ]");
 				
 				// Saving loading logic
 				// Settings.logSavingSystem check...

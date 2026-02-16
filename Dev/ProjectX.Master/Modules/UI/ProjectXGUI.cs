@@ -60,7 +60,7 @@ namespace ProjectX.Master.Modules.UI
             { "Rope Gun Cave", new Vector3(-1113, 132, -171) },
             { "Crossbow Bunker", new Vector3(-1014, 102, 1024) },
             { "End Game Bunker", new Vector3(1756, 45, 553) },
-            { "Modern Bow", new Vector3(-1121, 270, -1041) }
+            { "Modern Bow", new Vector3(-1133, 278, -1101) }
         };
 
         void Awake()
@@ -338,11 +338,11 @@ namespace ProjectX.Master.Modules.UI
             
             // Re-enabled with per-actor exception handling for IL2CPP stability
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Kill All Enemies", ProjectXStyles.Button))
+            if (GUILayout.Button("Kill All Enemies", ProjectXStyles.Button, GUILayout.Width(colW)))
             {
                 PlayerActions.KillAllEnemies();
             }
-            if (GUILayout.Button("Burn All Enemies", ProjectXStyles.Button))
+            if (GUILayout.Button("Burn All Enemies", ProjectXStyles.Button, GUILayout.Width(colW)))
             {
                 PlayerActions.BurnAllEnemies();
             }
@@ -364,11 +364,11 @@ namespace ProjectX.Master.Modules.UI
             DrawDivider("SPAWN NPC");
             
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("End Boss", ProjectXStyles.Button))
+            if (GUILayout.Button("End Boss", ProjectXStyles.Button, GUILayout.Width(colW)))
             {
                 PlayerActions.SpawnNPC((Sons.Ai.Vail.VailActorTypeId)45);
             }
-            if (GUILayout.Button("Armsy", ProjectXStyles.Button))
+            if (GUILayout.Button("Armsy", ProjectXStyles.Button, GUILayout.Width(colW)))
             {
                 PlayerActions.SpawnNPC((Sons.Ai.Vail.VailActorTypeId)50);
             }

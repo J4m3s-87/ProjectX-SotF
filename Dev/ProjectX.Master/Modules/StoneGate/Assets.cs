@@ -37,24 +37,30 @@ namespace ProjectX.Master.Modules.StoneGate {
 			string fullName = Directory.GetParent(dataPath).FullName;
 			string modsPath = Path.Combine(fullName, "Mods");
 			
-			// New Path
-			string projectXDetails = Path.Combine(modsPath, "ProjectX.Master", "Assets", "StoneGate");
-			string bundlePath = Path.Combine(projectXDetails, "stonegate");
+			// Check all possible deployment paths (Owner, Master, Client, legacy)
+			string[] editionFolders = { "ProjectX.Owner", "ProjectX.Master", "ProjectX.Client", "StoneGate" };
+			string bundlePath = null;
 			
-			// Fallback
-			if (!File.Exists(bundlePath))
+			foreach (string folder in editionFolders)
 			{
-				string oldPath = Path.Combine(modsPath, "StoneGate", "stonegate");
-				if (File.Exists(oldPath))
-				{
-					bundlePath = oldPath;
-					RLog.Msg("[StoneGate] Using legacy asset path.");
-				}
+				string candidate;
+				if (folder == "StoneGate")
+					candidate = Path.Combine(modsPath, folder, "stonegate");
 				else
+					candidate = Path.Combine(modsPath, folder, "Assets", "StoneGate", "stonegate");
+				
+				if (File.Exists(candidate))
 				{
-					RLog.Error($"[StoneGate] Assets not found at {bundlePath} or {oldPath}");
-					return;
+					bundlePath = candidate;
+					RLog.Msg($"[StoneGate] Found assets at: {candidate}");
+					break;
 				}
+			}
+			
+			if (bundlePath == null)
+			{
+				RLog.Error($"[StoneGate] Assets not found in any expected location under {modsPath}");
+				return;
 			}
 
 			AssetBundle assetBundle = AssetBundle.LoadFromFile(bundlePath);
@@ -127,9 +133,12 @@ namespace ProjectX.Master.Modules.StoneGate {
 			string dataPath = Application.dataPath;
 			string fullName = Directory.GetParent(dataPath).FullName;
 			string modsPath = Path.Combine(fullName, "Mods");
-			string newPath = Path.Combine(modsPath, "ProjectX.Master", "Assets", "StoneGate", "StoneGateIcon.png");
-			
-			if (File.Exists(newPath)) return newPath;
+			string[] folders = { "ProjectX.Owner", "ProjectX.Master", "ProjectX.Client" };
+			foreach (string f in folders)
+			{
+				string p = Path.Combine(modsPath, f, "Assets", "StoneGate", "StoneGateIcon.png");
+				if (File.Exists(p)) return p;
+			}
 			return Path.Combine(modsPath, "StoneGate", "StoneGateIcon.png");
 		}
 
@@ -138,9 +147,12 @@ namespace ProjectX.Master.Modules.StoneGate {
 			string dataPath = Application.dataPath;
 			string fullName = Directory.GetParent(dataPath).FullName;
 			string modsPath = Path.Combine(fullName, "Mods");
-			string newPath = Path.Combine(modsPath, "ProjectX.Master", "Assets", "StoneGate", "OpenCloseIcon.png");
-			
-			if (File.Exists(newPath)) return newPath;
+			string[] folders = { "ProjectX.Owner", "ProjectX.Master", "ProjectX.Client" };
+			foreach (string f in folders)
+			{
+				string p = Path.Combine(modsPath, f, "Assets", "StoneGate", "OpenCloseIcon.png");
+				if (File.Exists(p)) return p;
+			}
 			return Path.Combine(modsPath, "StoneGate", "OpenCloseIcon.png");
 		}
 

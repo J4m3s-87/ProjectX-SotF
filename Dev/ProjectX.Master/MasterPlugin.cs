@@ -36,6 +36,25 @@ namespace ProjectX.Master
         private bool _settingsDirty = false;
 #pragma warning restore CS0414
 
+#if SERVER || OWNER
+        // Player-presence tracking for server tick idling
+        // Updated by WelcomeHandler connect/disconnect hooks
+        private static int _activePlayerCount = 0;
+        internal static bool _hasActivePlayers => _activePlayerCount > 0;
+        
+        public static void OnPlayerConnected()
+        {
+            _activePlayerCount++;
+            Instance?.LoggerInstance.Msg($"[MasterPlugin] Player connected (active: {_activePlayerCount})");
+        }
+        
+        public static void OnPlayerDisconnected()
+        {
+            _activePlayerCount = System.Math.Max(0, _activePlayerCount - 1);
+            Instance?.LoggerInstance.Msg($"[MasterPlugin] Player disconnected (active: {_activePlayerCount})");
+        }
+#endif
+
         protected override void OnSdkInitialized()
         {
             // Register settings with the in-game Mods menu (client only)
@@ -306,6 +325,9 @@ namespace ProjectX.Master
             // Player actions update (NoClip fly movement)
             Modules.UI.PlayerActions.OnUpdate();
             
+            // IntegrityEvent: process deferred client response (ChatBox may not be ready during loading)
+            try { IntegrityEvent.ProcessPendingResponse(); } catch { }
+            
             // StoneGate - REMOVED
             // Modules.StoneGate.StoneGateModule.EnsureUIHidden();
 #endif
@@ -316,9 +338,22 @@ namespace ProjectX.Master
         /// Server-side tick via SeasonsManager.LateUpdate (Harmony postfix).
         /// SdkEvents.OnInWorldUpdate does NOT fire on headless servers.
         /// SeasonsManager.LateUpdate is proven to run every frame on all tiers.
+        /// 
+        /// Player-presence guard: skip ticking when no players are connected
+        /// to prevent 24/7 world simulation (NPC buildup, wasted resources).
         /// </summary>
         private static void ServerTickPostfix()
         {
+            // Skip server tick when no players are connected — let the server idle
+            // NOTE: BoltNetwork.connections is IL2CPP — foreach/Linq don't work reliably
+            // Use _hasPlayers flag updated by WelcomeHandler connect/disconnect hooks
+            try
+            {
+                if (!BoltNetwork.isRunning) return;
+                if (!_hasActivePlayers) return;
+            }
+            catch { return; }
+            
             try { ConfigSyncPayload.Update(); } catch { }
             try { IntegrityEvent.CheckTimeouts(); } catch { }
         }

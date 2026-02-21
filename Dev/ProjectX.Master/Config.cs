@@ -311,6 +311,8 @@ namespace ProjectX.Master
         [SettingsUiInclude]
         public static ConfigEntry<bool> MeatDryerNoFireRequired { get; private set; }
         [SettingsUiInclude]
+        public static ConfigEntry<float> MeatDryerFireRadius { get; private set; }
+        [SettingsUiInclude]
         public static ConfigEntry<float> FlashlightIntensity { get; private set; }
         
         // ======================== AUDIO CONTROL ========================
@@ -650,6 +652,8 @@ namespace ProjectX.Master
             MeatDryerCureTimeDays.SetRange(-1f, 10f);
             MeatDryerInstantDry = FeaturesCategory.CreateEntry<bool>("MeatDryerInstantDry", false, "Meat Dryer Instant Dry", "Instantly dry all meat placed on racks");
             MeatDryerNoFireRequired = FeaturesCategory.CreateEntry<bool>("MeatDryerNoFireRequired", false, "Meat Dryer No Fire Required", "Drying boost always active, no fire needed");
+            MeatDryerFireRadius = FeaturesCategory.CreateEntry<float>("MeatDryerFireRadius", 10f, "Meat Dryer Fire Radius", "Distance (meters) to detect fire for drying boost");
+            MeatDryerFireRadius.SetRange(3f, 30f);
             FlashlightIntensity = FeaturesCategory.CreateEntry<float>("FlashlightIntensity", 1.0f, "Flashlight Intensity", "Brightness multiplier");
             FlashlightIntensity.SetRange(0.1f, 5f);
             MaxRopeBridgeLength = FeaturesCategory.CreateEntry<float>("MaxRopeBridgeLength", float.MaxValue, "Max Rope Bridge Length (m)", "Maximum rope bridge length in meters (game default ~24m)");

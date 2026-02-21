@@ -31,6 +31,15 @@ namespace ProjectX.Master.Modules.Network
         
         public override string Id => "ProjectX.IntegrityCheck";
         
+#if !SERVER
+        // Retry mechanism: if ChatBox isn't available during loading, queue the response
+        private static string _pendingResponseMessage = null;
+        private static float _pendingResponseTime = 0f;
+        private static int _pendingRetryCount = 0;
+        private const int MAX_RETRIES = 30; // ~30 seconds at 1 retry/sec
+        private static float _lastRetryTime = 0f;
+#endif
+        
 #if SERVER || OWNER
         // Track pending checks: ConnectionId → (timestamp, connection reference)
         private static readonly Dictionary<uint, PendingCheck> _pendingChecks = new Dictionary<uint, PendingCheck>();
@@ -561,15 +570,21 @@ namespace ProjectX.Master.Modules.Network
             try
             {
                 byte msgType = packet.ReadByte();
+                RLog.Msg(Color.Cyan, $"[IntegrityEvent] Client received msgType=0x{msgType:X2}");
                 
                 switch (msgType)
                 {
                     case 0x10: // REQUEST_CHECK — server wants our mod list
+                        RLog.Msg(Color.Cyan, "[IntegrityEvent] ★ Received REQUEST_CHECK from server");
                         HandleCheckRequest();
                         break;
                         
                     case 0x12: // CHECK_RESULT — pass/fail from server
                         HandleCheckResult(packet);
+                        break;
+                        
+                    default:
+                        RLog.Warning($"[IntegrityEvent] Unknown msgType: 0x{msgType:X2}");
                         break;
                 }
             }
@@ -591,7 +606,7 @@ namespace ProjectX.Master.Modules.Network
         {
             try
             {
-                RLog.Msg(Color.Cyan, "[IntegrityEvent] Server requested integrity check — collecting mod data...");
+                RLog.Msg(Color.Cyan, "[IntegrityEvent] ★ Server requested integrity check — collecting mod data...");
                 
                 // Collect loaded mods (same technique as CoopServerTools)
                 var mods = new List<string>();
@@ -605,6 +620,7 @@ namespace ProjectX.Master.Modules.Network
                             if (!string.IsNullOrEmpty(modId))
                             {
                                 mods.Add(modId);
+                                RLog.Msg(Color.Cyan, $"[IntegrityEvent]   Found mod: {modId}");
                             }
                         }
                     }
@@ -617,14 +633,23 @@ namespace ProjectX.Master.Modules.Network
                 // Hash own DLL
                 string dllHash = ComputeOwnDllHash();
                 
-                RLog.Msg(Color.Cyan, $"[IntegrityEvent] Reporting {mods.Count} mod(s), hash={dllHash.Substring(0, System.Math.Min(16, dllHash.Length))}...");
+                RLog.Msg(Color.Cyan, $"[IntegrityEvent] Collected {mods.Count} mod(s), hash={dllHash.Substring(0, System.Math.Min(16, dllHash.Length))}...");
                 
                 // Build the chat message: "/px integrity mod1,mod2,mod3|HASH"
                 string modList = string.Join(",", mods);
                 string chatMessage = $"/px integrity {modList}|{dllHash}";
                 
-                // Send via ChatBox.SendLine — proven client→server path (Pattern #15)
-                SendViaChatBox(chatMessage);
+                // Try to send immediately
+                bool sent = TrySendViaChatBox(chatMessage);
+                if (!sent)
+                {
+                    // ChatBox not available yet (still loading) — queue for retry
+                    RLog.Msg(Color.Yellow, "[IntegrityEvent] ChatBox not available — queuing response for retry");
+                    _pendingResponseMessage = chatMessage;
+                    _pendingResponseTime = UnityEngine.Time.time;
+                    _pendingRetryCount = 0;
+                    _lastRetryTime = 0f;
+                }
             }
             catch (Exception ex)
             {
@@ -633,10 +658,43 @@ namespace ProjectX.Master.Modules.Network
         }
         
         /// <summary>
+        /// [Client/Owner] Process pending integrity response — called from ManagedOnUpdate.
+        /// Retries sending via ChatBox once per second until it succeeds or max retries reached.
+        /// </summary>
+        public static void ProcessPendingResponse()
+        {
+            if (_pendingResponseMessage == null) return;
+            
+            float now = UnityEngine.Time.time;
+            if (now - _lastRetryTime < 1.0f) return; // Throttle to 1 retry/sec
+            _lastRetryTime = now;
+            _pendingRetryCount++;
+            
+            if (_pendingRetryCount > MAX_RETRIES)
+            {
+                RLog.Warning($"[IntegrityEvent] Gave up sending integrity response after {MAX_RETRIES} retries ({now - _pendingResponseTime:F1}s)");
+                _pendingResponseMessage = null;
+                return;
+            }
+            
+            RLog.Msg(Color.Yellow, $"[IntegrityEvent] Retry #{_pendingRetryCount} sending integrity response...");
+            bool sent = TrySendViaChatBox(_pendingResponseMessage);
+            if (sent)
+            {
+                RLog.Msg(Color.GreenYellow, $"[IntegrityEvent] ★ Deferred response sent successfully after {_pendingRetryCount} retries ({now - _pendingResponseTime:F1}s)");
+                _pendingResponseMessage = null;
+            }
+        }
+        
+        /// <summary>
         /// Send a message via ChatBox.SendLine — the proven client→server path.
         /// Uses the same resolution technique as AdminCommandEvent.
         /// </summary>
-        private static void SendViaChatBox(string message)
+        /// <summary>
+        /// Try to send a message via ChatBox.SendLine. Returns true if successful, false if ChatBox
+        /// not available (caller should retry later).
+        /// </summary>
+        private static bool TrySendViaChatBox(string message)
         {
             try
             {
@@ -646,29 +704,33 @@ namespace ProjectX.Master.Modules.Network
                 foreach (var name in chatTypeNames)
                 {
                     chatBoxType = HarmonyLib.AccessTools.TypeByName(name);
-                    if (chatBoxType != null) break;
+                    if (chatBoxType != null)
+                    {
+                        RLog.Msg(Color.Cyan, $"[IntegrityEvent] ChatBox type resolved: {name}");
+                        break;
+                    }
                 }
                 
                 if (chatBoxType == null)
                 {
                     RLog.Warning("[IntegrityEvent] ChatBox type not found — cannot send integrity response");
-                    return;
+                    return false;
                 }
                 
                 // Find the ChatBox instance via FindObjectOfType<T> (singular — works in IL2CPP)
                 var findMethod = typeof(UnityEngine.Object).GetMethod("FindObjectOfType", Type.EmptyTypes);
                 if (findMethod == null)
                 {
-                    RLog.Warning("[IntegrityEvent] FindObjectOfType not found");
-                    return;
+                    RLog.Warning("[IntegrityEvent] FindObjectOfType method not found on UnityEngine.Object");
+                    return false;
                 }
                 var genericFind = findMethod.MakeGenericMethod(chatBoxType);
                 var chatBoxInstance = genericFind.Invoke(null, null);
                 
                 if (chatBoxInstance == null)
                 {
-                    RLog.Warning("[IntegrityEvent] ChatBox instance not found");
-                    return;
+                    RLog.Msg(Color.Yellow, "[IntegrityEvent] ChatBox instance is null — game still loading?");
+                    return false; // Caller should retry
                 }
                 
                 // Get SendLine method
@@ -677,17 +739,25 @@ namespace ProjectX.Master.Modules.Network
                 
                 if (sendLineMethod == null)
                 {
-                    RLog.Warning("[IntegrityEvent] ChatBox.SendLine method not found");
-                    return;
+                    // Log all available methods for diagnostics
+                    RLog.Warning("[IntegrityEvent] ChatBox.SendLine method not found. Available methods:");
+                    foreach (var m in chatBoxType.GetMethods(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
+                    {
+                        RLog.Msg($"[IntegrityEvent]   {m.ReturnType.Name} {m.Name}({string.Join(", ", m.GetParameters().Select(p => p.ParameterType.Name))})");
+                    }
+                    return false;
                 }
                 
                 // Call SendLine with our message
+                RLog.Msg(Color.Cyan, $"[IntegrityEvent] Invoking ChatBox.SendLine ({message.Length} chars)...");
                 sendLineMethod.Invoke(chatBoxInstance, new object[] { message });
-                RLog.Msg(Color.GreenYellow, $"[IntegrityEvent] Sent integrity response via ChatBox.SendLine ({message.Length} chars)");
+                RLog.Msg(Color.GreenYellow, $"[IntegrityEvent] ★ Integrity response SENT via ChatBox.SendLine");
+                return true;
             }
             catch (Exception ex)
             {
-                RLog.Warning($"[IntegrityEvent] SendViaChatBox error: {ex.Message}");
+                RLog.Warning($"[IntegrityEvent] TrySendViaChatBox error: {ex.Message}");
+                return false;
             }
         }
         

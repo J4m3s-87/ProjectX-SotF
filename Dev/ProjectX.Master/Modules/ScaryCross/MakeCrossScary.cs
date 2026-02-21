@@ -36,6 +36,9 @@ namespace ProjectX.Master.Modules.ScaryCross
         private float _temperatureInternal;
         private float _damageTicker;
         private bool _isBurning;
+        private float _burnChainDiagTimer;
+        private int _burnChainDiagCount;
+        public bool _initialized = false;
 
         // Validated against Config logic
         private float _temperatureRisingThreshhold;
@@ -70,6 +73,7 @@ namespace ProjectX.Master.Modules.ScaryCross
         private static FieldInfo f_maxBurnDemonSeconds;
         private static FieldInfo f_isOn;
         private static FieldInfo f_currentHp;
+        private static FieldInfo f_scaryTransform;
 
         private void InitReflection()
         {
@@ -83,9 +87,10 @@ namespace ProjectX.Master.Modules.ScaryCross
             f_maxBurnDemonSeconds = AccessTools.Field(typeof(ScaryObject), "_maxBurnDemonSeconds");
             f_isOn = AccessTools.Field(typeof(ElectricLight), "_isOn");
             f_currentHp = AccessTools.Field(typeof(ScrewStructureDestruction), "_currentHp");
+            f_scaryTransform = AccessTools.Field(typeof(ScaryObject).BaseType, "_transform"); // MonoBehaviourStimuli._transform
         }
 
-        private void Start()
+        public void Initialize()
         {
             InitReflection();
             ReloadSettings();
@@ -93,57 +98,109 @@ namespace ProjectX.Master.Modules.ScaryCross
             if (this._demonDetector == null)
             {
                 this._demonDetector = base.transform.gameObject.AddComponent<DemonDetector>();
+                this._demonDetector.Initialize(); // IL2CPP: Start() never fires
             }
+            
+            // === Effigy Stimuli Setup ===
             if (this._effigyStimuli == null)
             {
                 try
                 {
-                    var vailType = typeof(VailWorldSimulation);
-                    var instProp = vailType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
-                    if (instProp != null)
+                    var sim = VailWorldSimulation.Instance();
+                    if (sim != null)
                     {
-                        var rawInst = instProp.GetValue(null);
-                        // If it's a Func/Delegate, invoke it
-                        if (rawInst != null && rawInst.GetType().Name.Contains("Func"))
+                        PlayerEffigyStimuli playerEffigyStimuli = sim.GetPlayerEffigyStimuli();
+                        if (playerEffigyStimuli)
                         {
-                            var invokeM = rawInst.GetType().GetMethod("Invoke");
-                            if (invokeM != null) rawInst = invokeM.Invoke(rawInst, null);
-                        }
-
-                        if (rawInst != null)
-                        {
-                            var getStimuli = AccessTools.Method(rawInst.GetType(), "GetPlayerEffigyStimuli");
-                            if (getStimuli != null)
+                            this._effigyStimuli = Object.Instantiate<PlayerEffigyStimuli>(playerEffigyStimuli, base.transform);
+                            this._effigyStimuli.enabled = true;
+                            this._effigyStimuli.Initialize(10);
+                            
+                            // Get _aura -> _value chain via reflection
+                            if (f_aura != null)
+                                this._effigyAuraInfluence = f_aura.GetValue(this._effigyStimuli) as AuraInfluence;
+                            
+                            if (_effigyAuraInfluence != null)
                             {
-                                var playerEffigyStimuli = getStimuli.Invoke(rawInst, null) as PlayerEffigyStimuli;
-                                if (playerEffigyStimuli)
+                                if (f_value != null)
+                                    this._effigyEventDescription = f_value.GetValue(this._effigyAuraInfluence) as EventDescription;
+                                
+                                if (_effigyEventDescription != null)
                                 {
-                                    this._effigyStimuli = Object.Instantiate<PlayerEffigyStimuli>(playerEffigyStimuli, base.transform);
-                                    this._effigyStimuli.enabled = true;
-                                    this._effigyStimuli.Initialize(10);
+                                    // Set initial range
+                                    if (f_range != null)
+                                        f_range.SetValue(_effigyEventDescription, this.effigyPowerDisabledRange);
                                     
-                                    this._effigyAuraInfluence = f_aura.GetValue(this._effigyStimuli) as AuraInfluence;
-                                    if (_effigyAuraInfluence != null)
+                                    // CRITICAL FIX: Add cannibals (class 2) as targets, remove initial class (1)
+                                    // This is what makes the effigy actually scare enemies!
+                                    // Original: _adjustmentsByClass[0]._affectsActorClasses.Add(2); .Remove(1);
+                                    if (f_adjustmentsByClass != null)
                                     {
-                                        this._effigyEventDescription = f_value.GetValue(this._effigyAuraInfluence) as EventDescription;
-                                        
-                                        if (_effigyEventDescription != null)
-                                            f_range.SetValue(_effigyEventDescription, this.effigyPowerDisabledRange);
-                                            
-                                        f_strengthMult.SetValue(this._effigyAuraInfluence, this.effigyPowerDisabledStrength);
+                                        try
+                                        {
+                                            var adjustments = f_adjustmentsByClass.GetValue(_effigyEventDescription);
+                                            if (adjustments != null)
+                                            {
+                                                // adjustments is an Il2CppSystem.Collections.Generic.List or array
+                                                // Get the first element [0]
+                                                var indexer = adjustments.GetType().GetProperty("Item");
+                                                if (indexer != null)
+                                                {
+                                                    var adj0 = indexer.GetValue(adjustments, new object[] { 0 });
+                                                    if (adj0 != null)
+                                                    {
+                                                        var f_affects = AccessTools.Field(adj0.GetType(), "_affectsActorClasses");
+                                                        if (f_affects != null)
+                                                        {
+                                                            var actorClassList = f_affects.GetValue(adj0);
+                                                            if (actorClassList != null)
+                                                            {
+                                                                var addMethod = actorClassList.GetType().GetMethod("Add");
+                                                                var removeMethod = actorClassList.GetType().GetMethod("Remove");
+                                                                if (addMethod != null) addMethod.Invoke(actorClassList, new object[] { 2 });
+                                                                if (removeMethod != null) removeMethod.Invoke(actorClassList, new object[] { 1 });
+                                                                RLog.Msg("[ScaryCross] Added cannibal targeting to effigy.");
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        catch (Exception adjEx)
+                                        {
+                                            RLog.Warning($"[ScaryCross] _adjustmentsByClass setup failed: {adjEx.Message}");
+                                        }
                                     }
                                 }
+                                
+                                // Set strength multiplier
+                                if (f_strengthMult != null)
+                                    f_strengthMult.SetValue(this._effigyAuraInfluence, this.effigyPowerDisabledStrength);
                             }
+                            
+                            RLog.Msg("[ScaryCross] Effigy stimuli initialized.");
+                        }
+                        else
+                        {
+                            RLog.Warning("[ScaryCross] GetPlayerEffigyStimuli() returned null.");
                         }
                     }
+                    else
+                    {
+                        RLog.Warning("[ScaryCross] VailWorldSimulation.Instance() returned null.");
+                    }
                 }
-                catch (Exception) {}
+                catch (Exception ex)
+                {
+                    RLog.Warning($"[ScaryCross] Effigy setup failed: {ex.Message}");
+                }
             }
+            
+            // === ScaryObject Setup ===
             if (this._scaryObject == null)
             {
                 if (ScaryCrossModule._heldCrossPrefab != null)
                 {
-                    // Stimuli is likely a child
                     Transform stimuliTrans = ScaryCrossModule._heldCrossPrefab.transform.Find("Stimuli");
                     if (stimuliTrans)
                     {
@@ -151,18 +208,37 @@ namespace ProjectX.Master.Modules.ScaryCross
                         transform.parent = base.transform;
                         transform.rotation = Quaternion.Euler(0f, 180f, 0f);
                         this._scaryObject = transform.GetComponent<ScaryObject>();
-                        this._scaryObject.transform.SetParent(base.transform); // Set parent instead of _transform field?
+                        
+                        // CRITICAL FIX: Set _transform via reflection (original: _scaryObject._transform = transform)
+                        // MonoBehaviourStimuli._transform is private/protected in IL2CPP stubs
+                        if (f_scaryTransform != null)
+                            f_scaryTransform.SetValue(this._scaryObject, transform);
                         
                         this._eventDescription = this._scaryObject.GetDescription();
                         if (_eventDescription != null)
                         {
-                            f_range.SetValue(_eventDescription, this.BurnDemonEffectRangeMin);
-                            f_directionalDegrees.SetValue(_eventDescription, BurnDemonAngle);
+                            if (f_range != null)
+                                f_range.SetValue(_eventDescription, this.BurnDemonEffectRangeMin);
+                            if (f_directionalDegrees != null)
+                                f_directionalDegrees.SetValue(_eventDescription, BurnDemonAngle);
                         }
-                        f_maxBurnDemonSeconds.SetValue(this._scaryObject, this.BurnDemonTimePerTrigger);
+                        
+                        if (f_maxBurnDemonSeconds != null)
+                            f_maxBurnDemonSeconds.SetValue(this._scaryObject, this.BurnDemonTimePerTrigger);
+                        
+                        RLog.Msg("[ScaryCross] ScaryObject initialized.");
+                    }
+                    else
+                    {
+                        RLog.Warning("[ScaryCross] 'Stimuli' child not found on held cross prefab.");
                     }
                 }
+                else
+                {
+                    RLog.Warning("[ScaryCross] _heldCrossPrefab is null — cross item not found.");
+                }
             }
+            
             if (this._screwStructureDestruction == null)
             {
                 this._screwStructureDestruction = base.transform.GetComponent<ScrewStructureDestruction>();
@@ -195,32 +271,66 @@ namespace ProjectX.Master.Modules.ScaryCross
             {
                 for (int i = 0; i < transform2.childCount; i++)
                 {
-                    foreach (Transform transform3 in transform2.GetChild(i).GetComponentsInChildren<Transform>())
-                    {
-                        if (transform3.name.StartsWith("Light") && transform3.GetComponent<Light>() != null)
-                        {
-                            this._lightbulbs.Add(transform3.GetComponent<Light>());
-                            break;
-                        }
-                    }
+                    // IL2CPP-safe: manual child traversal instead of stripped GetComponentsInChildren<T>()
+                    FindLightsRecursive(transform2.GetChild(i));
                     this._lightbulbs.Shuffle();
                 }
             }
+            else
+            {
+                RLog.Warning("[ScaryCross] Renderables child not found!");
+            }
             this._damageTicker = Random.Range(0f, this._damageAfterSecond);
+            
+            RLog.Msg($"[ScaryCross] Start complete. ElectricLight={_electricLight != null}, Power={_powerFlowIndicator != null}, Effigy={_effigyStimuli != null}, ScaryObj={_scaryObject != null}");
+            _initialized = true;
         }
 
-        private void Update()
+        /// <summary>
+        /// IL2CPP-safe recursive child traversal — replaces stripped GetComponentsInChildren.
+        /// Finds Light components on children whose names start with "Light".
+        /// </summary>
+        private void FindLightsRecursive(Transform parent)
+        {
+            if (parent == null) return;
+            
+            if (parent.name.StartsWith("Light"))
+            {
+                var light = parent.GetComponent<Light>();
+                if (light != null)
+                {
+                    this._lightbulbs.Add(light);
+                    return; // Found one, stop (matches original 'break' behavior)
+                }
+            }
+            
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                FindLightsRecursive(parent.GetChild(i));
+            }
+        }
+
+        /// <summary>
+        /// IL2CPP does NOT call Update() on [RegisterTypeInIl2Cpp] types.
+        /// This is called manually by ScaryCrossModule.OnInWorldUpdate().
+        /// </summary>
+        public void ManualUpdate()
         {
             this.ReloadSettings();
             
-            if (_electricLight == null || _powerFlowIndicator == null) return;
-
-            if (!this.HasPower())
+            // Tick DemonDetector (IL2CPP: Update() never fires)
+            if (_demonDetector != null) _demonDetector.ManualUpdate();
+            
+            // Original has NO null guard here — effigy/burn logic runs regardless of power state
+            bool hasPower = this.HasPower();
+            if (!hasPower && _electricLight != null)
             {
                 this._electricLight.ToggleState(false);
             }
             
-            bool lightsEnabled = AreLightsEnabled();
+            // AreLightsEnabled() uses f_isOn reflection which is broken in IL2CPP.
+            // Use HasPower() as the primary gate — it uses the working ._hasPower property.
+            bool lightsEnabled = hasPower;
             
             if (!lightsEnabled && !this._isBurning)
             {
@@ -233,7 +343,18 @@ namespace ProjectX.Master.Modules.ScaryCross
                 this.SetEffigyRangeHeat(this._temperatureInternal);
             }
             
-            if (lightsEnabled && this.AreDemonsInRange())
+            bool demonsInRange = this.AreDemonsInRange();
+            
+            // Burn chain diagnostic — throttled, first 12 reports only
+            _burnChainDiagTimer += Time.deltaTime;
+            if (_burnChainDiagTimer >= 5f && _burnChainDiagCount < 12)
+            {
+                _burnChainDiagTimer = 0f;
+                _burnChainDiagCount++;
+                RLog.Msg($"[ScaryCross] BurnChain #{_burnChainDiagCount}: power={hasPower}, demons={demonsInRange}, intensity={_lightIntensityInternal:F1}, temp={_temperatureInternal:F1}, burning={_isBurning}, scaryObj={_scaryObject != null}, fireAll={_fireAll != null}");
+            }
+            
+            if (lightsEnabled && demonsInRange)
             {
                 this.BurnDemons();
                 this._lightIntensityInternal = Mathf.Clamp(this._lightIntensityInternal + this._LightIntensityRisePerSecond * Time.deltaTime, 0f, 100f);
@@ -320,9 +441,8 @@ namespace ProjectX.Master.Modules.ScaryCross
 
         public bool AreLightsEnabled()
         {
-            if (_electricLight == null) return false;
-            if (f_isOn != null) return (bool)f_isOn.GetValue(_electricLight);
-            return false;
+            if (_electricLight == null || f_isOn == null) return false;
+            return (bool)f_isOn.GetValue(_electricLight);
         }
 
         public bool HasPower()
@@ -354,7 +474,7 @@ namespace ProjectX.Master.Modules.ScaryCross
 
         public void SetEffigyRangeOnDisabled()
         {
-             if (_effigyEventDescription != null && f_range != null)
+            if (_effigyEventDescription != null && f_range != null)
                 f_range.SetValue(this._effigyEventDescription, this.effigyPowerDisabledRange);
         }
 
@@ -451,9 +571,10 @@ namespace ProjectX.Master.Modules.ScaryCross
             float num2 = Mathf.Lerp(rangeMin, rangeMax, strength / 100f);
             
             int currentHp = 6; // Default max hp
-            if (_screwStructureDestruction != null && f_currentHp != null)
+            if (_screwStructureDestruction != null)
             {
-                currentHp = (int)f_currentHp.GetValue(_screwStructureDestruction);
+                try { currentHp = this._screwStructureDestruction._currentHp; }
+                catch { if (f_currentHp != null) currentHp = (int)f_currentHp.GetValue(_screwStructureDestruction); }
             }
 
             int maxBulbs = 0;
@@ -517,17 +638,13 @@ namespace ProjectX.Master.Modules.ScaryCross
 
         public void ApplyStructureDamage()
         {
-            if (_screwStructureDestruction && f_currentHp != null)
+            if (_screwStructureDestruction == null || f_currentHp == null) return;
+            int hp = (int)f_currentHp.GetValue(_screwStructureDestruction);
+            hp--;
+            f_currentHp.SetValue(_screwStructureDestruction, hp);
+            if (hp <= 0)
             {
-                int hp = (int)f_currentHp.GetValue(_screwStructureDestruction);
-                hp--;
-                f_currentHp.SetValue(_screwStructureDestruction, hp);
-                
-                if (hp <= 0)
-                {
-                    // Assuming DestroyStructure is public method?
-                    this._screwStructureDestruction.DestroyStructure();
-                }
+                this._screwStructureDestruction.DestroyStructure();
             }
         }
     }

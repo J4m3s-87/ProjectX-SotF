@@ -272,6 +272,9 @@ namespace ProjectX.Master.Modules.BroadcastMessage
                 
                 BroadcastMessageModule.LogEvent("join", playerName);
                 
+                // Track player count for server idle guard
+                ProjectXMaster.OnPlayerConnected();
+                
                 // Anti-cheat: trigger integrity check on the connecting player
 #if SERVER || OWNER
                 try
@@ -328,6 +331,9 @@ namespace ProjectX.Master.Modules.BroadcastMessage
                 }
                 
                 BroadcastMessageModule.LogEvent("leave", playerName);
+                
+                // Track player count for server idle guard
+                ProjectXMaster.OnPlayerDisconnected();
             }
             catch (Exception ex)
             {

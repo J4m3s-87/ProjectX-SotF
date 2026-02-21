@@ -60,7 +60,7 @@ namespace ProjectX.Master.Modules.Network
                 false, false, null, null);
             
             ModWhitelist = Category.CreateEntry<string>(
-                "ModWhitelist", "ProjectX.Client",
+                "ModWhitelist", "ProjectX.Master,ProjectX.Owner,ProjectX.Client,ProjectX.Server",
                 "Allowed Mod IDs",
                 "Comma-separated list of allowed mod IDs. Players with unlisted mods get kicked.",
                 false, false, null, null);

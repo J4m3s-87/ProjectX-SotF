@@ -284,6 +284,19 @@ namespace ProjectX.Master.Modules.MeatDryer
         }
 
         private static bool _instantDryLogged = false;
+        private static int _lastLoggedSeason = -1;
+        private static bool _lastLoggedFire = false;
+        
+        private static readonly string[] _seasonNames = { "Spring", "Summer", "Autumn", "Winter" };
+        
+        private static void LogFireState(int season, bool fireNearby, float boost)
+        {
+            if (season == _lastLoggedSeason && fireNearby == _lastLoggedFire) return;
+            _lastLoggedSeason = season;
+            _lastLoggedFire = fireNearby;
+            string name = season >= 0 && season < _seasonNames.Length ? _seasonNames[season] : "Unknown";
+            RLog.Msg($"[MeatDryer] Season={name}, Fire={fireNearby}, Boost={boost:F1}x");
+        }
         
         private static void ApplyConfigToHook(DryingRackHookPoint hook, int activeSeason)
         {
@@ -322,35 +335,63 @@ namespace ProjectX.Master.Modules.MeatDryer
                 return; // Skip normal season/speed logic when instant dry is on
             }
             
-            // ===== NORMAL MODE: season-based fire proximity =====
+            // ===== NORMAL MODE: realistic seasonal drying with fire proximity =====
+            // Fire proximity accelerates drying in all seasons.
+            // Without fire, warm seasons still dry (slowly), but winter won't dry at all.
             if (activeSeason >= 0)
             {
-                float baseBoost;
+                // Detect fire proximity using WaterCollectors' tracked heat sources
+                bool fireNearby = false;
+                try
+                {
+                    var hookTransform = hook.gameObject?.transform;
+                    if (hookTransform != null)
+                    {
+                        float fireRadius = Config.MeatDryerFireRadius.Value;
+                        fireNearby = WaterCollectors.WaterCollectorsModule.IsHeatSourceNearby(hookTransform, fireRadius);
+                    }
+                }
+                catch { /* IL2CPP safety */ }
+                
+                // Seasonal boost table: [season] = { withFire, withoutFire }
+                //   Summer: best natural drying (hot sun), fire makes it even faster
+                //   Spring: warm, decent natural drying
+                //   Autumn: cool, barely dries without fire
+                //   Winter: won't dry at all without fire
+                float boost;
                 switch (activeSeason)
                 {
-                    case 0: baseBoost = 30f; break; // Spring — best
-                    case 1: baseBoost = 25f; break; // Summer
-                    case 2: baseBoost = 15f; break; // Autumn
-                    case 3: baseBoost = 5f;  break; // Winter — slowest
-                    default: baseBoost = 15f; break;
+                    case 0: boost = fireNearby ? 25f : 10f; break;  // Spring
+                    case 1: boost = fireNearby ? 30f : 20f; break;  // Summer — best
+                    case 2: boost = fireNearby ? 15f :  2f; break;  // Autumn
+                    case 3: boost = fireNearby ?  5f :  0f; break;  // Winter — fire mandatory
+                    default: boost = fireNearby ? 15f : 2f; break;
                 }
                 
-                // No Fire Required — force fire proximity via public API
+                // Apply speed multiplier from config
+                float speedMul = Config.MeatDryerSpeedMultiplier.Value;
+                float finalBoost = boost * speedMul;
+                
+                // If no fire required is set, always grant the fire-level boost
                 if (Config.MeatDryerNoFireRequired.Value)
                 {
                     hook.SetTemperatureVolumeSettings(100f, true);
+                    // Recalculate with fire boost
+                    switch (activeSeason)
+                    {
+                        case 0: boost = 25f; break;
+                        case 1: boost = 30f; break;
+                        case 2: boost = 15f; break;
+                        case 3: boost = 5f;  break;
+                        default: boost = 15f; break;
+                    }
+                    finalBoost = boost * speedMul;
                 }
                 
-                // Speed Multiplier — only override when user has changed the multiplier
-                // At 1.0 (default), leave the game's native boost value untouched.
-                // Without this guard, baseBoost (30 in Spring) replaces the game's
-                // default (2), causing a 15x unintended speed increase.
-                float speedMul = Config.MeatDryerSpeedMultiplier.Value;
-                if (System.Math.Abs(speedMul - 1.0f) > 0.01f)
-                {
-                    float finalBoost = baseBoost * speedMul;
-                    try { WriteFloat(ptr, OFFSET_DRY_BOOST_MULTIPLIER, finalBoost); } catch { }
-                }
+                try { WriteFloat(ptr, OFFSET_DRY_BOOST_MULTIPLIER, finalBoost); } catch { }
+                
+                // One-time diagnostic per season/fire state
+                LogFireState(activeSeason, fireNearby, finalBoost);
             }
             
             // Cure Time Override — write via memory offset

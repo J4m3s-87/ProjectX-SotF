@@ -287,7 +287,7 @@ namespace ProjectX.Master.Modules.WaterCollectors
             if (go == null) return;
             
             int id = catcher.GetInstanceID();
-            bool fireNearby = IsHeatSourceNearby(go.transform);
+            bool fireNearby = IsHeatSourceNearby(go.transform, Config.WaterCollectorHeatRadius.Value);
             bool alreadyUnfrozen = _unfrozenCatchers.Contains(id);
             
             if (fireNearby && !alreadyUnfrozen)
@@ -337,9 +337,8 @@ namespace ProjectX.Master.Modules.WaterCollectors
         /// Check if any tracked heat source is within radius of the catcher.
         /// Uses simple Vector3.Distance on tracked TemperatureModifierVolume instances.
         /// </summary>
-        private static bool IsHeatSourceNearby(Transform origin)
+        public static bool IsHeatSourceNearby(Transform origin, float radius)
         {
-            float radius = Config.WaterCollectorHeatRadius.Value;
             Vector3 pos = origin.position;
             
             foreach (var heat in _heatSources)

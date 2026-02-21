@@ -237,7 +237,7 @@ namespace ProjectX.Master.Modules.UI
         {
             // Stats section
             DrawDivider("STATS");
-            float colW = (Screen.width * 0.55f - 40f) / 2f; // half the menu width minus padding
+            float colW = (PANEL_WIDTH - 60f) / 2f; // half the panel width minus padding (20+20+margins)
             
             // Row 1: God Mode | Infinite Stamina
             GUILayout.BeginHorizontal();
@@ -1446,12 +1446,15 @@ namespace ProjectX.Master.Modules.UI
         
         private float DrawSlider(string label, float value, float min, float max)
         {
+            float sliderLabelW = PANEL_WIDTH * 0.22f;
+            float sliderBarW = PANEL_WIDTH * 0.55f;
+            float sliderValW = PANEL_WIDTH * 0.08f;
             GUILayout.BeginHorizontal();
-            GUILayout.Label(label, ProjectXStyles.NormalLabel, GUILayout.Width(200));
+            GUILayout.Label(label, ProjectXStyles.NormalLabel, GUILayout.Width(sliderLabelW));
             float newVal = GUILayout.HorizontalSlider(value, min, max, 
                 ProjectXStyles.HorizontalSlider, ProjectXStyles.HorizontalSliderThumb, 
-                GUILayout.Width(500));
-            GUILayout.Label(newVal.ToString("F1"), ProjectXStyles.ValueLabel, GUILayout.Width(60));
+                GUILayout.Width(sliderBarW));
+            GUILayout.Label(newVal.ToString("F1"), ProjectXStyles.ValueLabel, GUILayout.Width(sliderValW));
             GUILayout.EndHorizontal();
             return newVal;
         }

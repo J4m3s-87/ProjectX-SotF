@@ -1340,7 +1340,7 @@ namespace ProjectX.Master.Modules.UI
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Start Random Raid", ProjectXStyles.Button, GUILayout.Height(42)))
                 {
-                    try { RaidCustomizer.RaidActions.RunRandomRaid(); } catch { }
+                    // Only dispatch to server — server picks the raid and sends the name back via chat
                     ServerCmd("raid start");
                 }
                 if (GUILayout.Button("Clear Queued Raids", ProjectXStyles.Button, GUILayout.Height(42)))
@@ -1354,7 +1354,7 @@ namespace ProjectX.Master.Modules.UI
                 if (GUILayout.Button("Clear All Events", ProjectXStyles.Button, GUILayout.Height(45)))
                 {
                     try { RaidCustomizer.RaidActions.ClearAllEvents(); } catch { }
-                    ServerCmd("raid clear");
+                    ServerCmd("raid clearall");
                 }
                 if (GUILayout.Button("Clear Cooldowns", ProjectXStyles.Button, GUILayout.Height(45)))
                 {

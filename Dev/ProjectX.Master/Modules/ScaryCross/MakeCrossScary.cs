@@ -20,9 +20,11 @@ namespace ProjectX.Master.Modules.ScaryCross
         public PlayerEffigyStimuli _effigyStimuli;
         public AuraInfluence _effigyAuraInfluence;
         public EventDescription _effigyEventDescription;
+#if !SERVER
         public GameObject _fireAll;
         public List<Light> _lightbulbs = new List<Light>();
         public List<ParticleSystem> _FireParticleSystems = new List<ParticleSystem>();
+#endif
         
         public ScaryObject _scaryObject;
         
@@ -74,6 +76,10 @@ namespace ProjectX.Master.Modules.ScaryCross
         private static FieldInfo f_isOn;
         private static FieldInfo f_currentHp;
         private static FieldInfo f_scaryTransform;
+        private static FieldInfo f_autoFire;      // EventStimuli._autoFire
+        private static FieldInfo f_autoDisable;   // EventStimuli._autoDisable
+        private static FieldInfo f_autoDestruct;  // EventStimuli._autoDestruct
+        private static FieldInfo f_hasFired;      // EventStimuli._hasFired
 
         private void InitReflection()
         {
@@ -88,6 +94,10 @@ namespace ProjectX.Master.Modules.ScaryCross
             f_isOn = AccessTools.Field(typeof(ElectricLight), "_isOn");
             f_currentHp = AccessTools.Field(typeof(ScrewStructureDestruction), "_currentHp");
             f_scaryTransform = AccessTools.Field(typeof(ScaryObject).BaseType, "_transform"); // MonoBehaviourStimuli._transform
+            f_autoFire = AccessTools.Field(typeof(EventStimuli), "_autoFire");
+            f_autoDisable = AccessTools.Field(typeof(EventStimuli), "_autoDisable");
+            f_autoDestruct = AccessTools.Field(typeof(EventStimuli), "_autoDestruct");
+            f_hasFired = AccessTools.Field(typeof(EventStimuli), "_hasFired");
         }
 
         public void Initialize()
@@ -226,7 +236,47 @@ namespace ProjectX.Master.Modules.ScaryCross
                         if (f_maxBurnDemonSeconds != null)
                             f_maxBurnDemonSeconds.SetValue(this._scaryObject, this.BurnDemonTimePerTrigger);
                         
-                        RLog.Msg("[ScaryCross] ScaryObject initialized.");
+                        
+                        // CRITICAL: Prevent auto-disable/destruct so stimuli stays active
+                        if (f_autoDisable != null)
+                            f_autoDisable.SetValue(this._scaryObject, false);
+                        if (f_autoDestruct != null)
+                            f_autoDestruct.SetValue(this._scaryObject, false);
+                        // _autoFire=FALSE: We control when Fire() is called.
+                        // If true, OnEnable fires before enemies exist, wasting the broadcast.
+                        if (f_autoFire != null)
+                            f_autoFire.SetValue(this._scaryObject, false);
+                        
+                        // CRITICAL: Initialize the stimuli so it has a source and registers
+                        // with the Vail stimuli grid. Without this, Fire() broadcasts but
+                        // the AI system ignores the event because it has no source context.
+                        try
+                        {
+                            // Use effigyStimuli as the owner (links ScaryObject to the cross's effigy)
+                            if (this._effigyStimuli != null)
+                            {
+                                this._scaryObject.SetOwner(this._effigyStimuli);
+                                this._scaryObject.Initialize(null, this._effigyStimuli);
+                                RLog.Msg("[ScaryCross] ScaryObject.Initialize(null, effigyStimuli) — source linked.");
+                            }
+                            else
+                            {
+                                RLog.Warning("[ScaryCross] _effigyStimuli is null — cannot initialize ScaryObject source.");
+                            }
+                            
+                            // Mark stimuli as valid so OnEnable registers with the grid
+                            this._scaryObject.SetValid(true);
+                        }
+                        catch (Exception initEx)
+                        {
+                            RLog.Warning($"[ScaryCross] ScaryObject Initialize/SetValid error: {initEx.Message}");
+                        }
+                        
+                        // Start disabled — BurnDemons() enables and fires when enemies detected
+                        this._scaryObject.enabled = false;
+                        this._scaryFireCooldown = 0f;
+                        
+                        RLog.Msg($"[ScaryCross] ScaryObject initialized (autoFire=false, autoDisable=false, valid={this._scaryObject.IsValid()}).");
                     }
                     else
                     {
@@ -251,6 +301,7 @@ namespace ProjectX.Master.Modules.ScaryCross
             {
                 this._powerFlowIndicator = base.transform.GetComponent<PowerFlowIndicator>();
             }
+#if !SERVER
             if (this._fireAll == null)
             {
                 if (ScaryCrossModule._bonFireElementPrefab != null)
@@ -262,6 +313,7 @@ namespace ProjectX.Master.Modules.ScaryCross
                         this._fireAll = Object.Instantiate<GameObject>(gameObject);
                         this._fireAll.transform.parent = base.transform;
                         this._fireAll.transform.localPosition = new Vector3(0f, 1f, 0f);
+                        this._fireAll.SetActive(false); // Start inactive — only enabled when burning
                     }
                 }
             }
@@ -280,12 +332,14 @@ namespace ProjectX.Master.Modules.ScaryCross
             {
                 RLog.Warning("[ScaryCross] Renderables child not found!");
             }
+#endif
             this._damageTicker = Random.Range(0f, this._damageAfterSecond);
             
             RLog.Msg($"[ScaryCross] Start complete. ElectricLight={_electricLight != null}, Power={_powerFlowIndicator != null}, Effigy={_effigyStimuli != null}, ScaryObj={_scaryObject != null}");
             _initialized = true;
         }
 
+#if !SERVER
         /// <summary>
         /// IL2CPP-safe recursive child traversal — replaces stripped GetComponentsInChildren.
         /// Finds Light components on children whose names start with "Light".
@@ -299,8 +353,7 @@ namespace ProjectX.Master.Modules.ScaryCross
                 var light = parent.GetComponent<Light>();
                 if (light != null)
                 {
-                    this._lightbulbs.Add(light);
-                    return; // Found one, stop (matches original 'break' behavior)
+                    _lightbulbs.Add(light);
                 }
             }
             
@@ -309,6 +362,7 @@ namespace ProjectX.Master.Modules.ScaryCross
                 FindLightsRecursive(parent.GetChild(i));
             }
         }
+#endif
 
         /// <summary>
         /// IL2CPP does NOT call Update() on [RegisterTypeInIl2Cpp] types.
@@ -345,13 +399,17 @@ namespace ProjectX.Master.Modules.ScaryCross
             
             bool demonsInRange = this.AreDemonsInRange();
             
-            // Burn chain diagnostic — throttled, first 12 reports only
+            // Burn chain diagnostic — log every 5 seconds (no cap — needed for persistence debugging)
             _burnChainDiagTimer += Time.deltaTime;
-            if (_burnChainDiagTimer >= 5f && _burnChainDiagCount < 12)
+            if (_burnChainDiagTimer >= 5f)
             {
                 _burnChainDiagTimer = 0f;
                 _burnChainDiagCount++;
-                RLog.Msg($"[ScaryCross] BurnChain #{_burnChainDiagCount}: power={hasPower}, demons={demonsInRange}, intensity={_lightIntensityInternal:F1}, temp={_temperatureInternal:F1}, burning={_isBurning}, scaryObj={_scaryObject != null}, fireAll={_fireAll != null}");
+                RLog.Msg($"[ScaryCross] BurnChain #{_burnChainDiagCount}: power={hasPower}, pfi={_powerFlowIndicator != null}, demons={demonsInRange}, intensity={_lightIntensityInternal:F1}, temp={_temperatureInternal:F1}, burning={_isBurning}, scaryObj={_scaryObject != null}"
+#if !SERVER
+                    + $", fireAll={_fireAll != null}"
+#endif
+                );
             }
             
             if (lightsEnabled && demonsInRange)
@@ -361,6 +419,7 @@ namespace ProjectX.Master.Modules.ScaryCross
             }
             else
             {
+                this.StopBurningDemons();
                 this._lightIntensityInternal = Mathf.Clamp(this._lightIntensityInternal - this._LightIntensityReducePerSecond * Time.deltaTime, 0f, 100f);
             }
             
@@ -377,29 +436,43 @@ namespace ProjectX.Master.Modules.ScaryCross
             {
                 if (!this._isBurning)
                 {
+#if !SERVER
                     this.ToggleFire(true);
+#else
+                    this._isBurning = true;
+#endif
                 }
             }
             else if (this._isBurning && this._temperatureInternal <= this._burnThreshhold - this._temperatureReducePerSecond * 4f)
             {
+#if !SERVER
                 this.ToggleFire(false);
+#else
+                this._isBurning = false;
+#endif
             }
             
             if (lightsEnabled)
             {
+#if !SERVER
                 this.SetLightbulbStrength(this._lightIntensityInternal);
+#endif
                 this.SetDemonDetectionRangeHeat(this._temperatureInternal);
             }
             else
             {
+#if !SERVER
                 this.TurnOffLightLightbulb();
+#endif
             }
             
             this.SetBurnRange(this._temperatureInternal);
             
             if (this._isBurning)
             {
+#if !SERVER
                 this.SetFireIntensity(this._temperatureInternal);
+#endif
                 
                 if (this._temperatureInternal >= this._damageThreshold)
                 {
@@ -494,6 +567,7 @@ namespace ProjectX.Master.Modules.ScaryCross
             f_range.SetValue(this._effigyEventDescription, num);
         }
 
+#if !SERVER
         public void ToggleFire(bool toggle)
         {
             if (_fireAll == null) return;
@@ -518,7 +592,7 @@ namespace ProjectX.Master.Modules.ScaryCross
                     Transform transform3 = transform.Find("FireParticlesSourceA (3)");
                     if (transform3 != null)
                     {
-                        transform3.localPosition = new Vector3(-0.2f, 0.85f, 0.3f);
+                        transform3.localPosition = new Vector3(0.2f, 0.85f, 0.3f);
                         transform3.localRotation = Quaternion.Euler(0f, 320f, 0f);
                     }
                     Transform transform4 = transform.Find("FireParticlesSourceA (4)");
@@ -561,6 +635,8 @@ namespace ProjectX.Master.Modules.ScaryCross
 
         public void SetLightbulbStrength(float strength)
         {
+            if (this._lightbulbs.Count == 0) return;
+            
             strength = Mathf.Clamp(strength, 0f, 100f);
             float intensityMin = 4096f;
             float intensityMax = 32768f;
@@ -589,6 +665,8 @@ namespace ProjectX.Master.Modules.ScaryCross
             
             for (int i = 0; i < this._lightbulbs.Count; i++)
             {
+                if (this._lightbulbs[i] == null) continue;
+                
                 var parent = this._lightbulbs[i].transform.parent;
                 var overloaded = parent ? parent.Find("LedOverloaded") : null;
                 
@@ -610,21 +688,92 @@ namespace ProjectX.Master.Modules.ScaryCross
 
         public void TurnOffLightLightbulb()
         {
-            foreach (Light light in this._lightbulbs)
+            for (int i = 0; i < this._lightbulbs.Count; i++)
             {
-                if (light)
+                if (this._lightbulbs[i] != null)
                 {
-                    light.intensity = 0f;
-                    light.range = 0f;
+                    this._lightbulbs[i].intensity = 0f;
+                    this._lightbulbs[i].range = 0f;
                 }
             }
         }
+#endif
 
+        /// <summary>
+        /// How often to re-fire the ScaryObject stimuli while enemies are in range.
+        /// EventStimuli.Fire() is a one-shot broadcast — it needs to be repeated
+        /// so enemies that arrive after the initial fire still get affected.
+        /// </summary>
+        private const float SCARY_FIRE_INTERVAL = 2f;
+        private float _scaryFireCooldown;
+        private int _scaryFireCount; // diagnostic counter
+        
+        /// <summary>
+        /// Track which actors have been ignited this burn cycle to avoid spam.
+        /// Cleared when enemies leave range (StopBurningDemons) or periodically.
+        /// </summary>
+        private readonly HashSet<int> _ignitedActors = new HashSet<int>();
+        
         public void BurnDemons()
         {
-            if (this._scaryObject && !this._scaryObject.enabled)
-            {
+            if (this._scaryObject == null) return;
+            
+            // Ensure ScaryObject is enabled (for scare aura / effigy effects)
+            if (!this._scaryObject.enabled)
                 this._scaryObject.enabled = true;
+            
+            // Fire stimuli periodically (for scare/flee behavior)
+            _scaryFireCooldown -= Time.deltaTime;
+            if (_scaryFireCooldown <= 0f)
+            {
+                if (f_hasFired != null)
+                    f_hasFired.SetValue(this._scaryObject, false);
+                this._scaryObject.Fire();
+                _scaryFireCooldown = SCARY_FIRE_INTERVAL;
+                _scaryFireCount++;
+            }
+            
+            // DIRECT BURN: Only ignite enemies when the cross itself is burning.
+            // This ensures the cross catches fire FIRST (temperature threshold),
+            // then enemies catch fire — matching the original visual sequence.
+            // Each actor is ignited ONCE per burn cycle — _ignitedActors only
+            // clears when enemies leave range (StopBurningDemons), not on timer.
+            if (_isBurning && _demonDetector != null)
+            {
+                for (int i = 0; i < _demonDetector.InRangeActors.Count; i++)
+                {
+                    try
+                    {
+                        var actor = _demonDetector.InRangeActors[i];
+                        if (actor == null) continue;
+                        
+                        int actorId = actor.GetInstanceID();
+                        if (_ignitedActors.Contains(actorId)) continue;
+                        
+                        actor.IgniteSelf(this.BurnDemonTimePerTrigger);
+                        _ignitedActors.Add(actorId);
+                        
+                        RLog.Msg($"[ScaryCross] IGNITE! IgniteSelf({this.BurnDemonTimePerTrigger}s) on '{actor.gameObject.name}' (typeId={actor.TypeId})");
+                    }
+                    catch (Exception ex)
+                    {
+                        RLog.Warning($"[ScaryCross] IgniteSelf error: {ex.Message}");
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Disables the ScaryObject when enemies leave range.
+        /// Resets fire cooldown so next detection fires immediately.
+        /// </summary>
+        public void StopBurningDemons()
+        {
+            if (this._scaryObject != null && this._scaryObject.enabled)
+            {
+                this._scaryObject.enabled = false;
+                _scaryFireCooldown = 0f; // fire immediately on next detection
+                _ignitedActors.Clear();   // allow re-igniting on next approach
             }
         }
 

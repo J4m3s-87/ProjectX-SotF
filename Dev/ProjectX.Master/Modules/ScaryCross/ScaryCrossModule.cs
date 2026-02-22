@@ -33,6 +33,7 @@ namespace ProjectX.Master.Modules.ScaryCross
         private static HarmonyLib.Harmony _harmony;
         private static bool _retroScanDone = false;
         private static readonly List<MakeCrossScary> _trackedCrosses = new List<MakeCrossScary>();
+        private static readonly HashSet<int> _trackedActorIds = new HashSet<int>();
 
         public static void Init()
         {
@@ -179,6 +180,38 @@ namespace ProjectX.Master.Modules.ScaryCross
         private static void OnInWorldUpdate()
         {
             // Tick all tracked crosses (IL2CPP doesn't fire Update)
+            TickTrackedCrosses();
+            
+            if (_retroScanDone) return;
+            _retroScanDone = true;
+            
+            RunRetroactiveScan();
+        }
+        
+        /// <summary>
+        /// Server-side tick — called from MasterPlugin.ServerTickPostfix.
+        /// OnInWorldUpdate does NOT fire on headless servers.
+        /// Also handles the one-time retroactive scan on the server (since
+        /// OnInWorldUpdate's retroactive scan is inside #if !SERVER).
+        /// </summary>
+        public static void ServerTick()
+        {
+            // One-time retroactive scan — discover save-loaded crosses that
+            // Awake hooks missed (they fire before Init patches them)
+            if (!_retroScanDone)
+            {
+                _retroScanDone = true;
+                RunRetroactiveScan();
+            }
+            
+            TickTrackedCrosses();
+        }
+        
+        /// <summary>
+        /// Shared cross-ticking logic — used by both OnInWorldUpdate (client) and ServerTick (server).
+        /// </summary>
+        private static void TickTrackedCrosses()
+        {
             for (int i = _trackedCrosses.Count - 1; i >= 0; i--)
             {
                 try
@@ -198,10 +231,15 @@ namespace ProjectX.Master.Modules.ScaryCross
                     _trackedCrosses.RemoveAt(i);
                 }
             }
-            
-            if (_retroScanDone) return;
-            _retroScanDone = true;
-            
+        }
+        
+        /// <summary>
+        /// Scans the scene for save-loaded crosses that the Awake hooks missed
+        /// (Awake fires during deserialization BEFORE Init patches them).
+        /// Called from OnInWorldUpdate (client) and ServerTick (server).
+        /// </summary>
+        private static void RunRetroactiveScan()
+        {
             string nameToCheck = _crossPrefabName ?? "PoweredCrossStructure";
             
             try
@@ -311,7 +349,7 @@ namespace ProjectX.Master.Modules.ScaryCross
             return true;
         }
 
-        private static void OnGameActivated()
+        public static void OnGameActivated()
         {
             // Step 1: Resolve cross prefab name and inject component into prefab template
             try 
@@ -393,7 +431,8 @@ namespace ProjectX.Master.Modules.ScaryCross
             try
             {
                 if (__instance == null) return;
-                if (!DemonDetector.TrackedActors.Contains(__instance))
+                int id = __instance.GetInstanceID();
+                if (_trackedActorIds.Add(id))
                     DemonDetector.TrackedActors.Add(__instance);
             }
             catch { }
@@ -404,6 +443,7 @@ namespace ProjectX.Master.Modules.ScaryCross
             try
             {
                 if (__instance == null) return;
+                _trackedActorIds.Remove(__instance.GetInstanceID());
                 DemonDetector.TrackedActors.Remove(__instance);
             }
             catch { }

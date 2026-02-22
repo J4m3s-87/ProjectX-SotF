@@ -24,6 +24,7 @@ namespace ProjectX.Master.Modules.Hotbar
         private static Canvas _hotbarCanvas;
         private static ItemHotkeyController _hotkeyController;
         private static bool _initialized;
+        private static bool _enabled = true;
 
         // Sprite cache: item ID → Sprite (avoid re-creating every frame)
         private static readonly Dictionary<int, Sprite> _spriteCache = new Dictionary<int, Sprite>();
@@ -59,6 +60,7 @@ namespace ProjectX.Master.Modules.Hotbar
 
                 _spriteCache.Clear();
                 _frameCounter = 0;
+                _enabled = Config.HotbarEnabled.Value;
                 _initialized = true;
                 RLog.Msg("[Hotbar] Hotbar active.");
             }
@@ -74,8 +76,8 @@ namespace ProjectX.Master.Modules.Hotbar
 
             try
             {
-                // Hide during pause — same as original
-                if (PauseMenu.IsActive)
+                // Hide when disabled or during pause
+                if (!_enabled || PauseMenu.IsActive)
                 {
                     _hotbarCanvas.enabled = false;
                     return;
@@ -186,6 +188,14 @@ namespace ProjectX.Master.Modules.Hotbar
         private static int GetSlotId(int index)
         {
             return index == 0 ? 9 : index - 1;
+        }
+
+        /// <summary>Toggle hotbar visibility at runtime (called from Config.OnValueChanged).</summary>
+        public static void SetEnabled(bool enabled)
+        {
+            _enabled = enabled;
+            if (_hotbarCanvas != null)
+                _hotbarCanvas.enabled = enabled;
         }
     }
 }

@@ -27,6 +27,7 @@ namespace ProjectX.Master
         private static ConfigCategory StacksResourcesCategory { get; set; }
         private static ConfigCategory BuilderStacksCategory { get; set; }
         private static ConfigCategory AmmoUiCategory { get; set; }
+        private static ConfigCategory HotbarCategory { get; set; }
         
         // X Raids Categories (merged from RaidConfig)
         private static ConfigCategory XRaidsGeneralCategory { get; set; }
@@ -38,465 +39,851 @@ namespace ProjectX.Master
         private static ConfigCategory XRaidsMultiplayerCategory { get; set; }
         
         // ======================== PLAYER CHEATS ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsGodMode { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsInfStamina { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsNoHungry { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsNoDehydration { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsNoSleep { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsInfiniteAmmo { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsNoFallDamage { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> InfiniteLogs { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> InfiniteStones { get; private set; }
         
         // ======================== INVENTORY / STACKS ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> InfiniteInventory { get; private set; }
         
         // --- Crafting Items ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxTapeStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxClothStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxWireStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBatteriesStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxRopeStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBoardStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxC4Stack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxVodkaStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxWatchStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxCoinStack { get; private set; }
         
         // --- Sticks & Rocks ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxStickStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxRockStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxSmallRockStack { get; private set; }
         
         // --- Printing Items ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxResinStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxMeshStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxHookStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxGpsCaseStack { get; private set; }
         
         // --- Electricity ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxSolarStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBatteryStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBulbStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxRadioStack { get; private set; }
         
         // --- Medication ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxMedsStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxHealthMixStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxHealthMixPlusStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxEnergyMixStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxEnergyMixPlusStack { get; private set; }
         
         // --- Food & Drinks ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxPotStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxMeatStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxFishStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxMreStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxEnergyBarStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxEnergyDrinkStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxCannedFoodStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxCatFoodStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxRamenStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxCrunchieStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxOysterStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxEggStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxSteakBiteStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBaconBiteStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBrainBiteStack { get; private set; }
         
         // --- Animal Drops ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxShellStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxHideStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxFeatherStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxAnimalHeadStack { get; private set; }
         
         // --- Throwables ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxMolotovStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxGrenadeStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBombStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxSpearStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxFlareStack { get; private set; }
         
         // --- Body Parts & Bones ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxHeadStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxArmStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxLegStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxSkullStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBoneStack { get; private set; }
         
         // --- Armor ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxCreepyArmorStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBoneArmorStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxSolafiteArmorStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxTechArmorStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxLeafArmorStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxHideArmorStack { get; private set; }
         
         // --- Ammo ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxAmmoStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxStoneArrowStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxPrintedArrowStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxCarbonArrowStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxBoltStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxZiplineStack { get; private set; }
         
         // --- Plants & Seeds ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxLeafStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxPlantStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxSeedStack { get; private set; }
         
         // --- Misc ---
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxSolafiteStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxPouchStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxGliderStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxTarpStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxAirTankStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxPaperTargetStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxGolfBallStack { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> MaxCashStack { get; private set; }
         
         // ======================== MOVEMENT ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsNoClip { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> NoClipSpeed { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> NoClipUpDownSpeed { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> WalkSpeed { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> RunSpeed { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SwimSpeed { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> JumpMultiplier { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsNoGravity { get; private set; }
         
         // ======================== WORLD / ENVIRONMENT ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> FreezeAI { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> IsLockTime { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> DaytimeSpeed { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> TreeRegrowRate { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> WindIntensity { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> KillRadius { get; private set; }
         
         // ======================== KEYBINDS ========================
-        [SettingsUiInclude]
+        [SettingsUiInclude]  // Visible on all builds — local keybind
         public static KeybindConfigEntry OpenKey { get; private set; }
         
         // ======================== MODULES ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> RelocatorEnabled { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> StructureDurabilityMultiplier { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> FasterCraftingEnabled { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> CraftingSpeedMultiplier { get; private set; }
         
         // ======================== ZIPLINE ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> MaxZipLineLength { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> MaxRopeBridgeLength { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> MaxShootingDistance { get; private set; }
         
         // ======================== REALISM FEATURES ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> WaterCollectorHeatRadius { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> MeatDryerProximityCheckInterval { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> MeatDryerSpeedMultiplier { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> MeatDryerCureTimeDays { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> MeatDryerInstantDry { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> MeatDryerNoFireRequired { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> MeatDryerFireRadius { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> FlashlightIntensity { get; private set; }
         
         // ======================== AUDIO CONTROL ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> WaterfallVolume { get; private set; }
         
         // ======================== LOOT RESPAWN ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> LootRespawnEnabled { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> LootRespawnDays { get; private set; }
         
         // ======================== DISCORD BRIDGE ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> EnableDiscordBridge { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> DiscordBotToken { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> DiscordChannelId { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> DiscordWelcomeChannelId { get; private set; }
         
         // ======================== WELCOME MESSAGES ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> EnableWelcomeMessage { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> WelcomeMessageDelay { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> WelcomeMessageText { get; private set; }
 
         // ======================== SCARYCROSS (Advanced) ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_TempRiseThreshold { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_BurnThreshold { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_DamageThreshold { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_DamageAfterSec { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_LightIntensityRise { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_LightIntensityReduce { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_TempRisePerSec { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_TempReducePerSec { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_EffigyMinRange { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_EffigyMaxRange { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_EffigyMinStrength { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_EffigyMaxStrength { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_EffigyDisabledRange { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_EffigyDisabledStrength { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_BurnDemonRangeMin { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_BurnDemonRangeMax { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_BurnDemonTimeConfig { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_DemonDetectRadiusMin { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> SC_DemonDetectRadiusMax { get; private set; }
 
         // ======================== X RAIDS - GENERAL ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_AllowCannibals { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_AllowCreepy { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_AllowMuddies { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_AnnounceRaids { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_PlaySoundWhenAnnounced { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_IncludeEndgameRaids { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_IncludeForestOnlyRaids { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> XR_RaidsPerDay { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<string> XR_RaidDistribution { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_ConsiderCurrentTime { get; private set; }
 
         // ======================== X RAIDS - TIMES ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_RaidAtMorning { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_RaidAtDay { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_RaidAtEvening { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_RaidAtNight { get; private set; }
 
         // ======================== X RAIDS - NORMAL ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_MinSpawnFactor { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_MaxSpawnFactor { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> XR_EnemyLimit { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> XR_NormalCooldown { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_IgnoreDayLimit { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_IgnoreAngerLimit { get; private set; }
 
         // ======================== X RAIDS - BOSS ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> XR_BossCount { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> XR_BossCooldown { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_BossIgnoreDayLimit { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_BossIgnoreAngerLimit { get; private set; }
 
         // ======================== X RAIDS - ENEMY STATS ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_StatMultiplierEnabled { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_OverrideHealthOnLoad { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_CannibalHealth { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_CannibalDamage { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_CannibalAggression { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_CreepHealth { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_CreepDamage { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_CreepAggression { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_BossHealth { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_BossDamage { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_BossAggression { get; private set; }
 
         // ======================== X RAIDS - FOLLOWERS ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_KelvinHealth { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> XR_VirginiaHealth { get; private set; }
 
         // ======================== X RAIDS - MULTIPLAYER ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> XR_AdjustByPlayerCount { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> XR_ExtraSpawnsPerPlayer { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> XR_ExtraRaidsPerPlayer { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> XR_ExtraBossesPerPlayer { get; private set; }
 
         // Flag for RaidCustomizer module
         public static bool MustRequeueRaids { get; set; }
 
         // ======================== BUILDER STACKS ========================
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> BuilderStacksEnabled { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<int> BuilderStacksMaxCapacity { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> BuilderStacksGiveDelay { get; private set; }
+#if !CLIENT
         [SettingsUiInclude]
+#endif
         public static ConfigEntry<bool> BuilderStacksEnableMaxLimit { get; private set; }
 
         // ======================== AMMO UI ========================
-        [SettingsUiInclude]
+        [SettingsUiInclude]  // Visible on all builds — local HUD preference
         public static ConfigEntry<float> AmmoUiSize { get; private set; }
-        [SettingsUiInclude]
+        [SettingsUiInclude]  // Visible on all builds — local HUD preference
         public static ConfigEntry<float> AmmoUiOpacity { get; private set; }
+
+        // ======================== HOTBAR ========================
+        [SettingsUiInclude]  // Visible on all builds — local UI toggle
+        public static ConfigEntry<bool> HotbarEnabled { get; private set; }
 
         public static void Init()
         {
@@ -951,6 +1338,16 @@ namespace ProjectX.Master
             AmmoUiSize.SetRange(0.1f, 2.0f);
             AmmoUiOpacity = AmmoUiCategory.CreateEntry<float>("AmmoUiOpacity", 1.0f, "AmmoUI Opacity", "Transparency of the ammo display (0 = invisible, 1 = solid)");
             AmmoUiOpacity.SetRange(0f, 1f);
+            
+            // ===== CATEGORY: HOTBAR =====
+            HotbarCategory = ConfigSystem.CreateFileCategory("ProjectX - Hotbar", "ProjectX - Hotbar", configFile);
+            
+            HotbarEnabled = HotbarCategory.CreateEntry<bool>("HotbarEnabled", true, "Enable Hotbar", "Show the item hotbar HUD overlay");
+#if !SERVER
+            HotbarEnabled.OnValueChanged.Subscribe((_, newVal) => {
+                Modules.Hotbar.HotbarModule.SetEnabled(newVal);
+            });
+#endif
             
             // Register config entries for network sync (must be after all entries created)
             Modules.Network.ConfigSyncPayload.RegisterEntries();

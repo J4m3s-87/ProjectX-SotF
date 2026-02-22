@@ -20,7 +20,7 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
         {
             if (args.Length == 0)
             {
-                Log("Usage: /px raid start|boss|clear|cooldown|requeue|status");
+                Log("Usage: /px raid start|boss|clear|clearall|cooldown|requeue|status");
                 return;
             }
 
@@ -29,6 +29,7 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                 case "start":   RunRandomRaid(); break;
                 case "boss":    RunBossRaid(); break;
                 case "clear":   ClearQueuedRaids(); break;
+                case "clearall": ClearAllEvents(); break;
                 case "cooldown": ClearRaidCooldowns(); break;
                 case "requeue": RequeueRaids(); break;
                 case "status":  PrintRaidStatus(); break;
@@ -62,12 +63,18 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                 var searchParties = new List<VailWorldEventData.SearchPartyEvent>();
                 foreach (var evt in eventData._searchPartyEvents)
                 {
-                    if (RaidCustomizer.EventTools.IsActualSearchParty(evt) &&
-                        !RaidCustomizer.SearchPartyEventConfigurator.ShouldDisable(evt))
+                    if (RaidCustomizer.EventTools.IsActualSearchParty(evt))
                     {
-                        searchParties.Add(evt);
+                        // Only pick Creepy (1) and Muddy (3) raids — these path aggressively
+                        // toward the player's base. Cannibal (0) raids are patrol/scout events
+                        // that may spawn far away and never reach the cross.
+                        int typeVal = (int)evt.type;
+                        if (typeVal == 1 || typeVal == 3)
+                            searchParties.Add(evt);
                     }
                 }
+
+                RLog.Msg($"[RaidCustomizer] RunRandomRaid: {searchParties.Count} valid creepy/muddy raids (cannibal patrols excluded)");
 
                 if (searchParties.Count == 0)
                 {
@@ -77,9 +84,15 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
 
                 var random = new Random();
                 var selectedRaid = searchParties[random.Next(0, searchParties.Count)];
+                
+                // Force permissive constraints for manual trigger — on dedicated servers
+                // anger is always 0 and day may not meet vanilla thresholds, which causes
+                // RunEventNow() to silently fail even though the call succeeds.
+                selectedRaid.minMaxAnger = new UnityEngine.Vector2(0f, float.MaxValue);
+                selectedRaid.minMaxDay = new UnityEngine.Vector2Int(0, int.MaxValue);
                 selectedRaid.RunEventNow();
                 
-                Log($"Triggered raid: {selectedRaid.name}");
+                Log($"Triggered raid: {selectedRaid.name} (type={(int)selectedRaid.type})");
             }
             catch (Exception ex)
             {
@@ -113,7 +126,7 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                 {
                     if (RaidCustomizer.EventTools.IsBossEvent(evt))
                     {
-                        bossRaids.Add(evt as VailWorldEventData.SearchPartyEvent);
+                        bossRaids.Add(evt.Cast<VailWorldEventData.SearchPartyEvent>());
                     }
                 }
 
@@ -125,6 +138,10 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
 
                 var random = new Random();
                 var selectedBoss = bossRaids[random.Next(0, bossRaids.Count)];
+                
+                // Force permissive constraints — see RunRandomRaid() comment
+                selectedBoss.minMaxAnger = new UnityEngine.Vector2(0f, float.MaxValue);
+                selectedBoss.minMaxDay = new UnityEngine.Vector2Int(0, int.MaxValue);
                 selectedBoss.RunEventNow();
                 
                 Log($"Triggered BOSS raid: {selectedBoss.name}");
@@ -148,6 +165,29 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
             catch (Exception ex)
             {
                 Log($"ClearQueuedRaids failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Clear ALL queued events (not just raids)
+        /// </summary>
+        public static void ClearAllEvents()
+        {
+            try
+            {
+                var worldEvents = SingletonBehaviour<VailWorldEvents>._instance;
+                if (worldEvents == null)
+                {
+                    Log("VailWorldEvents not ready");
+                    return;
+                }
+
+                worldEvents.ClearEvents();
+                Log("All events cleared");
+            }
+            catch (Exception ex)
+            {
+                Log($"ClearAllEvents failed: {ex.Message}");
             }
         }
 

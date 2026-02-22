@@ -115,19 +115,20 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         }
         
         /// <summary>
-        /// Check if event should be disabled based on type settings
+        /// Check if event should be disabled based on type settings.
+        /// Uses evt.type directly (field read, IL2CPP-safe) instead of
+        /// IsCannibal()/IsCreepy() methods which may throw on server DummyDll.
+        /// TypeOfEvent: 0=Cannibal, 1=Creepy, 3=Muddy
         /// </summary>
         public static bool ShouldDisable(VailWorldEventData.EventBase evt)
         {
             try
             {
-                bool isCanibal = evt.IsCannibal();
-                bool isCreepy = evt.IsCreepy();
                 int typeVal = (int)evt.type;
                 
-                return (isCanibal && !RaidConfig.AllowCannibals.Value) ||
-                       (isCreepy && !RaidConfig.AllowCreepy.Value) ||
-                       (typeVal == 3 && !RaidConfig.AllowMuddies.Value);  // Muddy = 3
+                return (typeVal == 0 && !RaidConfig.AllowCannibals.Value) ||
+                       (typeVal == 1 && !RaidConfig.AllowCreepy.Value) ||
+                       (typeVal == 3 && !RaidConfig.AllowMuddies.Value);
             }
             catch
             {

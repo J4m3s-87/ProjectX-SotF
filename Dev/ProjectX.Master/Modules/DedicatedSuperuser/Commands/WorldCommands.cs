@@ -319,15 +319,45 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
         }
 
         /// <summary>
-        /// Toggle AI freeze on/off
+        /// Toggle AI freeze on/off.
+        /// Uses AccessTools to call VailWorldSimulation.SetPaused() (IL2CPP-safe).
         /// </summary>
         public static void ToggleFreezeAI()
         {
             try
             {
                 Config.FreezeAI.Value = !Config.FreezeAI.Value;
+                bool on = Config.FreezeAI.Value;
+
+                // Actually pause/unpause the world simulation via reflection
+                try
+                {
+                    var simType = AccessTools.TypeByName("VailWorldSimulation");
+                    if (simType != null)
+                    {
+                        var setPaused = AccessTools.Method(simType, "SetPaused", new[] { typeof(bool) });
+                        if (setPaused != null)
+                        {
+                            setPaused.Invoke(null, new object[] { on });
+                            RLog.Msg($"[Superuser] VailWorldSimulation.SetPaused({on})");
+                        }
+                        else
+                        {
+                            RLog.Warning("[Superuser] VailWorldSimulation.SetPaused method not found");
+                        }
+                    }
+                    else
+                    {
+                        RLog.Warning("[Superuser] VailWorldSimulation type not found");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RLog.Warning($"[Superuser] SetPaused failed: {ex.Message}");
+                }
+
                 Config.Save();
-                Log($"AI Freeze: {(Config.FreezeAI.Value ? "ON" : "OFF")}");
+                Log($"AI Freeze: {(on ? "ON" : "OFF")}");
             }
             catch (Exception ex)
             {

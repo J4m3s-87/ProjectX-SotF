@@ -13,16 +13,41 @@ namespace ProjectX.Master.Modules.ScaryCross
     /// Physics.OverlapSphere is FULLY stripped by IL2CPP (both 2-param and 3-param).
     /// Instead, ScaryCrossModule patches VailActor.OnEnable/OnDisable to maintain
     /// a global list of active VailActors, and this component checks distances.
+    /// 
+    /// Dead enemies are detected via position staleness: if a burnable actor
+    /// stays at the exact same position for STALE_THRESHOLD seconds, it's
+    /// considered dead and removed from tracking. Dead enemies ragdoll to a
+    /// fixed point; living enemies always have animation micro-movement.
     /// </summary>
     [RegisterTypeInIl2Cpp]
     public class DemonDetector : MonoBehaviour
     {
         public bool IsEnemyInRange { get; private set; }
         
+        /// <summary>
+        /// Actors currently in range — populated each ManualUpdate tick.
+        /// Used by MakeCrossScary.BurnDemons() for direct IgniteSelf() calls.
+        /// </summary>
+        public readonly List<VailActor> InRangeActors = new List<VailActor>();
+        
         public float triggerRadius = 14f;
         
         private float _diagTimer;
-        private static int _diagCount;
+        private int _diagCount;
+        
+        /// <summary>
+        /// Staleness tracking — detect dead enemies by position not changing.
+        /// Key: actor instance ID. Value: (last known position, seconds at that position).
+        /// </summary>
+        private const float STALE_THRESHOLD = 10f;
+        private const float STALE_MOVE_EPSILON = 0.05f; // less than this = "not moving"
+        private readonly Dictionary<int, StalenessEntry> _stalenessTracker = new Dictionary<int, StalenessEntry>();
+        
+        private struct StalenessEntry
+        {
+            public Vector3 lastPos;
+            public float staleTime;
+        }
         
         // VailActorTypeId values for enemies that should trigger the cross burning.
         // Excludes regular cannibals, animals, and friendly NPCs (Robby=9, Virginia=10).
@@ -57,15 +82,18 @@ namespace ProjectX.Master.Modules.ScaryCross
         /// <summary>
         /// Scans the global TrackedActors list for burnable enemies within range.
         /// Uses Vector3.Distance instead of Physics.OverlapSphere (stripped by IL2CPP).
+        /// Dead enemies filtered via position staleness (no movement for STALE_THRESHOLD seconds).
         /// </summary>
         public void ManualUpdate()
         {
             bool found = false;
+            InRangeActors.Clear();
             var position = base.transform.position;
             float radiusSq = triggerRadius * triggerRadius;
+            float dt = Time.deltaTime;
             
             // Diagnostic timer — log every 5 seconds
-            _diagTimer += Time.deltaTime;
+            _diagTimer += dt;
             bool shouldDiag = _diagTimer >= 5f;
             if (shouldDiag) _diagTimer = 0f;
             
@@ -86,7 +114,7 @@ namespace ProjectX.Master.Modules.ScaryCross
                     VailActor actor = null;
                     try { actor = TrackedActors[i]; } catch { }
                     
-                    if (actor == null || actor.gameObject == null)
+                    if (actor == null || actor.gameObject == null || !actor.gameObject.activeInHierarchy)
                     {
                         TrackedActors.RemoveAt(i);
                         continue;
@@ -106,14 +134,56 @@ namespace ProjectX.Master.Modules.ScaryCross
                         
                         if (distSq <= radiusSq)
                         {
-                            found = true;
+                            // Staleness check — dead enemies ragdoll to a fixed position.
+                            // If position hasn't changed by more than STALE_MOVE_EPSILON
+                            // for STALE_THRESHOLD seconds, consider the enemy dead.
+                            int actorId = actor.GetInstanceID();
                             
-                            if (shouldDiag && _diagCount <= 12)
+                            if (_stalenessTracker.TryGetValue(actorId, out var entry))
+                            {
+                                float moveDx = actorPos.x - entry.lastPos.x;
+                                float moveDy = actorPos.y - entry.lastPos.y;
+                                float moveDz = actorPos.z - entry.lastPos.z;
+                                float moveSq = moveDx * moveDx + moveDy * moveDy + moveDz * moveDz;
+                                
+                                if (moveSq < STALE_MOVE_EPSILON * STALE_MOVE_EPSILON)
+                                {
+                                    // Not moving — accumulate stale time
+                                    entry.staleTime += dt;
+                                    entry.lastPos = actorPos;
+                                    _stalenessTracker[actorId] = entry;
+                                    
+                                    if (entry.staleTime >= STALE_THRESHOLD)
+                                    {
+                                        // Dead — remove from tracking
+                                        TrackedActors.RemoveAt(i);
+                                        _stalenessTracker.Remove(actorId);
+                                        RLog.Msg($"[DemonDetector] STALE: removed '{actor.gameObject.name}' (typeId={typeId}) — no movement for {entry.staleTime:F1}s");
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    // Moving — reset stale timer
+                                    entry.lastPos = actorPos;
+                                    entry.staleTime = 0f;
+                                    _stalenessTracker[actorId] = entry;
+                                }
+                            }
+                            else
+                            {
+                                // First time seeing this actor — start tracking
+                                _stalenessTracker[actorId] = new StalenessEntry { lastPos = actorPos, staleTime = 0f };
+                            }
+                            
+                            found = true;
+                            InRangeActors.Add(actor);
+                            
+                            if (shouldDiag)
                             {
                                 float dist = (float)Math.Sqrt(distSq);
-                                RLog.Msg($"[DemonDetector] DETECTED burnable enemy! typeId={typeId} name='{actor.gameObject.name}' dist={dist:F1}m");
+                                RLog.Msg($"[DemonDetector] DETECTED burnable enemy! typeId={typeId} name='{actor.gameObject.name}' dist={dist:F1}m stale={(_stalenessTracker.TryGetValue(actorId, out var se) ? se.staleTime : 0f):F1}s");
                             }
-                            break;
                         }
                     }
                     catch { }

@@ -117,10 +117,8 @@ namespace ProjectX.Master
             // 9. MeatDryer (server-safe: Harmony + Marshal offsets)
             Modules.MeatDryer.MeatDryerModule.Init();
             
-#if !SERVER
-            // 10. ScaryCross (client only)
+            // 10. ScaryCross (server-safe: Harmony + distance checks + IgniteSelf)
             Modules.ScaryCross.ScaryCrossModule.Init();
-#endif
             
             // 11. OpenSesame — REMOVED (HarmonyPatchAll vtable corruption)
             // Modules.OpenSesame.OpenSesameModule.Init();
@@ -253,6 +251,12 @@ namespace ProjectX.Master
             try { Modules.LootRespawn.LootRespawnModule.Init(); } 
             catch (Exception ex) { LoggerInstance.Error($"[Server] LootRespawn init failed: {ex.Message}"); }
             
+            try { Modules.ScaryCross.ScaryCrossModule.Init(); } 
+            catch (Exception ex) { LoggerInstance.Error($"[Server] ScaryCross init failed: {ex.Message}"); }
+            
+            try { Modules.ScaryCross.ScaryCrossModule.OnGameActivated(); } 
+            catch (Exception ex) { LoggerInstance.Error($"[Server] ScaryCross OnGameActivated failed: {ex.Message}"); }
+            
             ConfigSyncPayload.EnableBroadcast();
             
             LoggerInstance.Msg("[Server] All server modules initialized");
@@ -356,6 +360,7 @@ namespace ProjectX.Master
             
             try { ConfigSyncPayload.Update(); } catch { }
             try { IntegrityEvent.CheckTimeouts(); } catch { }
+            try { Modules.ScaryCross.ScaryCrossModule.ServerTick(); } catch { }
         }
 #endif
     }

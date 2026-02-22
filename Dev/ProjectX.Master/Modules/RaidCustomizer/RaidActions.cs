@@ -8,6 +8,7 @@ using Sons.Ai.Vail;
 using Sons.Characters;
 using SonsSdk;
 using TheForest.Utils;
+using UnityEngine;
 
 namespace ProjectX.Master.Modules.RaidCustomizer
 {
@@ -55,8 +56,14 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                 }
                 
                 // Pick random raid and trigger it
-                var random = new Random();
+                var random = new System.Random();
                 var selectedRaid = searchParties[random.Next(0, searchParties.Count)];
+                
+                // Force permissive constraints for manual trigger — anger may be 0
+                // and day may not meet vanilla thresholds, causing RunEventNow()
+                // to silently fail even though the call succeeds.
+                selectedRaid.minMaxAnger = new UnityEngine.Vector2(0f, float.MaxValue);
+                selectedRaid.minMaxDay = new UnityEngine.Vector2Int(0, int.MaxValue);
                 selectedRaid.RunEventNow();
                 
                 SonsTools.ShowMessage($"Triggered raid: {selectedRaid.name}");
@@ -186,6 +193,44 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                 if (eventData != null)
                 {
                     SearchPartyEventConfigurator.PrepareForNewDay(eventData);
+                    
+                    // Clear event run stats (cooldowns) for search parties —
+                    // without this, InCooldown returns true for previously selected events,
+                    // causing ChooseEventsForDay to select 0 events on subsequent requeues.
+                    try
+                    {
+                        var statsDict = worldEvents._eventRunStats?._statsDict;
+                        if (statsDict != null)
+                        {
+                            int cleared = 0;
+                            foreach (var searchEvt in eventData._searchPartyEvents)
+                            {
+                                if (searchEvt != null && EventTools.IsActualSearchParty(searchEvt))
+                                {
+                                    try
+                                    {
+                                        if (statsDict.ContainsKey(searchEvt.name))
+                                        {
+                                            var history = statsDict[searchEvt.name];
+                                            if (history != null)
+                                            {
+                                                history._runCount = 0;
+                                                history._lastDay = -1;
+                                                cleared++;
+                                            }
+                                        }
+                                    }
+                                    catch { }
+                                }
+                            }
+                            if (cleared > 0)
+                                RLog.Msg($"[RaidCustomizer] Cleared cooldowns for {cleared} events");
+                        }
+                    }
+                    catch (Exception ex2)
+                    {
+                        RLog.Warning($"[RaidCustomizer] Cooldown reset failed: {ex2.Message}");
+                    }
                 }
                 
                 // Reset the last queued day to force requeue

@@ -219,16 +219,38 @@ namespace ProjectX.Master.Modules.WaterCollectors
             {
                 if (__instance == null) return;
                 
+                // Skip heat sources parented to scary crosses — their fire prefab
+                // creates TemperatureModifierVolumes that falsely un-freeze water collectors
+                if (IsParentedToScaryCross(__instance.transform)) return;
+                
                 for (int i = 0; i < _heatSources.Count; i++)
                     if (_heatSources[i] == __instance) return;
                 
                 _heatSources.Add(__instance);
                 _heatSourceCount++;
-                
-                if (_heatSourceCount <= 20) // Limit spam
-                    RLog.Msg($"[WaterCollectors] Tracked heat source #{_heatSourceCount}");
             }
             catch { }
+        }
+        
+        /// <summary>
+        /// Walk up the parent hierarchy (max 5 levels) to check if this transform
+        /// belongs to a scary cross structure. Their fire prefab creates
+        /// TemperatureModifierVolumes that should not count as campfire heat.
+        /// </summary>
+        private static bool IsParentedToScaryCross(Transform t)
+        {
+            Transform current = t;
+            for (int i = 0; i < 5 && current != null; i++)
+            {
+                try
+                {
+                    if (current.gameObject.name.StartsWith("PoweredCrossStructure"))
+                        return true;
+                }
+                catch { }
+                current = current.parent;
+            }
+            return false;
         }
 
         // Track which catchers we've already unfrozen to avoid repeated SetFrozen calls
@@ -261,6 +283,8 @@ namespace ProjectX.Master.Modules.WaterCollectors
             // Get season via public static property
             int activeSeason = -1;
             try { activeSeason = (int)SeasonsManager.ActiveSeason; } catch { }
+            
+
             
             // Only apply winter-fire logic in Winter (season 3)
             if (activeSeason != 3)
@@ -313,6 +337,7 @@ namespace ProjectX.Master.Modules.WaterCollectors
             else if (!fireNearby && alreadyUnfrozen)
             {
                 // No fire and was unfrozen — freeze it back
+                
                 if (_useOffsets)
                 {
                     var ptr = GetPointer(catcher);

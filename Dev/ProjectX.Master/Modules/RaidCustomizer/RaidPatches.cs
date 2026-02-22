@@ -96,15 +96,19 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                     return;
                 }
                 
-                // If we have a custom events-per-day setting, override the result
-                // Apply to ALL time periods — the game calls AddSearchEvents for each
-                // TimeOfEvent (Day=0, Night=1, Any=2). Search party events typically use
-                // timeOfEvent=Any(2), so restricting to Day only starves search parties.
+                // If we have a custom events-per-day setting, override the result.
+                // CRITICAL: Only apply the custom count for TimeOfEvent.Day (value 0).
+                // The game calls EventsForTime for each period (Day=0, Night=1, Any=2).
+                // The original mod returns the count for Day only, and 0 for others.
+                // Without this filter, raids are tripled (count × 3 time periods).
                 int eventsPerDay;
                 if (RaidConfig.HasCustomEventsPerDay(__2, out eventsPerDay))
                 {
-                    __result = eventsPerDay;
+                    // __1 == 0 means TimeOfEvent.Day — the only period that gets custom count
+                    __result = ((int)__1 == 0) ? eventsPerDay : 0;
                 }
+                // When RaidsPerDay=-1, HasCustomEventsPerDay returns false,
+                // so __result keeps the vanilla value (passthrough).
             }
             catch { }
         }
@@ -139,30 +143,9 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         {
             try
             {
-#if SERVER
-                // On dedicated server, anger is always 0 and day limits prevent events 
-                // from passing IsValid(). Force these overrides so events can be selected.
-                try
-                {
-                    if (!RaidConfig.IgnoreMinMaxAnger.Value)
-                        RaidConfig.IgnoreMinMaxAnger.Value = true;
-                    if (!RaidConfig.IgnoreMinMaxDay.Value)
-                        RaidConfig.IgnoreMinMaxDay.Value = true;
-                    if (!RaidConfig.BossIgnoreMinMaxAnger.Value)
-                        RaidConfig.BossIgnoreMinMaxAnger.Value = true;
-                    if (!RaidConfig.BossIgnoreMinMaxDay.Value)
-                        RaidConfig.BossIgnoreMinMaxDay.Value = true;
-                    // If RaidsPerDay is -1 (disabled/default), set to 15
-                    // This ensures a good raid queue out of the box on dedicated servers.
-                    // Users can override via /px config set XR_RaidsPerDay <value>
-                    if (RaidConfig.RaidsPerDay.Value < 0)
-                        RaidConfig.RaidsPerDay.Value = 15;
-                }
-                catch (Exception ex2)
-                {
-                    RLog.Warning($"[RaidCustomizer] Server config force failed: {ex2.Message}");
-                }
-#endif
+                // No server-side forced overrides — vanilla behavior when config is default.
+                // Users can explicitly set RaidsPerDay, IgnoreMinMaxAnger, etc. via config
+                // if they want non-vanilla raid behavior on the server.
                 
                 QueuedEventHandler.Reset();
                 SearchPartyEventConfigurator.PrepareForNewDay(__0);

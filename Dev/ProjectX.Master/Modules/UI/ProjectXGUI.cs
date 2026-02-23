@@ -356,9 +356,13 @@ namespace ProjectX.Master.Modules.UI
             // Kill Radius slider (0 = all loaded)
             Config.KillRadius.Value = DrawSlider("Kill Radius (0=ALL)", Config.KillRadius.Value, 0f, 500f);
             
-            // Freeze AI toggle
+            // Freeze AI toggle — route to server via /px world freeze
+            // (PlayerActions.ToggleFreezeAI only calls SetPaused locally, doesn't reach dedicated server)
             bool newFreezeAI = DrawCheckbox("Freeze AI (Stop Spawning)", Config.FreezeAI.Value);
-            if (newFreezeAI != Config.FreezeAI.Value) PlayerActions.ToggleFreezeAI(newFreezeAI);
+            if (newFreezeAI != Config.FreezeAI.Value)
+            {
+                ServerCmd("world freeze");
+            }
             
             // Spawn NPC section
             DrawDivider("SPAWN NPC");
@@ -1340,7 +1344,7 @@ namespace ProjectX.Master.Modules.UI
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Start Random Raid", ProjectXStyles.Button, GUILayout.Height(42)))
                 {
-                    // Only dispatch to server — server picks the raid and sends the name back via chat
+                    try { RaidCustomizer.RaidActions.RunRandomRaid(); } catch { }
                     ServerCmd("raid start");
                 }
                 if (GUILayout.Button("Clear Queued Raids", ProjectXStyles.Button, GUILayout.Height(42)))

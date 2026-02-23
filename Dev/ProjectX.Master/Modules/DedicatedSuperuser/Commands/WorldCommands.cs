@@ -16,7 +16,7 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
         {
             if (args.Length == 0)
             {
-                Log("Usage: /px world time|season|freeze|trees|revive|weather");
+                Log("Usage: /px world time|season|freeze|trees|removedead|revive|weather");
                 return;
             }
 
@@ -42,6 +42,13 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
 
                 case "trees":
                     ForceTreeRegrow();
+                    break;
+
+                case "removedead":
+                    if (TrySendDebugCommand("removedead"))
+                        Log("Dead bodies removed via 'removedead' console command");
+                    else
+                        Log("removedead failed — DebugConsole not available");
                     break;
 
                 case "revive":
@@ -318,9 +325,30 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
             return false; // Block UpdateTime — preserve forced season state
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // AI FREEZE — Harmony PREFIX + Marshal (proven pattern from Season Override)
+        //
+        // AccessTools.Field("_aiPaused") returns null in IL2CPP — field names
+        // are stripped. SetPaused() and DebugConsole "aipause" also have no
+        // effect on dedicated servers. Direct Marshal writes at the IL2CPP
+        // offset are the only reliable approach.
+        //
+        // From Il2CppDumper dump.cs (VailWorldSimulation):
+        //   _aiPaused   = offset 0x100 (bool)
+        //   _aiDisabled = offset 0x19C (bool)
+        // ═══════════════════════════════════════════════════════════════
+        
+        private const int AI_PAUSED_OFFSET = 0x100;
+        
+        private static bool _aiFreezePatched = false;
+        private static PropertyInfo _aiSimPointerProp;
+        private static HarmonyLib.Harmony _aiFreezeHarmony;
+        
         /// <summary>
-        /// Toggle AI freeze on/off.
-        /// Uses AccessTools to call VailWorldSimulation.SetPaused() (IL2CPP-safe).
+        /// Toggle AI freeze on/off using Harmony PREFIX on VailWorldSimulation.Update().
+        /// Writes _aiPaused = true at IL2CPP offset 0x100 every frame via Marshal.
+        /// Same proven pattern as Season Override (which uses Marshal on SeasonsManager).
+        /// DO NOT use aiDisable — it removes all NPCs from the world.
         /// </summary>
         public static void ToggleFreezeAI()
         {
@@ -329,53 +357,120 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                 Config.FreezeAI.Value = !Config.FreezeAI.Value;
                 bool on = Config.FreezeAI.Value;
 
-                // Actually pause/unpause the world simulation via reflection
-                try
+                // Resolve VailWorldSimulation type
+                var simType = AccessTools.TypeByName("Sons.Ai.Vail.VailWorldSimulation") ??
+                              AccessTools.TypeByName("VailWorldSimulation");
+
+                if (simType == null)
                 {
-                    var simType = AccessTools.TypeByName("VailWorldSimulation");
-                    if (simType != null)
+                    Log("AI Freeze failed — VailWorldSimulation type not found");
+                    Config.Save();
+                    return;
+                }
+
+                // Apply Harmony PREFIX on first use
+                if (!_aiFreezePatched)
+                {
+                    try
                     {
-                        var setPaused = AccessTools.Method(simType, "SetPaused", new[] { typeof(bool) });
-                        if (setPaused != null)
+                        // Get Pointer property for Marshal access (same as Season PREFIX)
+                        var instanceMethod = AccessTools.Method(simType, "Instance");
+                        object sim = instanceMethod?.Invoke(null, null);
+                        
+                        if (sim != null)
                         {
-                            setPaused.Invoke(null, new object[] { on });
-                            RLog.Msg($"[Superuser] VailWorldSimulation.SetPaused({on})");
+                            _aiSimPointerProp = sim.GetType().GetProperty("Pointer",
+                                BindingFlags.Instance | BindingFlags.Public |
+                                BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
+                            
+                            Log($"AI Freeze PREFIX: Pointer property {(_aiSimPointerProp != null ? "found" : "NULL")}");
+                            
+                            // Verify we can read the current _aiPaused value
+                            if (_aiSimPointerProp != null)
+                            {
+                                System.IntPtr ptr = (System.IntPtr)_aiSimPointerProp.GetValue(sim);
+                                if (ptr != System.IntPtr.Zero)
+                                {
+                                    byte current = System.Runtime.InteropServices.Marshal.ReadByte(ptr + AI_PAUSED_OFFSET);
+                                    Log($"AI Freeze PREFIX: Current _aiPaused at 0x100 = {current}");
+                                }
+                            }
                         }
                         else
                         {
-                            RLog.Warning("[Superuser] VailWorldSimulation.SetPaused method not found");
+                            Log("AI Freeze PREFIX: VailWorldSimulation.Instance() returned null");
+                        }
+                        
+                        // Patch Update() — every frame, write _aiPaused via Marshal
+                        _aiFreezeHarmony = new HarmonyLib.Harmony("ProjectX.Server.AIFreeze");
+                        
+                        var updateMethod = AccessTools.Method(simType, "Update");
+                        if (updateMethod != null)
+                        {
+                            var prefix = new HarmonyLib.HarmonyMethod(typeof(WorldCommands), nameof(AIFreezeUpdatePrefix));
+                            _aiFreezeHarmony.Patch(updateMethod, prefix: prefix);
+                            _aiFreezePatched = true;
+                            Log("AI Freeze: Harmony PREFIX on VailWorldSimulation.Update() applied ★");
+                        }
+                        else
+                        {
+                            Log("AI Freeze: VailWorldSimulation.Update() not found!");
                         }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        RLog.Warning("[Superuser] VailWorldSimulation type not found");
+                        Log($"AI Freeze PREFIX patch failed: {ex.Message}");
                     }
                 }
-                catch (Exception ex)
-                {
-                    RLog.Warning($"[Superuser] SetPaused failed: {ex.Message}");
-                }
 
+                Log($"AI Freeze: {(on ? "ON — enemies frozen" : "OFF — enemies unfrozen")} (PREFIX active={_aiFreezePatched})");
                 Config.Save();
-                Log($"AI Freeze: {(on ? "ON" : "OFF")}");
             }
             catch (Exception ex)
             {
                 Log($"ToggleFreezeAI failed: {ex.Message}");
             }
         }
+        
+        /// <summary>
+        /// Harmony PREFIX on VailWorldSimulation.Update() —
+        /// writes _aiPaused = 1 (true) via Marshal every frame when freeze is enabled.
+        /// When freeze is disabled, writes _aiPaused = 0 (false) to restore AI.
+        /// Runs at IL2CPP memory level — bypasses all field name resolution issues.
+        /// </summary>
+        private static void AIFreezeUpdatePrefix(object __instance)
+        {
+            if (_aiSimPointerProp == null) return;
+            
+            try
+            {
+                System.IntPtr ptr = (System.IntPtr)_aiSimPointerProp.GetValue(__instance);
+                if (ptr == System.IntPtr.Zero) return;
+                
+                byte target = Config.FreezeAI.Value ? (byte)1 : (byte)0;
+                System.Runtime.InteropServices.Marshal.WriteByte(ptr + AI_PAUSED_OFFSET, target);
+            }
+            catch { } // Silent — runs every frame
+        }
 
         /// <summary>
-        /// Enable tree regrowth via PlayerPreferences.SetLocalTreeRegrowth (IL2CPP-safe).
-        /// There is no "TreeRegrowthSystem" class — the actual API is:
-        ///   PlayerPreferences.SetLocalTreeRegrowth(bool) — static method
-        ///   PlayerPreferences.TreeRegrowthLocal — property (get/set)
+        /// Force tree regrowth via DebugConsole "regrowAllTrees" command.
+        /// PlayerPreferences.SetLocalTreeRegrowth only sets a client-side preference
+        /// flag — "regrowAllTrees" is the game's actual command that triggers
+        /// tree regrowth on the server.
         /// </summary>
         public static void ForceTreeRegrow()
         {
             try
             {
-                // Primary: PlayerPreferences.SetLocalTreeRegrowth(true)
+                // Primary: DebugConsole "regrowAllTrees" command
+                if (TrySendDebugCommand("regrowAllTrees"))
+                {
+                    Log("Tree regrowth triggered via 'regrowAllTrees'");
+                    return;
+                }
+                
+                // Fallback: PlayerPreferences.SetLocalTreeRegrowth(true)
                 var ppType = AccessTools.TypeByName("PlayerPreferences");
                 if (ppType != null)
                 {
@@ -383,21 +478,12 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                     if (setMethod != null)
                     {
                         setMethod.Invoke(null, new object[] { true });
-                        Log("Tree regrowth enabled (PlayerPreferences)");
-                        return;
-                    }
-                    
-                    // Fallback: set the property directly
-                    var prop = AccessTools.Property(ppType, "TreeRegrowthLocal");
-                    if (prop != null && prop.CanWrite)
-                    {
-                        prop.SetValue(null, true);
-                        Log("Tree regrowth enabled (TreeRegrowthLocal)");
+                        Log("Tree regrowth enabled (PlayerPreferences fallback)");
                         return;
                     }
                 }
                 
-                Log("PlayerPreferences.SetLocalTreeRegrowth not accessible");
+                Log("Tree regrowth failed — DebugConsole and PlayerPreferences both unavailable");
             }
             catch (Exception ex)
             {

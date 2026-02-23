@@ -274,7 +274,6 @@ namespace ProjectX.Master.Modules.ScaryCross
                         
                         // Start disabled — BurnDemons() enables and fires when enemies detected
                         this._scaryObject.enabled = false;
-                        this._scaryFireCooldown = 0f;
                         
                         RLog.Msg($"[ScaryCross] ScaryObject initialized (autoFire=false, autoDisable=false, valid={this._scaryObject.IsValid()}).");
                     }
@@ -371,6 +370,100 @@ namespace ProjectX.Master.Modules.ScaryCross
         public void ManualUpdate()
         {
             this.ReloadSettings();
+            
+            // Deferred ScaryObject init — fixes race condition where Initialize()
+            // runs before _heldCrossPrefab is loaded (common on clients).
+            // Retry once the prefab becomes available.
+            if (_scaryObject == null && _initialized && ScaryCrossModule._heldCrossPrefab != null)
+            {
+                try
+                {
+                    Transform stimuliTrans = ScaryCrossModule._heldCrossPrefab.transform.Find("Stimuli");
+                    if (stimuliTrans)
+                    {
+                        Transform transform = Object.Instantiate<Transform>(stimuliTrans, base.transform);
+                        transform.parent = base.transform;
+                        transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+                        this._scaryObject = transform.GetComponent<ScaryObject>();
+                        
+                        if (f_scaryTransform != null)
+                            f_scaryTransform.SetValue(this._scaryObject, transform);
+                        
+                        this._eventDescription = this._scaryObject.GetDescription();
+                        if (_eventDescription != null)
+                        {
+                            if (f_range != null)
+                                f_range.SetValue(_eventDescription, this.BurnDemonEffectRangeMin);
+                            if (f_directionalDegrees != null)
+                                f_directionalDegrees.SetValue(_eventDescription, BurnDemonAngle);
+                        }
+                        
+                        if (f_maxBurnDemonSeconds != null)
+                            f_maxBurnDemonSeconds.SetValue(this._scaryObject, this.BurnDemonTimePerTrigger);
+                        
+                        if (f_autoDisable != null) f_autoDisable.SetValue(this._scaryObject, false);
+                        if (f_autoDestruct != null) f_autoDestruct.SetValue(this._scaryObject, false);
+                        if (f_autoFire != null) f_autoFire.SetValue(this._scaryObject, false);
+                        
+                        if (this._effigyStimuli != null)
+                        {
+                            this._scaryObject.SetOwner(this._effigyStimuli);
+                            this._scaryObject.Initialize(null, this._effigyStimuli);
+                        }
+                        this._scaryObject.SetValid(true);
+                        this._scaryObject.enabled = false;
+                        
+                        RLog.Msg($"[ScaryCross] Deferred ScaryObject init OK (valid={this._scaryObject.IsValid()})");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RLog.Warning($"[ScaryCross] Deferred ScaryObject init failed: {ex.Message}");
+                }
+            }
+            
+#if !SERVER
+            // Deferred FireAll + lightbulb init — same race condition as ScaryObject.
+            // _bonFireElementPrefab loads after Initialize() on clients.
+            if (_fireAll == null && _initialized && ScaryCrossModule._bonFireElementPrefab != null)
+            {
+                try
+                {
+                    Transform fireAllTrans = ScaryCrossModule._bonFireElementPrefab.transform.Find("FireAll");
+                    if (fireAllTrans)
+                    {
+                        GameObject gameObject = fireAllTrans.gameObject;
+                        this._fireAll = Object.Instantiate<GameObject>(gameObject);
+                        this._fireAll.transform.parent = base.transform;
+                        this._fireAll.transform.localPosition = new Vector3(0f, 1f, 0f);
+                        this._fireAll.SetActive(false);
+                        RLog.Msg("[ScaryCross] Deferred FireAll init OK");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RLog.Warning($"[ScaryCross] Deferred FireAll init failed: {ex.Message}");
+                }
+            }
+            
+            // Deferred lightbulb discovery
+            if (_lightbulbs.Count == 0 && _initialized)
+            {
+                Transform transform2 = base.transform.Find("Renderables");
+                if (transform2 != null)
+                {
+                    for (int i = 0; i < transform2.childCount; i++)
+                    {
+                        FindLightsRecursive(transform2.GetChild(i));
+                    }
+                    if (_lightbulbs.Count > 0)
+                    {
+                        _lightbulbs.Shuffle();
+                        RLog.Msg($"[ScaryCross] Deferred lightbulb discovery: found {_lightbulbs.Count} lights");
+                    }
+                }
+            }
+#endif
             
             // Tick DemonDetector (IL2CPP: Update() never fires)
             if (_demonDetector != null) _demonDetector.ManualUpdate();

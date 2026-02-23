@@ -50,14 +50,26 @@ namespace ProjectX.Master.Modules.ScaryCross
         }
         
         // VailActorTypeId values for enemies that should trigger the cross burning.
-        // Excludes regular cannibals, animals, and friendly NPCs (Robby=9, Virginia=10).
+        // Includes all mutant/creepy types. Excludes regular cannibals, animals,
+        // and friendly NPCs (Robby=9, Virginia=10).
         private static readonly HashSet<int> _burnableTypes = new HashSet<int>
         {
+            11, // Fingers
+            19, // Twins
+            40, // John2
             42, // Demon
             45, // DemonBoss
+            46, // PuffyBossMale
+            47, // PuffyBossFemale
             48, // BossMutant
             49, // CreepyVirginia
             50, // Armsy
+            51, // Frank
+            52, // Eddy
+            53, // Greg
+            54, // Henry
+            55, // Igor
+            56, // Elise
             58, // Legsy
             59, // Holey
         };

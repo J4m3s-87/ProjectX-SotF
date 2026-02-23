@@ -57,6 +57,11 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser
             _harmony = new HarmonyLib.Harmony("ProjectX.DedicatedSuperuser");
             PatchChat(_harmony);
 
+            // Reset session-level overrides so toggles start clean each session.
+            // FreezeAI persists in config, but SetPaused() is never called at startup,
+            // causing a desync where config says "frozen" but the game isn't paused.
+            Config.FreezeAI.Value = false;
+
             RLog.Msg("[DedicatedSuperuser] Module Initialized");
         }
 

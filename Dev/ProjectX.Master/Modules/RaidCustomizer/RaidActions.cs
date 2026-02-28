@@ -246,65 +246,38 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         }
         
         /// <summary>
-        /// Show raid status as a single aggregated message
+        /// Show detailed raid schedule — each queued raid with day, time, and type
         /// </summary>
         public static void PrintQueuedRaids()
         {
             try
             {
-                var worldEvents = SingletonBehaviour<VailWorldEvents>._instance;
-                if (worldEvents == null)
+                var raids = QueuedEventHandler.GetQueuedRaidList();
+                
+                if (raids.Count == 0)
                 {
-                    SonsTools.ShowMessage("Raids not ready - load a save first");
+                    SonsTools.ShowMessage("No raids queued", 5f);
+                    RLog.Msg("[RaidCustomizer] No raids queued");
                     return;
                 }
                 
-                var eventData = RaidPatches.GetWorldEventData(worldEvents);
-                if (eventData == null)
-                {
-                    SonsTools.ShowMessage("Cannot access raid data");
-                    return;
-                }
+                // Show header with count
+                string header = $"=== Queued Raids ({raids.Count}) ===";
+                SonsTools.ShowMessage(header, 12f);
+                RLog.Msg($"[RaidCustomizer] {header}");
                 
-                // Count active/total raids
-                int total = 0;
-                int active = 0;
-                foreach (var evt in eventData._searchPartyEvents)
+                // Show each raid with day, hour, period, name
+                foreach (var (raidDay, raidHour, period, raidName, isBoss) in raids)
                 {
-                    if (EventTools.IsActualSearchParty(evt))
-                    {
-                        total++;
-                        if (!SearchPartyEventConfigurator.ShouldDisable(evt))
-                            active++;
-                    }
+                    string bossTag = isBoss ? " [BOSS]" : "";
+                    string msg = $"Day {raidDay}, {raidHour:D2}:00 ({period}) — {raidName}{bossTag}";
+                    SonsTools.ShowMessage(msg, 12f);
+                    RLog.Msg($"[RaidCustomizer]   {msg}");
                 }
-                
-                // Count queued raid events
-                var queuedNames = new List<string>();
-                foreach (var evt in worldEvents._queuedEvents)
-                {
-                    if (EventTools.IsActualSearchParty(evt._event))
-                    {
-                        queuedNames.Add(evt._event.name);
-                    }
-                }
-                
-                // Build single status message
-                string status = $"Raids: {active}/{total} active | Queued: {queuedNames.Count} | Day: {worldEvents._lastQueuedDay}";
-                if (queuedNames.Count > 0)
-                {
-                    var preview = queuedNames.Count <= 3 
-                        ? string.Join(", ", queuedNames) 
-                        : string.Join(", ", queuedNames.GetRange(0, 3)) + $" +{queuedNames.Count - 3} more";
-                    status += $"\n{preview}";
-                }
-                
-                SonsTools.ShowMessage(status, 12f);
-                RLog.Msg($"[RaidCustomizer] {status}");
             }
             catch (Exception ex)
             {
-                RLog.Warning($"[RaidCustomizer] ShowRaidStatus failed: {ex.Message}");
+                RLog.Warning($"[RaidCustomizer] PrintQueuedRaids failed: {ex.Message}");
                 SonsTools.ShowMessage("Failed to get raid status");
             }
         }

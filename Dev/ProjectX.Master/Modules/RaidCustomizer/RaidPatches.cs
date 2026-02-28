@@ -60,6 +60,18 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         // =====================================================================
         
         /// <summary>
+        /// On dedicated servers the server process is counted as a "player",
+        /// inflating playerCount by 1. This corrects it so vanilla raid logic
+        /// uses the real human-player count. Only applies when Application.isBatchMode.
+        /// </summary>
+        private static int CorrectPlayerCount(int rawCount)
+        {
+            if (UnityEngine.Application.isBatchMode && rawCount > 1)
+                return rawCount - 1;
+            return rawCount;
+        }
+        
+        /// <summary>
         /// Postfix on VailWorldEventData.EventsForTime — overrides how many events
         /// are chosen per day period. Without this, the game returns 0 events when
         /// anger is low. This is the single most important patch for raid queuing.
@@ -75,9 +87,10 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                     return;
                 }
                 
+                var prefix = AccessTools.Method(typeof(RaidPatches), nameof(EventsForTime_Prefix));
                 var postfix = AccessTools.Method(typeof(RaidPatches), nameof(EventsForTime_Postfix));
-                _harmony.Patch(original, postfix: new HarmonyMethod(postfix));
-                RLog.Msg("[RaidCustomizer] Patched EventsForTime (event count override)");
+                _harmony.Patch(original, prefix: new HarmonyMethod(prefix), postfix: new HarmonyMethod(postfix));
+                RLog.Msg("[RaidCustomizer] Patched EventsForTime (prefix + postfix)");
             }
             catch (Exception ex)
             {
@@ -85,32 +98,42 @@ namespace ProjectX.Master.Modules.RaidCustomizer
             }
         }
         
+        /// <summary>
+        /// Prefix: correct the playerCount parameter before vanilla EventsForTime runs.
+        /// On dedicated servers the server process inflates the count by 1.
+        /// </summary>
+        private static void EventsForTime_Prefix(ref int __2)
+        {
+            __2 = CorrectPlayerCount(__2);
+        }
+        
         private static void EventsForTime_Postfix(ref int __result, VailWorldEventData.TimeOfEvent __1, int __2)
         {
             try
             {
+                int originalResult = __result;
+                
                 // If no event time ranges are selected in config, return 0
                 if (!RaidConfig.HasAnyEventRangesSelected())
                 {
                     __result = 0;
+                    RLog.Msg($"[RaidCustomizer] EventsForTime: NO ranges selected → result=0 (was {originalResult})");
                     return;
                 }
                 
                 // If we have a custom events-per-day setting, override the result.
-                // CRITICAL: Only apply the custom count for TimeOfEvent.Day (value 0).
-                // The game calls EventsForTime for each period (Day=0, Night=1, Any=2).
-                // The original mod returns the count for Day only, and 0 for others.
-                // Without this filter, raids are tripled (count × 3 time periods).
                 int eventsPerDay;
                 if (RaidConfig.HasCustomEventsPerDay(__2, out eventsPerDay))
                 {
-                    // __1 == 0 means TimeOfEvent.Day — the only period that gets custom count
                     __result = ((int)__1 == 0) ? eventsPerDay : 0;
+                    RLog.Msg($"[RaidCustomizer] EventsForTime: custom={eventsPerDay}, period={(int)__1}, playerCount={__2} → result={__result} (was {originalResult})");
                 }
-                // When RaidsPerDay=-1, HasCustomEventsPerDay returns false,
-                // so __result keeps the vanilla value (passthrough).
+                else
+                {
+                    RLog.Msg($"[RaidCustomizer] EventsForTime: passthrough, period={(int)__1}, playerCount={__2} → result={__result}");
+                }
             }
-            catch { }
+            catch (Exception ex) { RLog.Warning($"[RaidCustomizer] EventsForTime_Postfix error: {ex.Message}"); }
         }
         
         /// <summary>
@@ -139,10 +162,13 @@ namespace ProjectX.Master.Modules.RaidCustomizer
             }
         }
         
-        private static bool ChooseEventsForDay_Prefix(VailWorldEventData __0)
+        private static bool ChooseEventsForDay_Prefix(VailWorldEventData __0, ref int __6)
         {
             try
             {
+                // Correct player count on dedicated servers (server process inflates by 1)
+                __6 = CorrectPlayerCount(__6);
+                
                 // No server-side forced overrides — vanilla behavior when config is default.
                 // Users can explicitly set RaidsPerDay, IgnoreMinMaxAnger, etc. via config
                 // if they want non-vanilla raid behavior on the server.
@@ -158,14 +184,36 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         }
         
         /// <summary>
-        /// Postfix on ChooseEventsForDay — hook point for future post-processing.
-        /// __1 is eventList (List<QueuedEvent>), __4 is cannibalAngerLevel, __6 is playerCount
+        /// Postfix on ChooseEventsForDay — diagnostic logging + hook point.
+        /// __1 is eventList (List<QueuedEvent>), __3 is day, __4 is cannibalAngerLevel, __6 is playerCount
         /// </summary>
         private static void ChooseEventsForDay_Postfix(
             Il2CppSystem.Collections.Generic.List<VailWorldEvents.QueuedEvent> __1,
             int __3, float __4, int __6)
         {
-            // Postfix reserved for future use (e.g., event filtering, announcements)
+            try
+            {
+                int eventCount = __1?.Count ?? 0;
+                RLog.Msg($"[RaidCustomizer] ChooseEventsForDay RESULT: {eventCount} events selected (day={__3}, anger={__4:F1}, players={__6})");
+                
+                // Log config state at selection time
+                RLog.Msg($"[RaidCustomizer]   Config: RaidsPerDay={RaidConfig.RaidsPerDay.Value}, " +
+                    $"AllowCreepy={RaidConfig.AllowCreepy.Value}, AllowCannibals={RaidConfig.AllowCannibals.Value}, " +
+                    $"AllowMuddies={RaidConfig.AllowMuddies.Value}, HasRanges={RaidConfig.HasAnyEventRangesSelected()}");
+                
+                if (eventCount > 0)
+                {
+                    for (int i = 0; i < eventCount; i++)
+                    {
+                        var evt = __1[i];
+                        RLog.Msg($"[RaidCustomizer]   Event[{i}]: day={evt.day}, hour={evt._startTimeInHours:F1}, name={evt._event?.name}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[RaidCustomizer] ChooseEventsForDay_Postfix error: {ex.Message}");
+            }
         }
         
         /// <summary>

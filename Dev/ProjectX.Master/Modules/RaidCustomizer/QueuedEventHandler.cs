@@ -245,37 +245,81 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         }
         
         /// <summary>
-        /// Print all queued raids to console
+        /// Get structured list of all queued raids, sorted by start time.
+        /// Returns (day, hour, period, name, isBoss) tuples.
+        /// </summary>
+        public static List<Tuple<int, int, string, string, bool>> GetQueuedRaidList()
+        {
+            var result = new List<Tuple<int, int, string, string, bool>>();
+            try
+            {
+                var world = SingletonBehaviour<VailWorldEvents>._instance;
+                if (world == null) return result;
+                
+                var sorted = new List<Tuple<float, VailWorldEvents.QueuedEvent>>();
+                foreach (var evt in world._queuedEvents)
+                {
+                    if (EventTools.IsActualSearchParty(evt._event))
+                    {
+                        sorted.Add(new Tuple<float, VailWorldEvents.QueuedEvent>(evt._startTimeInHours, evt));
+                    }
+                }
+                
+                foreach (var (startTime, qEvt) in sorted.OrderBy(t => t.Item1))
+                {
+                    int day = (int)(startTime / 24f);
+                    int hour = (int)(startTime % 24f);
+                    string period = GetTimePeriod(hour);
+                    string name = qEvt._event?.name ?? "Unknown";
+                    bool isBoss = EventTools.IsBossEvent(qEvt._event);
+                    result.Add(new Tuple<int, int, string, string, bool>(day, hour, period, name, isBoss));
+                }
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[RaidCustomizer] GetQueuedRaidList failed: {ex.Message}");
+            }
+            return result;
+        }
+        
+        /// <summary>
+        /// Map hour to time-of-day period name
+        /// </summary>
+        private static string GetTimePeriod(int hour)
+        {
+            if (hour >= 6 && hour < 12) return "Morning";
+            if (hour >= 12 && hour < 17) return "Day";
+            if (hour >= 17 && hour < 21) return "Evening";
+            return "Night";
+        }
+        
+        /// <summary>
+        /// Print all queued raids to console with detailed formatting
         /// </summary>
         public static void PrintQueuedRaids()
         {
             try
             {
-                var world = SingletonBehaviour<VailWorldEvents>._instance;
-                if (world == null) return;
-                
-                var raids = new List<Tuple<float, string>>();
-                foreach (var evt in world._queuedEvents)
-                {
-                    if (EventTools.IsActualSearchParty(evt._event))
-                    {
-                        raids.Add(new Tuple<float, string>(evt._startTimeInHours, evt.GetDescriptionString()));
-                    }
-                }
+                var raids = GetQueuedRaidList();
                 
                 if (raids.Count == 0)
                 {
-                    RLog.Msg(Color.Orange, "[RaidCustomizer] No events queued");
+                    RLog.Msg(Color.Orange, "[RaidCustomizer] No raids queued");
+#if !SERVER
+                    SonsTools.ShowMessage("No raids queued", 5f);
+#endif
                     return;
                 }
                 
-                foreach (var (_, desc) in raids.OrderBy(t => t.Item1))
+                RLog.Msg(Color.Orange, $"[RaidCustomizer] === Queued Raids ({raids.Count}) ===");
+                foreach (var (day, hour, period, name, isBoss) in raids)
                 {
-                    string msg = $"Queued: {desc}";
+                    string bossTag = isBoss ? " [BOSS]" : "";
+                    string msg = $"Day {day}, {hour:D2}:00 ({period}) — {name}{bossTag}";
+                    RLog.Msg(Color.Orange, $"[RaidCustomizer]   {msg}");
 #if !SERVER
                     SonsTools.ShowMessage(msg, 10f);
 #endif
-                    RLog.Msg(Color.Orange, msg);
                 }
             }
             catch (Exception ex)

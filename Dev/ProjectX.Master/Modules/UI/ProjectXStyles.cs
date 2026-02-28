@@ -28,6 +28,7 @@ namespace ProjectX.Master.Modules.UI
         public static GUIStyle HorizontalSliderThumb { get; private set; }
         public static GUIStyle InputField { get; private set; }
         public static GUIStyle ScrollView { get; private set; }
+        public static GUIStyle SmallLabel { get; private set; }
         
         public static bool IsInitialized { get; private set; }
         
@@ -193,6 +194,15 @@ namespace ProjectX.Master.Modules.UI
             
             // Scroll view
             ScrollView = new GUIStyle(GUI.skin.scrollView);
+            
+            // Small label for compact lists (raid queue rows)
+            SmallLabel = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 16,
+                normal = { textColor = new Color(0.9f, 0.85f, 0.8f) },
+                alignment = TextAnchor.MiddleLeft,
+                margin = new RectOffset(8, 0, 1, 1)
+            };
         }
         
         /// <summary>

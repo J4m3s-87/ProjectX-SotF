@@ -1218,71 +1218,49 @@ namespace ProjectX.Master
             XRaidsGeneralCategory = ConfigSystem.CreateFileCategory("X Raids - General", "X Raids - General", configFile);
             
             XR_AllowCreepy = XRaidsGeneralCategory.CreateEntry<bool>("XR_AllowCreepy", true, "Enable Creepy Raids");
-            XR_AllowCreepy.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_AllowCannibals = XRaidsGeneralCategory.CreateEntry<bool>("XR_AllowCannibals", true, "Enable Cannibal Raids");
-            XR_AllowCannibals.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_AllowMuddies = XRaidsGeneralCategory.CreateEntry<bool>("XR_AllowMuddies", true, "Enable Muddy Raids");
-            XR_AllowMuddies.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_AnnounceRaids = XRaidsGeneralCategory.CreateEntry<bool>("XR_AnnounceRaids", true, "Announce Incoming Raids");
             XR_PlaySoundWhenAnnounced = XRaidsGeneralCategory.CreateEntry<bool>("XR_PlaySound", true, "Play Sound When Announced");
             XR_IncludeEndgameRaids = XRaidsGeneralCategory.CreateEntry<bool>("XR_IncludeEndgame", false, "Always Include Endgame Raids");
-            XR_IncludeEndgameRaids.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_IncludeForestOnlyRaids = XRaidsGeneralCategory.CreateEntry<bool>("XR_IncludeForest", false, "Always Include Forest-Only Raids");
-            XR_IncludeForestOnlyRaids.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_RaidsPerDay = XRaidsGeneralCategory.CreateEntry<int>("XR_RaidsPerDay", -1, "Max Raids Per Day (-1=Default)");
             XR_RaidsPerDay.SetRange(-1, 24);
-            XR_RaidsPerDay.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_RaidDistribution = XRaidsGeneralCategory.CreateEntry<string>("XR_Distribution", "Evenly", "Raid Distribution");
             XR_RaidDistribution.SetOptions(new[] { "Evenly", "Randomly", "Stacked" });
-            XR_RaidDistribution.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_ConsiderCurrentTime = XRaidsGeneralCategory.CreateEntry<bool>("XR_ConsiderTime", false, "Consider Current Time");
-            XR_ConsiderCurrentTime.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             
             // ===== CATEGORY: X RAIDS - TIMES =====
             XRaidsTimesCategory = ConfigSystem.CreateFileCategory("X Raids - Times", "X Raids - Times", configFile);
             
             XR_RaidAtNight = XRaidsTimesCategory.CreateEntry<bool>("XR_RaidAtNight", true, "Raids at Night");
-            XR_RaidAtNight.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_RaidAtDay = XRaidsTimesCategory.CreateEntry<bool>("XR_RaidAtDay", true, "Raids at Day");
-            XR_RaidAtDay.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_RaidAtEvening = XRaidsTimesCategory.CreateEntry<bool>("XR_RaidAtEvening", true, "Raids at Evening");
-            XR_RaidAtEvening.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_RaidAtMorning = XRaidsTimesCategory.CreateEntry<bool>("XR_RaidAtMorning", true, "Raids at Morning");
-            XR_RaidAtMorning.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             
             // ===== CATEGORY: X RAIDS - NORMAL =====
             XRaidsNormalCategory = ConfigSystem.CreateFileCategory("X Raids - Normal", "X Raids - Normal", configFile);
             
             XR_MinSpawnFactor = XRaidsNormalCategory.CreateEntry<float>("XR_MinSpawnFactor", 1f, "Min Spawn Count Factor");
             XR_MinSpawnFactor.SetRange(0.1f, 10f);
-            XR_MinSpawnFactor.OnValueChanged.Subscribe((b, a) => { if (Math.Abs(b - a) > 0.01) MustRequeueRaids = true; });
             XR_MaxSpawnFactor = XRaidsNormalCategory.CreateEntry<float>("XR_MaxSpawnFactor", 1f, "Max Spawn Count Factor");
             XR_MaxSpawnFactor.SetRange(0.1f, 10f);
-            XR_MaxSpawnFactor.OnValueChanged.Subscribe((b, a) => { if (Math.Abs(b - a) > 0.01) MustRequeueRaids = true; });
             XR_EnemyLimit = XRaidsNormalCategory.CreateEntry<int>("XR_EnemyLimit", 20, "Max Enemies Per Raid");
             XR_EnemyLimit.SetRange(1, 30);
-            XR_EnemyLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_NormalCooldown = XRaidsNormalCategory.CreateEntry<int>("XR_Cooldown", -1, "Cooldown Days (-1=Default, 0=None)");
             XR_NormalCooldown.SetRange(-1, 50);
-            XR_NormalCooldown.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_IgnoreDayLimit = XRaidsNormalCategory.CreateEntry<bool>("XR_IgnoreDayLimit", false, "Ignore Min/Max Day Limit");
-            XR_IgnoreDayLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_IgnoreAngerLimit = XRaidsNormalCategory.CreateEntry<bool>("XR_IgnoreAngerLimit", false, "Ignore Min/Max Anger Limit");
-            XR_IgnoreAngerLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             
             // ===== CATEGORY: X RAIDS - BOSS =====
             XRaidsBossCategory = ConfigSystem.CreateFileCategory("X Raids - Boss", "X Raids - Boss", configFile);
             
             XR_BossCount = XRaidsBossCategory.CreateEntry<int>("XR_BossCount", 1, "Boss Spawn Count");
             XR_BossCount.SetRange(1, 30);
-            XR_BossCount.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_BossCooldown = XRaidsBossCategory.CreateEntry<int>("XR_BossCooldown", -1, "Boss Cooldown Days (-1=Default)");
             XR_BossCooldown.SetRange(-1, 50);
-            XR_BossCooldown.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_BossIgnoreDayLimit = XRaidsBossCategory.CreateEntry<bool>("XR_BossIgnoreDay", false, "Ignore Boss Day Limit");
-            XR_BossIgnoreDayLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_BossIgnoreAngerLimit = XRaidsBossCategory.CreateEntry<bool>("XR_BossIgnoreAnger", false, "Ignore Boss Anger Limit");
-            XR_BossIgnoreAngerLimit.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             
             // ===== CATEGORY: X RAIDS - ENEMY STATS =====
             XRaidsEnemyStatsCategory = ConfigSystem.CreateFileCategory("X Raids - Enemy Stats", "X Raids - Enemy Stats", configFile);
@@ -1320,16 +1298,12 @@ namespace ProjectX.Master
             XRaidsMultiplayerCategory = ConfigSystem.CreateFileCategory("X Raids - Multiplayer", "X Raids - Multiplayer", configFile);
             
             XR_AdjustByPlayerCount = XRaidsMultiplayerCategory.CreateEntry<bool>("XR_AdjustByPlayers", false, "Adjust Raids by Player Count");
-            XR_AdjustByPlayerCount.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_ExtraRaidsPerPlayer = XRaidsMultiplayerCategory.CreateEntry<int>("XR_ExtraRaids", 2, "Extra Raids Per Player");
             XR_ExtraRaidsPerPlayer.SetRange(0, 10);
-            XR_ExtraRaidsPerPlayer.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_ExtraSpawnsPerPlayer = XRaidsMultiplayerCategory.CreateEntry<int>("XR_ExtraSpawns", 2, "Extra Enemies Per Player");
             XR_ExtraSpawnsPerPlayer.SetRange(0, 10);
-            XR_ExtraSpawnsPerPlayer.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             XR_ExtraBossesPerPlayer = XRaidsMultiplayerCategory.CreateEntry<int>("XR_ExtraBosses", 1, "Extra Bosses Per Player");
             XR_ExtraBossesPerPlayer.SetRange(0, 10);
-            XR_ExtraBossesPerPlayer.OnValueChanged.Subscribe((b, a) => { if (b != a) MustRequeueRaids = true; });
             
             // ===== CATEGORY: AMMO UI =====
             AmmoUiCategory = ConfigSystem.CreateFileCategory("ProjectX - AmmoUI", "ProjectX - AmmoUI", configFile);

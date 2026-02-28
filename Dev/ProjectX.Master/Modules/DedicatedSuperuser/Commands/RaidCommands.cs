@@ -332,40 +332,54 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
 
 
         /// <summary>
-        /// Print queued raid status to log
+        /// Print detailed raid schedule to in-game chat (visible to all players)
+        /// Uses ChatResponse.SendLine() which goes through ChatBox — the native chat pipeline.
         /// </summary>
         public static void PrintRaidStatus()
         {
             try
             {
-                RaidCustomizer.QueuedEventHandler.PrintQueuedRaids();
-
                 var worldEvents = SingletonBehaviour<VailWorldEvents>._instance;
                 if (worldEvents == null)
                 {
-                    Log("VailWorldEvents not loaded");
+                    ChatResponse.SendLine("VailWorldEvents not loaded");
                     return;
                 }
 
-                var eventData = RaidCustomizer.RaidPatches.GetWorldEventData(worldEvents);
-                if (eventData == null)
+                // Get detailed raid list
+                var raids = RaidCustomizer.QueuedEventHandler.GetQueuedRaidList();
+                
+                if (raids.Count == 0)
                 {
-                    Log("No event data — field lookup failed");
-                    return;
+                    ChatResponse.SendLine("No raids queued");
                 }
-
-                int total = 0;
-                int active = 0;
-                foreach (var evt in eventData._searchPartyEvents)
+                else
                 {
-                    if (RaidCustomizer.EventTools.IsActualSearchParty(evt))
+                    ChatResponse.SendLine($"=== Queued Raids ({raids.Count}) ===");
+                    foreach (var (day, hour, period, name, isBoss) in raids)
                     {
-                        total++;
-                        if (!RaidCustomizer.SearchPartyEventConfigurator.ShouldDisable(evt))
-                            active++;
+                        string bossTag = isBoss ? " [BOSS]" : "";
+                        ChatResponse.SendLine($"Day {day}, {hour:D2}:00 ({period}) — {name}{bossTag}");
                     }
                 }
-                Log($"Raids: {active}/{total} active | Last queued day: {worldEvents._lastQueuedDay}");
+                
+                // Summary line
+                var eventData = RaidCustomizer.RaidPatches.GetWorldEventData(worldEvents);
+                if (eventData != null)
+                {
+                    int total = 0;
+                    int active = 0;
+                    foreach (var evt in eventData._searchPartyEvents)
+                    {
+                        if (RaidCustomizer.EventTools.IsActualSearchParty(evt))
+                        {
+                            total++;
+                            if (!RaidCustomizer.SearchPartyEventConfigurator.ShouldDisable(evt))
+                                active++;
+                        }
+                    }
+                    ChatResponse.SendLine($"Raids: {active}/{total} active | Last queued day: {worldEvents._lastQueuedDay}");
+                }
             }
             catch (Exception ex)
             {

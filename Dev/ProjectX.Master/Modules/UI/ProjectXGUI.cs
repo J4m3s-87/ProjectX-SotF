@@ -35,6 +35,7 @@ namespace ProjectX.Master.Modules.UI
         private Rect _selectorRect;
         private Rect _panelRect;
         private Vector2 _scrollPosition;
+        private Vector2 _raidQueueScroll;
         
         // Teleport input
         private string _teleportInput = "";
@@ -785,6 +786,76 @@ namespace ProjectX.Master.Modules.UI
             catch (System.Exception ex) { RLog.Warning($"[ServerAdmin] Command error: {ex.Message}"); }
         }
         
+        /// <summary>
+        /// Batch-send all current raid config values to the server, then trigger a single requeue.
+        /// This replaces the old per-slider auto-requeue approach that caused config race conditions.
+        /// </summary>
+        private void ApplyRaidConfigAndRequeue()
+        {
+            try
+            {
+                // Batch all raid config values to the server
+                ServerCmd($"config set XR_AllowCreepy {RaidCustomizer.RaidConfig.AllowCreepy.Value}");
+                ServerCmd($"config set XR_AllowCannibals {RaidCustomizer.RaidConfig.AllowCannibals.Value}");
+                ServerCmd($"config set XR_AllowMuddies {RaidCustomizer.RaidConfig.AllowMuddies.Value}");
+                ServerCmd($"config set XR_AnnounceRaids {RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value}");
+                ServerCmd($"config set XR_IncludeEndgame {RaidCustomizer.RaidConfig.AlwaysIncludeEndgameRaids.Value}");
+                ServerCmd($"config set XR_IncludeForest {RaidCustomizer.RaidConfig.AlwaysIncludeForestOnlyRaids.Value}");
+                ServerCmd($"config set XR_RaidsPerDay {RaidCustomizer.RaidConfig.RaidsPerDay.Value}");
+                ServerCmd($"config set XR_ConsiderTime {RaidCustomizer.RaidConfig.ConsiderCurrentTime.Value}");
+                
+                // Time ranges
+                ServerCmd($"config set XR_RaidAtMorning {RaidCustomizer.RaidConfig.SearchPartiesAtMorning.Value}");
+                ServerCmd($"config set XR_RaidAtDay {RaidCustomizer.RaidConfig.SearchPartiesAtDay.Value}");
+                ServerCmd($"config set XR_RaidAtEvening {RaidCustomizer.RaidConfig.SearchPartiesAtEvening.Value}");
+                ServerCmd($"config set XR_RaidAtNight {RaidCustomizer.RaidConfig.SearchPartiesAtNight.Value}");
+                
+                // Spawn settings  
+                ServerCmd($"config set XR_MinSpawnFactor {RaidCustomizer.RaidConfig.SpawnCountFactor.Value}");
+                ServerCmd($"config set XR_MaxSpawnFactor {RaidCustomizer.RaidConfig.MaxSpawnCountFactor.Value}");
+                ServerCmd($"config set XR_EnemyLimit {RaidCustomizer.RaidConfig.EnemyLimit.Value}");
+                ServerCmd($"config set XR_BossCount {RaidCustomizer.RaidConfig.BossSpawnCount.Value}");
+                
+                // Overrides
+                ServerCmd($"config set XR_IgnoreDayLimit {RaidCustomizer.RaidConfig.IgnoreMinMaxDay.Value}");
+                ServerCmd($"config set XR_IgnoreAngerLimit {RaidCustomizer.RaidConfig.IgnoreMinMaxAnger.Value}");
+                ServerCmd($"config set XR_BossIgnoreDay {RaidCustomizer.RaidConfig.BossIgnoreMinMaxDay.Value}");
+                ServerCmd($"config set XR_BossIgnoreAnger {RaidCustomizer.RaidConfig.BossIgnoreMinMaxAnger.Value}");
+                
+                // Multiplayer
+                ServerCmd($"config set XR_AdjustByPlayers {RaidCustomizer.RaidConfig.AdjustOnPlayerCount.Value}");
+                ServerCmd($"config set XR_ExtraRaids {RaidCustomizer.RaidConfig.ExtraRaidsPerPlayer.Value}");
+                ServerCmd($"config set XR_ExtraSpawns {RaidCustomizer.RaidConfig.ExtraSpawnsPerPlayer.Value}");
+                ServerCmd($"config set XR_ExtraBosses {RaidCustomizer.RaidConfig.ExtraBossesPerPlayer.Value}");
+                
+                // Cooldowns
+                ServerCmd($"config set XR_Cooldown {RaidCustomizer.RaidConfig.NormalRaidsCooldown.Value}");
+                ServerCmd($"config set XR_BossCooldown {RaidCustomizer.RaidConfig.BossRaidsCooldown.Value}");
+                
+                // Stat multipliers
+                ServerCmd($"config set XR_StatMultiplierEnabled {RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value}");
+                ServerCmd($"config set XR_CannibalHealth {RaidCustomizer.RaidConfig.CannibalHealthMultiplier.Value}");
+                ServerCmd($"config set XR_CannibalDamage {RaidCustomizer.RaidConfig.CannibalDamageMultiplier.Value}");
+                ServerCmd($"config set XR_CreepHealth {RaidCustomizer.RaidConfig.CreepHealthMultiplier.Value}");
+                ServerCmd($"config set XR_CreepDamage {RaidCustomizer.RaidConfig.CreepDamageMultiplier.Value}");
+                ServerCmd($"config set XR_BossHealth {RaidCustomizer.RaidConfig.BossHealthMultiplier.Value}");
+                ServerCmd($"config set XR_BossDamage {RaidCustomizer.RaidConfig.BossDamageMultiplier.Value}");
+                
+                // Single requeue after all config is set
+                ServerCmd("raid requeue");
+                
+                // Save local config too
+                try { Config.Save(); } catch { }
+                
+                SonsTools.ShowMessage("Raid config applied & requeued");
+                RLog.Msg("[RaidCustomizer] Applied all raid config to server and requeued");
+            }
+            catch (System.Exception ex)
+            {
+                RLog.Warning($"[RaidCustomizer] ApplyRaidConfigAndRequeue failed: {ex.Message}");
+            }
+        }
+        
         // ═══════════════════════════════════════════════════════════════
         // Season/Weather: IL2CPP-safe overrides using Marshal offsets
         // AccessTools.Field is STRIPPED for SeasonsManager (confirmed in logs).
@@ -1194,149 +1265,75 @@ namespace ProjectX.Master.Modules.UI
                 
                 DrawDivider("RAID SCHEDULE");
                 
-                // Time of day toggles — sync to server on change
+                // Time of day toggles — local only, sent to server on Apply
                 GUILayout.BeginHorizontal();
                 bool morning = DrawCheckbox("Morning", RaidCustomizer.RaidConfig.SearchPartiesAtMorning.Value);
                 if (morning != RaidCustomizer.RaidConfig.SearchPartiesAtMorning.Value)
-                {
                     RaidCustomizer.RaidConfig.SearchPartiesAtMorning.Value = morning;
-                    ServerCmd($"config set XR_RaidAtMorning {morning}");
-                    ServerCmd("raid requeue");
-                }
                 bool dayTime = DrawCheckbox("Day", RaidCustomizer.RaidConfig.SearchPartiesAtDay.Value);
                 if (dayTime != RaidCustomizer.RaidConfig.SearchPartiesAtDay.Value)
-                {
                     RaidCustomizer.RaidConfig.SearchPartiesAtDay.Value = dayTime;
-                    ServerCmd($"config set XR_RaidAtDay {dayTime}");
-                    ServerCmd("raid requeue");
-                }
                 GUILayout.EndHorizontal();
                 
                 GUILayout.BeginHorizontal();
                 bool evening = DrawCheckbox("Evening", RaidCustomizer.RaidConfig.SearchPartiesAtEvening.Value);
                 if (evening != RaidCustomizer.RaidConfig.SearchPartiesAtEvening.Value)
-                {
                     RaidCustomizer.RaidConfig.SearchPartiesAtEvening.Value = evening;
-                    ServerCmd($"config set XR_RaidAtEvening {evening}");
-                    ServerCmd("raid requeue");
-                }
                 bool night = DrawCheckbox("Night", RaidCustomizer.RaidConfig.SearchPartiesAtNight.Value);
                 if (night != RaidCustomizer.RaidConfig.SearchPartiesAtNight.Value)
-                {
                     RaidCustomizer.RaidConfig.SearchPartiesAtNight.Value = night;
-                    ServerCmd($"config set XR_RaidAtNight {night}");
-                    ServerCmd("raid requeue");
-                }
                 GUILayout.EndHorizontal();
                 
-                // Raids per day
-                int newRaidsPerDay = (int)DrawSlider("Raids/Day (-1=Def)", RaidCustomizer.RaidConfig.RaidsPerDay.Value, -1, 24);
-                if (newRaidsPerDay != RaidCustomizer.RaidConfig.RaidsPerDay.Value)
-                {
-                    RaidCustomizer.RaidConfig.RaidsPerDay.Value = newRaidsPerDay;
-                    ServerCmd($"config set XR_RaidsPerDay {newRaidsPerDay}");
-                    ServerCmd("raid requeue");
-                }
+                // Raids per day — local only
+                RaidCustomizer.RaidConfig.RaidsPerDay.Value = (int)DrawSlider("Raids/Day (-1=Def)", RaidCustomizer.RaidConfig.RaidsPerDay.Value, -1, 24);
                 
                 DrawDivider("ENEMY TYPES");
                 
                 GUILayout.BeginHorizontal();
                 bool cannibals = DrawCheckbox("Allow Cannibals", RaidCustomizer.RaidConfig.AllowCannibals.Value);
                 if (cannibals != RaidCustomizer.RaidConfig.AllowCannibals.Value)
-                {
                     RaidCustomizer.RaidConfig.AllowCannibals.Value = cannibals;
-                    ServerCmd($"config set XR_AllowCannibals {cannibals}");
-                    ServerCmd("raid requeue");
-                }
-                
                 bool creepy = DrawCheckbox("Allow Creepy", RaidCustomizer.RaidConfig.AllowCreepy.Value);
                 if (creepy != RaidCustomizer.RaidConfig.AllowCreepy.Value)
-                {
                     RaidCustomizer.RaidConfig.AllowCreepy.Value = creepy;
-                    ServerCmd($"config set XR_AllowCreepy {creepy}");
-                    ServerCmd("raid requeue");
-                }
-                
                 bool muddies = DrawCheckbox("Allow Muddies", RaidCustomizer.RaidConfig.AllowMuddies.Value);
                 if (muddies != RaidCustomizer.RaidConfig.AllowMuddies.Value)
-                {
                     RaidCustomizer.RaidConfig.AllowMuddies.Value = muddies;
-                    ServerCmd($"config set XR_AllowMuddies {muddies}");
-                    ServerCmd("raid requeue");
-                }
                 GUILayout.EndHorizontal();
                 
                 DrawDivider("SPAWN SETTINGS");
                 
-                float newMinSpawn = DrawSlider("Min Spawn Factor", RaidCustomizer.RaidConfig.SpawnCountFactor.Value, 0.1f, 10f);
-                if (Math.Abs(newMinSpawn - RaidCustomizer.RaidConfig.SpawnCountFactor.Value) > 0.01f)
-                {
-                    RaidCustomizer.RaidConfig.SpawnCountFactor.Value = newMinSpawn;
-                    ServerCmd($"config set XR_MinSpawnFactor {newMinSpawn}");
-                }
-                float newMaxSpawn = DrawSlider("Max Spawn Factor", RaidCustomizer.RaidConfig.MaxSpawnCountFactor.Value, 0.1f, 10f);
-                if (Math.Abs(newMaxSpawn - RaidCustomizer.RaidConfig.MaxSpawnCountFactor.Value) > 0.01f)
-                {
-                    RaidCustomizer.RaidConfig.MaxSpawnCountFactor.Value = newMaxSpawn;
-                    ServerCmd($"config set XR_MaxSpawnFactor {newMaxSpawn}");
-                }
-                int newEnemyLimit = (int)DrawSlider("Enemy Limit", RaidCustomizer.RaidConfig.EnemyLimit.Value, 1, 30);
-                if (newEnemyLimit != RaidCustomizer.RaidConfig.EnemyLimit.Value)
-                {
-                    RaidCustomizer.RaidConfig.EnemyLimit.Value = newEnemyLimit;
-                    ServerCmd($"config set XR_EnemyLimit {newEnemyLimit}");
-                }
-                int newBossCount = (int)DrawSlider("Boss Spawn Count", RaidCustomizer.RaidConfig.BossSpawnCount.Value, 1, 30);
-                if (newBossCount != RaidCustomizer.RaidConfig.BossSpawnCount.Value)
-                {
-                    RaidCustomizer.RaidConfig.BossSpawnCount.Value = newBossCount;
-                    ServerCmd($"config set XR_BossCount {newBossCount}");
-                }
+                RaidCustomizer.RaidConfig.SpawnCountFactor.Value = DrawSlider("Min Spawn Factor", RaidCustomizer.RaidConfig.SpawnCountFactor.Value, 0.1f, 10f);
+                RaidCustomizer.RaidConfig.MaxSpawnCountFactor.Value = DrawSlider("Max Spawn Factor", RaidCustomizer.RaidConfig.MaxSpawnCountFactor.Value, 0.1f, 10f);
+                RaidCustomizer.RaidConfig.EnemyLimit.Value = (int)DrawSlider("Enemy Limit", RaidCustomizer.RaidConfig.EnemyLimit.Value, 1, 30);
+                RaidCustomizer.RaidConfig.BossSpawnCount.Value = (int)DrawSlider("Boss Spawn Count", RaidCustomizer.RaidConfig.BossSpawnCount.Value, 1, 30);
+                
+                DrawDivider("COOLDOWNS");
+                
+                RaidCustomizer.RaidConfig.NormalRaidsCooldown.Value = (int)DrawSlider("Raid Cooldown (-1=Def)", RaidCustomizer.RaidConfig.NormalRaidsCooldown.Value, -1, 50);
+                RaidCustomizer.RaidConfig.BossRaidsCooldown.Value = (int)DrawSlider("Boss Cooldown (-1=Def)", RaidCustomizer.RaidConfig.BossRaidsCooldown.Value, -1, 50);
                 
                 DrawDivider("STAT MULTIPLIERS");
                 
                 bool enableStats = DrawCheckbox("Enable Stat Overrides", RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value);
                 if (enableStats != RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value)
-                {
                     RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value = enableStats;
-                    ServerCmd($"config set XR_StatMultiplierEnabled {enableStats}");
-                }
                 
                 if (RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value)
                 {
-                    float chp = DrawSlider("Cannibal HP", RaidCustomizer.RaidConfig.CannibalHealthMultiplier.Value, 0.1f, 10f);
-                    if (Math.Abs(chp - RaidCustomizer.RaidConfig.CannibalHealthMultiplier.Value) > 0.01f)
-                    { RaidCustomizer.RaidConfig.CannibalHealthMultiplier.Value = chp; ServerCmd($"config set XR_CannibalHealth {chp}"); }
-                    
-                    float cdmg = DrawSlider("Cannibal DMG", RaidCustomizer.RaidConfig.CannibalDamageMultiplier.Value, 0.1f, 10f);
-                    if (Math.Abs(cdmg - RaidCustomizer.RaidConfig.CannibalDamageMultiplier.Value) > 0.01f)
-                    { RaidCustomizer.RaidConfig.CannibalDamageMultiplier.Value = cdmg; ServerCmd($"config set XR_CannibalDamage {cdmg}"); }
-                    
-                    float crhp = DrawSlider("Creep HP", RaidCustomizer.RaidConfig.CreepHealthMultiplier.Value, 0.1f, 10f);
-                    if (Math.Abs(crhp - RaidCustomizer.RaidConfig.CreepHealthMultiplier.Value) > 0.01f)
-                    { RaidCustomizer.RaidConfig.CreepHealthMultiplier.Value = crhp; ServerCmd($"config set XR_CreepHealth {crhp}"); }
-                    
-                    float crdmg = DrawSlider("Creep DMG", RaidCustomizer.RaidConfig.CreepDamageMultiplier.Value, 0.1f, 10f);
-                    if (Math.Abs(crdmg - RaidCustomizer.RaidConfig.CreepDamageMultiplier.Value) > 0.01f)
-                    { RaidCustomizer.RaidConfig.CreepDamageMultiplier.Value = crdmg; ServerCmd($"config set XR_CreepDamage {crdmg}"); }
-                    
-                    float bhp = DrawSlider("Boss HP", RaidCustomizer.RaidConfig.BossHealthMultiplier.Value, 0.1f, 10f);
-                    if (Math.Abs(bhp - RaidCustomizer.RaidConfig.BossHealthMultiplier.Value) > 0.01f)
-                    { RaidCustomizer.RaidConfig.BossHealthMultiplier.Value = bhp; ServerCmd($"config set XR_BossHealth {bhp}"); }
-                    
-                    float bdmg = DrawSlider("Boss DMG", RaidCustomizer.RaidConfig.BossDamageMultiplier.Value, 0.1f, 10f);
-                    if (Math.Abs(bdmg - RaidCustomizer.RaidConfig.BossDamageMultiplier.Value) > 0.01f)
-                    { RaidCustomizer.RaidConfig.BossDamageMultiplier.Value = bdmg; ServerCmd($"config set XR_BossDamage {bdmg}"); }
+                    RaidCustomizer.RaidConfig.CannibalHealthMultiplier.Value = DrawSlider("Cannibal HP", RaidCustomizer.RaidConfig.CannibalHealthMultiplier.Value, 0.1f, 10f);
+                    RaidCustomizer.RaidConfig.CannibalDamageMultiplier.Value = DrawSlider("Cannibal DMG", RaidCustomizer.RaidConfig.CannibalDamageMultiplier.Value, 0.1f, 10f);
+                    RaidCustomizer.RaidConfig.CreepHealthMultiplier.Value = DrawSlider("Creep HP", RaidCustomizer.RaidConfig.CreepHealthMultiplier.Value, 0.1f, 10f);
+                    RaidCustomizer.RaidConfig.CreepDamageMultiplier.Value = DrawSlider("Creep DMG", RaidCustomizer.RaidConfig.CreepDamageMultiplier.Value, 0.1f, 10f);
+                    RaidCustomizer.RaidConfig.BossHealthMultiplier.Value = DrawSlider("Boss HP", RaidCustomizer.RaidConfig.BossHealthMultiplier.Value, 0.1f, 10f);
+                    RaidCustomizer.RaidConfig.BossDamageMultiplier.Value = DrawSlider("Boss DMG", RaidCustomizer.RaidConfig.BossDamageMultiplier.Value, 0.1f, 10f);
                 }
                 
                 DrawDivider("ANNOUNCEMENTS");
                 
                 bool announce = DrawCheckbox("Announce Raids", RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value);
                 if (announce != RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value)
-                {
                     RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value = announce;
-                    ServerCmd($"config set XR_AnnounceRaids {announce}");
-                }
                 
                 DrawDivider("RAID ACTIONS");
                 
@@ -1368,10 +1365,9 @@ namespace ProjectX.Master.Modules.UI
                 GUILayout.EndHorizontal();
                 
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Requeue Raids", ProjectXStyles.Button, GUILayout.Height(45)))
+                if (GUILayout.Button("Apply & Requeue", ProjectXStyles.Button, GUILayout.Height(45)))
                 {
-                    try { RaidCustomizer.RaidActions.RequeueRaids(); } catch { }
-                    ServerCmd("raid requeue");
+                    ApplyRaidConfigAndRequeue();
                 }
                 if (GUILayout.Button("Show Raid Status", ProjectXStyles.Button, GUILayout.Height(45)))
                 {

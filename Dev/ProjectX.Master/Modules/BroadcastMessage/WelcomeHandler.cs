@@ -285,6 +285,16 @@ namespace ProjectX.Master.Modules.BroadcastMessage
                 {
                     RLog.Warning($"[WelcomeHandler] IntegrityCheck trigger failed: {ex.Message}");
                 }
+                
+                // Track connection for ConfigSync broadcasts (Owner doesn't send config requests)
+                try
+                {
+                    Network.ConfigSyncEvent.TrackConnection(connection);
+                }
+                catch (Exception ex)
+                {
+                    RLog.Warning($"[WelcomeHandler] ConfigSync track failed: {ex.Message}");
+                }
 #endif
             }
             catch (Exception ex)

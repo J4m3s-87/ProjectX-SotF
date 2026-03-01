@@ -38,6 +38,11 @@ namespace ProjectX.Master
         private static ConfigCategory XRaidsFollowersCategory { get; set; }
         private static ConfigCategory XRaidsMultiplayerCategory { get; set; }
         
+        // Weapon Damage Categories
+        private static ConfigCategory WeaponDmgRangedCategory { get; set; }
+        private static ConfigCategory WeaponDmgMeleeCategory { get; set; }
+        private static ConfigCategory WeaponDmgFeaturesCategory { get; set; }
+        
         // ======================== PLAYER CHEATS ========================
 #if !CLIENT
         [SettingsUiInclude]
@@ -459,6 +464,7 @@ namespace ProjectX.Master
         [SettingsUiInclude]
 #endif
         public static ConfigEntry<bool> FreezeAI { get; private set; }
+        public static ConfigEntry<bool> InstantBookBuild { get; private set; }
 #if !CLIENT
         [SettingsUiInclude]
 #endif
@@ -885,6 +891,158 @@ namespace ProjectX.Master
         [SettingsUiInclude]  // Visible on all builds — local UI toggle
         public static ConfigEntry<bool> HotbarEnabled { get; private set; }
 
+        // ======================== WEAPON DAMAGE (RANGED) ========================
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_PistolDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_RevolverDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_ShotgunDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_BuckshotDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_BuckshotSpread { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_RifleDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_CompoundBowDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_CraftedBowDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_CrossbowDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_SlingshotDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_StunGunDmg { get; private set; }
+        
+        // ======================== WEAPON DAMAGE (EXPLOSIVES & AMMO) ========================
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_GrenadeDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_MolotovDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_StickyBombDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_C4Dmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_StoneArrowDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_PrintedArrowDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_CarbonArrowDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_FireArrowDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_ShockArrowDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_ExplosiveArrowDmg { get; private set; }
+        
+        // ======================== WEAPON DAMAGE (MELEE) ========================
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_KatanaDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_MacheteDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_ModernAxeDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_FireAxeDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_TacticalAxeDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_CraftedSpearDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_StunBatonDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_CraftedClubDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_GuitarDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_ChainsawDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_GolfPutterDmg { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_KnifeDmg { get; private set; }
+        
+        // ======================== WEAPON FEATURES ========================
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> WD_Enabled { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<float> WD_SolafiteBonus { get; private set; }
+        [SettingsUiInclude]  // Visible on all builds — local keybind
+        public static KeybindConfigEntry WD_InspectKey { get; private set; }
+        [SettingsUiInclude]  // Visible on all builds — local preference
+        public static ConfigEntry<bool> WD_InspectLeftHand { get; private set; }
+
         public static void Init()
         {
 
@@ -927,6 +1085,7 @@ namespace ProjectX.Master
             WorldCategory = ConfigSystem.CreateFileCategory("ProjectX - World", "ProjectX - World", configFile);
             
             FreezeAI = WorldCategory.CreateEntry<bool>("FreezeAI", false, "Freeze AI", "Pause world simulation - stops all enemy/animal spawning and AI");
+            InstantBookBuild = WorldCategory.CreateEntry<bool>("InstantBookBuild", false, "Instant Book Build", "Server-wide instant blueprint completion for all players");
             IsLockTime = WorldCategory.CreateEntry<bool>("IsLockTime", false, "Lock Time", "Freeze current time of day");
             DaytimeSpeed = WorldCategory.CreateEntry<float>("DaytimeSpeed", 1f, "Daytime Speed", "Speed of day/night cycle (1 = normal)");
             DaytimeSpeed.SetRange(0f, 10f);
@@ -1323,6 +1482,91 @@ namespace ProjectX.Master
             });
 #endif
             
+            // ===== CATEGORY: WEAPON DAMAGE (RANGED) =====
+            WeaponDmgRangedCategory = ConfigSystem.CreateFileCategory("ProjectX - Weapon Damage (Ranged)", "ProjectX - Weapon Damage (Ranged)", configFile);
+            
+            WD_PistolDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_PistolDmg", 2.5f, "Pistol Damage Multiplier", "Damage multiplier for the Pistol");
+            WD_PistolDmg.SetRange(1f, 10f);
+            WD_RevolverDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_RevolverDmg", 3.5f, "Revolver Damage Multiplier", "Damage multiplier for the Revolver");
+            WD_RevolverDmg.SetRange(1f, 10f);
+            WD_ShotgunDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_ShotgunDmg", 2.5f, "Shotgun Damage Multiplier", "Damage multiplier for the Shotgun (slugs)");
+            WD_ShotgunDmg.SetRange(1f, 10f);
+            WD_BuckshotDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_BuckshotDmg", 0.14f, "Buckshot Damage Factor", "Buckshot damage = Shotgun multiplier × this value (default 0.14 = reduced per-pellet)");
+            WD_BuckshotDmg.SetRange(0.01f, 1f);
+            WD_BuckshotSpread = WeaponDmgRangedCategory.CreateEntry<float>("WD_BuckshotSpread", 7f, "Buckshot Spread Angle", "Buckshot pellet scatter cone in degrees (lower = tighter)");
+            WD_BuckshotSpread.SetRange(1f, 20f);
+            WD_RifleDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_RifleDmg", 2.0f, "Rifle Damage Multiplier", "Damage multiplier for the Rifle");
+            WD_RifleDmg.SetRange(1f, 10f);
+            WD_CompoundBowDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_CompoundBowDmg", 1.0f, "Compound Bow Damage Multiplier", "Damage multiplier for the Compound Bow");
+            WD_CompoundBowDmg.SetRange(0.5f, 10f);
+            WD_CraftedBowDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_CraftedBowDmg", 1.0f, "Crafted Bow Damage Multiplier", "Damage multiplier for the Crafted Bow");
+            WD_CraftedBowDmg.SetRange(0.5f, 10f);
+            WD_CrossbowDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_CrossbowDmg", 1.0f, "Crossbow Damage Multiplier", "Damage multiplier for the Crossbow");
+            WD_CrossbowDmg.SetRange(0.5f, 10f);
+            WD_SlingshotDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_SlingshotDmg", 1.0f, "Slingshot Damage Multiplier", "Damage multiplier for the Slingshot");
+            WD_SlingshotDmg.SetRange(0.5f, 10f);
+            WD_StunGunDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_StunGunDmg", 1.0f, "Stun Gun Damage Multiplier", "Damage multiplier for the Stun Gun/Taser");
+            WD_StunGunDmg.SetRange(0.5f, 10f);
+            
+            // Explosives & Ammo (within Ranged category)
+            WD_GrenadeDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_GrenadeDmg", 1.0f, "Grenade Damage Multiplier", "Damage multiplier for Frag Grenades");
+            WD_GrenadeDmg.SetRange(0.5f, 10f);
+            WD_MolotovDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_MolotovDmg", 1.0f, "Molotov Damage Multiplier", "Damage multiplier for Molotov Cocktails");
+            WD_MolotovDmg.SetRange(0.5f, 10f);
+            WD_StickyBombDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_StickyBombDmg", 1.0f, "Sticky Bomb Damage Multiplier", "Damage multiplier for Time Bombs/Sticky Bombs");
+            WD_StickyBombDmg.SetRange(0.5f, 10f);
+            WD_C4Dmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_C4Dmg", 1.0f, "C4 Damage Multiplier", "Damage multiplier for C4 Bricks");
+            WD_C4Dmg.SetRange(0.5f, 10f);
+            WD_StoneArrowDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_StoneArrowDmg", 1.0f, "Stone Arrow Damage Multiplier", "Damage multiplier for Stone/Crafted Arrows");
+            WD_StoneArrowDmg.SetRange(0.5f, 10f);
+            WD_PrintedArrowDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_PrintedArrowDmg", 1.0f, "3D Printed Arrow Damage Multiplier", "Damage multiplier for 3D Printed Arrows");
+            WD_PrintedArrowDmg.SetRange(0.5f, 10f);
+            WD_CarbonArrowDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_CarbonArrowDmg", 1.0f, "Carbon Fiber Arrow Damage Multiplier", "Damage multiplier for Carbon Fiber Arrows");
+            WD_CarbonArrowDmg.SetRange(0.5f, 10f);
+            WD_FireArrowDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_FireArrowDmg", 1.0f, "Fire Arrow Damage Multiplier", "Damage multiplier for Fire Arrows");
+            WD_FireArrowDmg.SetRange(0.5f, 10f);
+            WD_ShockArrowDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_ShockArrowDmg", 1.0f, "Shock Arrow Damage Multiplier", "Damage multiplier for Shock Arrows");
+            WD_ShockArrowDmg.SetRange(0.5f, 10f);
+            WD_ExplosiveArrowDmg = WeaponDmgRangedCategory.CreateEntry<float>("WD_ExplosiveArrowDmg", 1.0f, "Explosive Arrow Damage Multiplier", "Damage multiplier for Explosive Arrows");
+            WD_ExplosiveArrowDmg.SetRange(0.5f, 10f);
+            
+            // ===== CATEGORY: WEAPON DAMAGE (MELEE) =====
+            WeaponDmgMeleeCategory = ConfigSystem.CreateFileCategory("ProjectX - Weapon Damage (Melee)", "ProjectX - Weapon Damage (Melee)", configFile);
+            
+            WD_KatanaDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_KatanaDmg", 1.0f, "Katana Damage Multiplier", "Damage multiplier for the Katana");
+            WD_KatanaDmg.SetRange(0.5f, 10f);
+            WD_MacheteDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_MacheteDmg", 1.0f, "Machete Damage Multiplier", "Damage multiplier for the Machete");
+            WD_MacheteDmg.SetRange(0.5f, 10f);
+            WD_ModernAxeDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_ModernAxeDmg", 1.0f, "Modern Axe Damage Multiplier", "Damage multiplier for the Modern Axe");
+            WD_ModernAxeDmg.SetRange(0.5f, 10f);
+            WD_FireAxeDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_FireAxeDmg", 1.0f, "Firefighter Axe Damage Multiplier", "Damage multiplier for the Firefighter Axe");
+            WD_FireAxeDmg.SetRange(0.5f, 10f);
+            WD_TacticalAxeDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_TacticalAxeDmg", 1.0f, "Tactical Axe Damage Multiplier", "Damage multiplier for the Tactical Axe");
+            WD_TacticalAxeDmg.SetRange(0.5f, 10f);
+            WD_CraftedSpearDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_CraftedSpearDmg", 1.0f, "Crafted Spear Damage Multiplier", "Damage multiplier for the Crafted Spear");
+            WD_CraftedSpearDmg.SetRange(0.5f, 10f);
+            WD_StunBatonDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_StunBatonDmg", 1.0f, "Stun Baton Damage Multiplier", "Damage multiplier for the Stun Baton");
+            WD_StunBatonDmg.SetRange(0.5f, 10f);
+            WD_CraftedClubDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_CraftedClubDmg", 1.0f, "Crafted Club Damage Multiplier", "Damage multiplier for the Crafted Club");
+            WD_CraftedClubDmg.SetRange(0.5f, 10f);
+            WD_GuitarDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_GuitarDmg", 1.0f, "Guitar Damage Multiplier", "Damage multiplier for the Guitar");
+            WD_GuitarDmg.SetRange(0.5f, 10f);
+            WD_ChainsawDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_ChainsawDmg", 1.0f, "Chainsaw Damage Multiplier", "Damage multiplier for the Chainsaw");
+            WD_ChainsawDmg.SetRange(0.5f, 10f);
+            WD_GolfPutterDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_GolfPutterDmg", 1.0f, "Golf Putter Damage Multiplier", "Damage multiplier for the Golf Putter");
+            WD_GolfPutterDmg.SetRange(0.5f, 10f);
+            WD_KnifeDmg = WeaponDmgMeleeCategory.CreateEntry<float>("WD_KnifeDmg", 1.0f, "Knife Damage Multiplier", "Damage multiplier for the Knife");
+            WD_KnifeDmg.SetRange(0.5f, 10f);
+            
+            // ===== CATEGORY: WEAPON FEATURES =====
+            WeaponDmgFeaturesCategory = ConfigSystem.CreateFileCategory("ProjectX - Weapon Features", "ProjectX - Weapon Features", configFile);
+            
+            WD_Enabled = WeaponDmgFeaturesCategory.CreateEntry<bool>("WD_Enabled", true, "Enable Weapon Damage", "Master toggle — OFF restores vanilla damage for all weapons");
+            WD_SolafiteBonus = WeaponDmgFeaturesCategory.CreateEntry<float>("WD_SolafiteBonus", 1.25f, "Solafite Plating Bonus", "Damage multiplier when weapon has solafite plating (1.0 = no bonus, 1.25 = +25%)");
+            WD_SolafiteBonus.SetRange(1.0f, 3.0f);
+            WD_InspectKey = WeaponDmgFeaturesCategory.CreateKeybindEntry("WD_InspectKey", "i", "Weapon Inspect Key", "Key to re-equip weapon and replay first-equip animation");
+            WD_InspectLeftHand = WeaponDmgFeaturesCategory.CreateEntry<bool>("WD_InspectLeftHand", false, "Inspect Left Hand", "Allow inspecting left-hand items when no right-hand weapon is held");
+            
             // Register config entries for network sync (must be after all entries created)
             Modules.Network.ConfigSyncPayload.RegisterEntries();
         }
@@ -1352,6 +1596,11 @@ namespace ProjectX.Master
             XRaidsEnemyStatsCategory?.SaveToFile();
             XRaidsFollowersCategory?.SaveToFile();
             XRaidsMultiplayerCategory?.SaveToFile();
+            
+            // Weapon Damage Categories
+            WeaponDmgRangedCategory?.SaveToFile();
+            WeaponDmgMeleeCategory?.SaveToFile();
+            WeaponDmgFeaturesCategory?.SaveToFile();
         }
     }
 }

@@ -136,6 +136,9 @@ namespace ProjectX.Master
             
             // 16b. CraftingSpeed - DISABLED (CraftingCog IL2CPP incompatible)
             Modules.Crafting.CraftingSpeed.Init();
+            
+            // 16c. BuilderEnhancements Harmony patch (InstantBuild via ConfigSync)
+            Modules.Building.BuilderEnhancements.InitPatches();
 #endif
             
             
@@ -161,6 +164,11 @@ namespace ProjectX.Master
             // 17. LootRespawn (server-safe: Harmony + tracking)
             Modules.LootRespawn.LootRespawnModule.Init();
             
+            // 18. WeaponDamage (client/owner: damage multipliers, inspect, solafite)
+#if !SERVER
+            Modules.WeaponDamage.WeaponDamageModule.Init();
+#endif
+            
             LoggerInstance.Msg("Fresh Merge: All modules enabled");
 #if SERVER || OWNER
             ConfigSyncPayload.EnableBroadcast();
@@ -174,6 +182,9 @@ namespace ProjectX.Master
 #if !SERVER
             Modules.Hotbar.HotbarModule.OnGameStart();
             Modules.AmmoUI.AmmoUiModule.ApplyHarmonyPatch(HarmonyInstance);
+            
+            // WeaponDamage: apply all damage settings on game start
+            Modules.WeaponDamage.WeaponDamageModule.ApplyAllDamageSettings();
 #endif
 
 #if CLIENT
@@ -257,6 +268,9 @@ namespace ProjectX.Master
             try { Modules.ScaryCross.ScaryCrossModule.OnGameActivated(); } 
             catch (Exception ex) { LoggerInstance.Error($"[Server] ScaryCross OnGameActivated failed: {ex.Message}"); }
             
+            try { Modules.WeaponDamage.WeaponDamagePatches.ApplyPatch(new HarmonyLib.Harmony("ProjectX.WeaponDamage.Server")); } 
+            catch (Exception ex) { LoggerInstance.Error($"[Server] WeaponDamage patch failed: {ex.Message}"); }
+            
             ConfigSyncPayload.EnableBroadcast();
             
             LoggerInstance.Msg("[Server] All server modules initialized");
@@ -332,6 +346,9 @@ namespace ProjectX.Master
             // IntegrityEvent: process deferred client response (ChatBox may not be ready during loading)
             try { IntegrityEvent.ProcessPendingResponse(); } catch { }
             
+            // WeaponDamage: per-frame held weapon damage adjustment + inspect keybind
+            try { Modules.WeaponDamage.WeaponDamageModule.OnWorldUpdate(); } catch { }
+            
             // StoneGate - REMOVED
             // Modules.StoneGate.StoneGateModule.EnsureUIHidden();
 #endif
@@ -346,6 +363,8 @@ namespace ProjectX.Master
         /// Player-presence guard: skip ticking when no players are connected
         /// to prevent 24/7 world simulation (NPC buildup, wasted resources).
         /// </summary>
+        private static float _lastInstantBuildPoll = 0f;
+        
         private static void ServerTickPostfix()
         {
             // Skip server tick when no players are connected — let the server idle
@@ -361,6 +380,21 @@ namespace ProjectX.Master
             try { ConfigSyncPayload.Update(); } catch { }
             try { IntegrityEvent.CheckTimeouts(); } catch { }
             try { Modules.ScaryCross.ScaryCrossModule.ServerTick(); } catch { }
+            
+            // InstantBookBuild: auto-complete blueprints every 0.5s via finishblueprints
+            try
+            {
+                if (Config.InstantBookBuild?.Value == true)
+                {
+                    float now = UnityEngine.Time.time;
+                    if (now - _lastInstantBuildPoll >= 0.5f)
+                    {
+                        _lastInstantBuildPoll = now;
+                        Modules.DedicatedSuperuser.Commands.WorldCommands.TrySendDebugCommand("finishblueprints", quiet: true);
+                    }
+                }
+            }
+            catch { }
         }
 #endif
     }

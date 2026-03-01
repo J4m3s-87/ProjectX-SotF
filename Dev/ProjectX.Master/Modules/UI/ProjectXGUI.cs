@@ -277,22 +277,40 @@ namespace ProjectX.Master.Modules.UI
             }
             GUILayout.EndHorizontal();
             
-            // Row 5: Fill Inventory (standalone action)
+            // Row 5: AI Ghost Player | Fill Inventory
             GUILayout.BeginHorizontal();
+            bool newGhostPlayer = GUILayout.Toggle(Modules.Building.BuilderEnhancements.AIGhostPlayer, "  AI Ghost Player", ProjectXStyles.Toggle, GUILayout.Width(colW));
+            if (newGhostPlayer != Modules.Building.BuilderEnhancements.AIGhostPlayer)
+                Modules.Building.BuilderEnhancements.AIGhostPlayer = newGhostPlayer;
             if (GUILayout.Toggle(false, "  Fill Inventory", ProjectXStyles.Toggle, GUILayout.Width(colW)))
             {
                 try
                 {
+                    // Temporarily disable Infinite Stacks to prevent freeze
+                    // (addallitems fills to stack cap — 999,999,999 would freeze the game)
+                    bool wasInfinite = Config.InfiniteInventory.Value;
+                    if (wasInfinite)
+                    {
+                        Config.InfiniteInventory.Value = false;
+                        Modules.Stack.StackModule.Apply();
+                    }
+                    
                     SonsSdk.SonsTools.ShowMessage("Filling inventory...");
                     DebugConsole.Instance.SendCommand("addallitems");
                     RLog.Msg("[ProjectXGUI] Fill Inventory triggered via addallitems");
+                    
+                    // Restore Infinite Stacks if it was on
+                    if (wasInfinite)
+                    {
+                        Config.InfiniteInventory.Value = true;
+                        Modules.Stack.StackModule.Apply();
+                    }
                 }
                 catch (System.Exception ex)
                 {
                     RLog.Warning($"[ProjectXGUI] Fill Inventory failed: {ex.Message}");
                 }
             }
-            GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             
             // NoClip section
@@ -590,6 +608,19 @@ namespace ProjectX.Master.Modules.UI
             {
                 Modules.Building.BuilderEnhancements.StoneHack = newStoneHack;
             }
+            
+            // Blueprint actions (one-shot buttons)
+            float colW2 = (PANEL_WIDTH - 60f) / 2f;
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Cancel Blueprints", ProjectXStyles.Button, GUILayout.Width(colW2)))
+            {
+                Modules.Building.BuilderEnhancements.CancelBlueprints();
+            }
+            if (GUILayout.Button("Finish Blueprints", ProjectXStyles.Button, GUILayout.Width(colW2)))
+            {
+                Modules.Building.BuilderEnhancements.FinishBlueprints();
+            }
+            GUILayout.EndHorizontal();
             
             DrawDivider("CRAFTING");
             
@@ -1253,6 +1284,38 @@ namespace ProjectX.Master.Modules.UI
                 // Tree regrow — /px world trees
                 if (GUILayout.Button("Force Tree Regrow", ProjectXStyles.Button, GUILayout.Height(45)))
                     ServerCmd("world trees");
+                
+                DrawDivider("BUILDING CHEATS");
+                
+                // Instant Book Build toggle — execute locally + dispatch to server
+                bool newInstantBuild = DrawCheckbox("Instant Book Build", Modules.Building.BuilderEnhancements.InstantBuild);
+                if (newInstantBuild != Modules.Building.BuilderEnhancements.InstantBuild)
+                {
+                    Modules.Building.BuilderEnhancements.InstantBuild = newInstantBuild;
+                    ServerCmd($"building instantbuild {(newInstantBuild ? "on" : "off")}");
+                }
+                
+                // AI Ghost Player toggle — execute locally + dispatch to server
+                bool newGhostAdmin = DrawCheckbox("AI Ghost Player", Modules.Building.BuilderEnhancements.AIGhostPlayer);
+                if (newGhostAdmin != Modules.Building.BuilderEnhancements.AIGhostPlayer)
+                {
+                    Modules.Building.BuilderEnhancements.AIGhostPlayer = newGhostAdmin;
+                    ServerCmd($"building ghost {(newGhostAdmin ? "on" : "off")}");
+                }
+                
+                // Blueprint action buttons — execute locally + dispatch to server
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Cancel Blueprints", ProjectXStyles.Button, GUILayout.Height(42)))
+                {
+                    Modules.Building.BuilderEnhancements.CancelBlueprints();
+                    ServerCmd("building cancel");
+                }
+                if (GUILayout.Button("Finish Blueprints", ProjectXStyles.Button, GUILayout.Height(42)))
+                {
+                    Modules.Building.BuilderEnhancements.FinishBlueprints();
+                    ServerCmd("building finish");
+                }
+                GUILayout.EndHorizontal();
                 
                 DrawDivider("COMPANIONS");
                 

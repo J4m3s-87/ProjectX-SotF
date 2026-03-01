@@ -180,12 +180,25 @@ namespace ProjectX.Master.Modules.Network
                 foreach (var dead in deadConnections)
                     _connectedClients.Remove(dead);
                 
-                if (sent > 0)
-                    RLog.Msg($"[ConfigSync] Broadcast config to {sent} client(s)");
+                RLog.Msg($"[ConfigSync] Broadcast config to {sent} client(s) (tracked={_connectedClients.Count}, payload={payload.Length} chars)");
             }
             catch (Exception ex)
             {
                 RLog.Warning($"[ConfigSync] Broadcast error: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Track a connection for config broadcasts.
+        /// Call from connection hooks (WelcomeHandler, AdminCommand, etc.).
+        /// Accepts object to avoid IL2CPP namespace issues in Owner build.
+        /// </summary>
+        public static void TrackConnection(object connection)
+        {
+            if (connection is BoltConnection bc)
+            {
+                _connectedClients.Add(bc);
+                RLog.Msg($"[ConfigSync] Tracking connection — {_connectedClients.Count} client(s) tracked");
             }
         }
 #endif

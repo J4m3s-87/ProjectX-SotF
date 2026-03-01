@@ -35,6 +35,20 @@ namespace ProjectX.Master.Modules.Network
             // Register key gameplay-affecting config values that clients need
             TryRegister("WelcomeMessageDelay", () => Config.WelcomeMessageDelay?.Value.ToString(), v => { if (float.TryParse(v, out var f)) Config.WelcomeMessageDelay.Value = f; });
             
+            // InstantBookBuild — server broadcasts on/off to all clients
+            // Client setter sets Config value; Pattern #22 PREFIX on StructureCraftingSystem.Update()
+            // enforces the value at offset 0x71 every frame via Marshal.WriteByte
+            TryRegister("InstantBookBuild", 
+                () => Config.InstantBookBuild?.Value.ToString(),
+                v => 
+                {
+                    if (bool.TryParse(v, out var enabled))
+                    {
+                        Config.InstantBookBuild.Value = enabled;
+                        RLog.Msg($"[ConfigSync] InstantBookBuild set to {(enabled ? "ON" : "OFF")} — Pattern #22 PREFIX will enforce");
+                    }
+                });
+            
             RLog.Msg($"[ConfigSyncPayload] Registered {_entries.Count} entries for network sync");
         }
         

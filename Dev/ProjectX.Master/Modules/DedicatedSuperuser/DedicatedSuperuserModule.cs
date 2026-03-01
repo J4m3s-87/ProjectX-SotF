@@ -75,6 +75,7 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser
             CommandBridge.RegisterCommand("config", ConfigCommands.Handle);
             CommandBridge.RegisterCommand("loot", LootCommands.Handle);
             CommandBridge.RegisterCommand("server", ServerCommands.Handle);
+            CommandBridge.RegisterCommand("building", WorldCommands.HandleBuilding);
 
             // Shortcut aliases for common actions
             CommandBridge.RegisterCommand("save", (sid, args) => ServerCommands.ForceSave());
@@ -87,7 +88,7 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser
                     RLog.Msg("[Superuser] Usage: /px time <0-24>");
             });
 
-            RLog.Msg("[DedicatedSuperuser] Registered superuser commands: raid, world, config, loot, server + aliases");
+            RLog.Msg("[DedicatedSuperuser] Registered superuser commands: raid, world, building, config, loot, server + aliases");
         }
 
         /// <summary>

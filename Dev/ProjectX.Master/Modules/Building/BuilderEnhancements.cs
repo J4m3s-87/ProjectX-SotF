@@ -157,6 +157,146 @@ namespace ProjectX.Master.Modules.Building
                 RLog.Warning($"[BuilderEnhancements] StoneHack failed: {ex.Message}");
             }
         }
+
+        // ======================== AI GHOST PLAYER ========================
+
+        private static bool _aiGhostEnabled = false;
+
+        /// <summary>
+        /// Enable/disable AI ghost mode (enemies can't see you)
+        /// Uses game's aighostplayer command
+        /// </summary>
+        public static bool AIGhostPlayer
+        {
+            get => _aiGhostEnabled;
+            set
+            {
+                _aiGhostEnabled = value;
+                ApplyAIGhost();
+            }
+        }
+
+        private static void ApplyAIGhost()
+        {
+            try
+            {
+                string cmd = _aiGhostEnabled ? "aighostplayer on" : "aighostplayer off";
+                DebugConsole.Instance.SendCommand(cmd);
+                RLog.Msg($"[BuilderEnhancements] AIGhostPlayer: {(_aiGhostEnabled ? "ON" : "OFF")}");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[BuilderEnhancements] AIGhostPlayer failed: {ex.Message}");
+            }
+        }
+
+        // ======================== BLUEPRINT ACTIONS ========================
+
+        /// <summary>
+        /// Cancel all placed blueprints (one-shot action)
+        /// </summary>
+        public static void CancelBlueprints()
+        {
+            try
+            {
+                DebugConsole.Instance.SendCommand("cancelblueprints");
+                RLog.Msg("[BuilderEnhancements] Cancel Blueprints executed");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[BuilderEnhancements] CancelBlueprints failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Finish/complete all placed blueprints (one-shot action)
+        /// </summary>
+        public static void FinishBlueprints()
+        {
+            try
+            {
+                DebugConsole.Instance.SendCommand("finishblueprints");
+                RLog.Msg("[BuilderEnhancements] Finish Blueprints executed");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[BuilderEnhancements] FinishBlueprints failed: {ex.Message}");
+            }
+        }
+
+        // ======================== HARMONY PATCHES ========================
+        // In multiplayer, PlaceStructureNode is NEVER called client-side.
+        // The actual MP path is NetworkPlaceStructureNode(PrefabId, Vector3, 
+        // Quaternion, WorldLocatorId, bool placeBuilt, BoltEntity).
+        // We override placeBuilt=true when Config.InstantBookBuild is enabled.
+        
+        /// <summary>
+        /// Initialize Harmony patches for building enhancements.
+        /// Patches NetworkPlaceStructureNode (MP) and PlaceStructureNode (SP/P2P).
+        /// </summary>
+        public static void InitPatches()
+        {
+            try
+            {
+                var scsType = HarmonyLib.AccessTools.TypeByName("Sons.Crafting.Structures.StructureCraftingSystem");
+                if (scsType == null)
+                {
+                    RLog.Warning("[BuilderEnhancements] StructureCraftingSystem type not found — skipping patch");
+                    return;
+                }
+                
+                var harmony = new HarmonyLib.Harmony("ProjectX.BuilderEnhancements.InstantBuild");
+                
+                // PRIMARY: Patch NetworkPlaceStructureNode — the actual MP building path
+                var networkPlaceMethod = HarmonyLib.AccessTools.Method(scsType, "NetworkPlaceStructureNode");
+                if (networkPlaceMethod != null)
+                {
+                    var netPrefix = typeof(BuilderEnhancements).GetMethod(nameof(NetworkPlaceStructureNode_Prefix),
+                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                    harmony.Patch(networkPlaceMethod, prefix: new HarmonyLib.HarmonyMethod(netPrefix));
+                    RLog.Msg("[BuilderEnhancements] Harmony PREFIX on NetworkPlaceStructureNode — OK (MP instant build)");
+                }
+                else
+                {
+                    RLog.Warning("[BuilderEnhancements] NetworkPlaceStructureNode not found");
+                }
+                
+                // SECONDARY: Also patch PlaceStructureNode for singleplayer/P2P
+                var placeMethod = scsType.GetMethod("PlaceStructureNode",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                if (placeMethod != null)
+                {
+                    var placePrefix = typeof(BuilderEnhancements).GetMethod(nameof(PlaceStructureNode_Prefix),
+                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                    harmony.Patch(placeMethod, prefix: new HarmonyLib.HarmonyMethod(placePrefix));
+                    RLog.Msg("[BuilderEnhancements] Harmony PREFIX on PlaceStructureNode — OK (SP/P2P)");
+                }
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[BuilderEnhancements] InitPatches failed: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// PRIMARY: Overrides placeBuilt on NetworkPlaceStructureNode (the MP building path).
+        /// NetworkPlaceStructureNode(PrefabId, Vector3, Quaternion, WorldLocatorId, bool placeBuilt, BoltEntity)
+        /// </summary>
+        private static void NetworkPlaceStructureNode_Prefix(ref bool placeBuilt)
+        {
+            if (Config.InstantBookBuild?.Value == true)
+                placeBuilt = true;
+        }
+        
+        /// <summary>
+        /// SECONDARY: Overrides instantBuild on PlaceStructureNode (the SP/P2P path).
+        /// </summary>
+        private static void PlaceStructureNode_Prefix(ref bool instantBuild)
+        {
+            if (Config.InstantBookBuild?.Value == true)
+                instantBuild = true;
+        }
     }
 }
 #endif
+

@@ -71,6 +71,100 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // BUILDING COMMANDS — routed via /px building <subcommand>
+        // These execute DebugConsole commands on the server, since they
+        // affect world state that the server owns.
+        // ═══════════════════════════════════════════════════════════════
+
+        public static void HandleBuilding(string steamId, string[] args)
+        {
+            if (args.Length == 0)
+            {
+                Log("Usage: /px building instantbuild|finish|cancel|ghost");
+                return;
+            }
+
+            switch (args[0].ToLower())
+            {
+                case "instantbuild":
+                    bool enable = args.Length >= 2 ? args[1].ToLower() == "on" : true;
+                    Config.InstantBookBuild.Value = enable;
+                    
+                    // 1) Set on server's own StructureCraftingSystem (this is what P2P hosts do)
+                    try
+                    {
+                        var scsType = HarmonyLib.AccessTools.TypeByName("Sons.Crafting.Structures.StructureCraftingSystem");
+                        if (scsType != null)
+                        {
+                            var instanceProp = HarmonyLib.AccessTools.Property(scsType, "Instance");
+                            var scs = instanceProp?.GetValue(null);
+                            if (scs != null)
+                            {
+                                var il2cppObj = (Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase)scs;
+                                var ptr = il2cppObj.Pointer;
+                                if (ptr != System.IntPtr.Zero)
+                                {
+                                    System.Runtime.InteropServices.Marshal.WriteByte(ptr + 0x71, enable ? (byte)1 : (byte)0);
+                                    Log($"Instant Book Build: {(enable ? "ON" : "OFF")} (server StructureCraftingSystem set at 0x71)");
+                                }
+                            }
+                            else
+                            {
+                                Log("StructureCraftingSystem.Instance is null — trying DebugConsole fallback");
+                            }
+                        }
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Log($"Instant Book Build memory write failed: {ex.Message}");
+                    }
+                    
+                    // 2) Also send via DebugConsole on server (belt and suspenders)
+                    TrySendDebugCommand(enable ? "instantbookbuild on" : "instantbookbuild off");
+                    
+                    // 3) Broadcast to all connected clients so their local flag is also set
+                    try
+                    {
+#if SERVER || OWNER
+                        Modules.Network.ConfigSyncEvent.Instance?.BroadcastConfig();
+#endif
+                        Log($"Instant Book Build: {(enable ? "ON" : "OFF")} (broadcast sent to all clients)");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Log($"Instant Book Build broadcast failed: {ex.Message}");
+                    }
+                    break;
+
+                case "finish":
+                    if (TrySendDebugCommand("finishblueprints"))
+                        Log("Finish Blueprints executed");
+                    else
+                        Log("Finish Blueprints failed — DebugConsole not available");
+                    break;
+
+                case "cancel":
+                    if (TrySendDebugCommand("cancelblueprints"))
+                        Log("Cancel Blueprints executed");
+                    else
+                        Log("Cancel Blueprints failed — DebugConsole not available");
+                    break;
+
+                case "ghost":
+                    string ghostState = args.Length >= 2 ? args[1].ToLower() : "on";
+                    if (TrySendDebugCommand($"aighostplayer {ghostState}"))
+                        Log($"AI Ghost Player: {ghostState}");
+                    else
+                        Log("AI Ghost Player failed — DebugConsole not available");
+                    break;
+
+                default:
+                    Log($"Unknown building command: {args[0]}");
+                    break;
+            }
+        }
+
         /// <summary>
         /// Set time of day via DebugConsole (works on both client and server).
         /// Falls back to AccessTools reflection on TimeOfDayHolder.
@@ -591,7 +685,7 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
         /// <summary>
         /// Try to send a command via the game's DebugConsole
         /// </summary>
-        private static bool TrySendDebugCommand(string command)
+        internal static bool TrySendDebugCommand(string command, bool quiet = false)
         {
             try
             {
@@ -604,11 +698,11 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                     {
                         var sendMethod = AccessTools.Method(dcType, "SendCommand", new[] { typeof(string) });
                         sendMethod?.Invoke(dc, new object[] { command });
-                        Log($"DebugConsole: sent '{command}'");
+                        if (!quiet) Log($"DebugConsole: sent '{command}'");
                         return true;
                     }
                 }
-                Log("DebugConsole not accessible");
+                if (!quiet) Log("DebugConsole not accessible");
             }
             catch (Exception ex)
             {

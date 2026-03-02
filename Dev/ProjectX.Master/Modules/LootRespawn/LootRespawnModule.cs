@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using HarmonyLib;
 using RedLoader;
+using Sons.Environment;
 using Sons.Gameplay;
 using UnityEngine;
 
@@ -29,9 +29,6 @@ namespace ProjectX.Master.Modules.LootRespawn
         // Persistence file path (set during Init)
         private static string _saveFilePath;
 
-        // Cached reflection for TimeOfDayHolder.GetDayNumber
-        private static MethodInfo _getDayNumberMethod;
-        private static bool _dayMethodSearched;
 
         // Throttle saves: don't write to disk more than once every 5 seconds
         private static float _lastSaveTime;
@@ -151,37 +148,15 @@ namespace ProjectX.Master.Modules.LootRespawn
         // --- Game Day ---
 
         /// <summary>
-        /// Get the current game day number via TimeOfDayHolder.GetDayNumber().
-        /// Falls back to 0 if reflection fails.
+        /// Get the current game day number via TimeOfDayHolder.GetTimeOfDay().Days.
+        /// Falls back to 0 if the call fails.
         /// </summary>
         private static int GetCurrentDay()
         {
             try
             {
-                if (!_dayMethodSearched)
-                {
-                    _dayMethodSearched = true;
-                    // Try multiple namespaces (game version differences)
-                    _getDayNumberMethod =
-                        AccessTools.Method("Sons.Environment.TimeOfDayHolder:GetDayNumber") ??
-                        AccessTools.Method("Sons.Gameplay.TimeOfDayHolder:GetDayNumber") ??
-                        AccessTools.Method("TimeOfDayHolder:GetDayNumber");
-
-                    if (_getDayNumberMethod != null)
-                        RLog.Msg($"[LootRespawn] Found GetDayNumber: {_getDayNumberMethod.DeclaringType?.FullName}");
-                    else
-                        RLog.Warning("[LootRespawn] GetDayNumber method not found — respawn timing will not work");
-                }
-
-                if (_getDayNumberMethod != null)
-                {
-                    var result = _getDayNumberMethod.Invoke(null, null);
-                    // GetDayNumber may return float or int depending on version
-                    if (result is float f) return (int)f;
-                    if (result is int i) return i;
-                    if (result is double d) return (int)d;
-                    return Convert.ToInt32(result);
-                }
+                var timeOfDay = Sons.Environment.TimeOfDayHolder.GetTimeOfDay();
+                return timeOfDay.Days;
             }
             catch (Exception ex)
             {

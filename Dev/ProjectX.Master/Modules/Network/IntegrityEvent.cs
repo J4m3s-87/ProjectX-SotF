@@ -608,7 +608,7 @@ namespace ProjectX.Master.Modules.Network
             {
                 RLog.Msg(Color.Cyan, "[IntegrityEvent] ★ Server requested integrity check — collecting mod data...");
                 
-                // Collect loaded mods (same technique as CoopServerTools)
+                // Collect loaded mods via RedLoader public API
                 var mods = new List<string>();
                 try
                 {

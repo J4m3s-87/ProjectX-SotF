@@ -22,7 +22,7 @@ namespace ProjectX.Master.Modules.Network
         /// <summary>
         /// Comma-separated list of allowed mod IDs.
         /// Any mod loaded on the client that isn't in this list triggers a kick.
-        /// Example: "ProjectX.Client,CoopServerTools"
+        /// Example: "ProjectX.Client,SomeOtherMod"
         /// </summary>
         public static ConfigEntry<string> ModWhitelist { get; private set; }
         

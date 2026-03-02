@@ -1101,9 +1101,17 @@ namespace ProjectX.Master.Modules.UI
                 RLog.Msg($"[PlayerActions] SpawnNPC: Found SpawnActor with params: {string.Join(", ", spawnMethod.GetParameters().Select(p => p.ParameterType.Name))}");
                 
                 // SpawnActor(prefab, position, graphMask, null, State.None, familyId, variationId)
+                // Resolve parameter types from method signature to avoid type mismatch
+                var spawnParams = spawnMethod.GetParameters();
+                object stateArg = (int)0;
+                if (spawnParams.Length > 4 && spawnParams[4].ParameterType.IsEnum)
+                {
+                    stateArg = System.Enum.ToObject(spawnParams[4].ParameterType, 0);
+                }
+                
                 var worldSimActor = spawnMethod.Invoke(sim, new object[] 
                 { 
-                    prefab, spawnPos, graphMask, null, (int)0, familyId, 0 
+                    prefab, spawnPos, graphMask, null, stateArg, familyId, 0 
                 });
                 
                 if (worldSimActor == null)

@@ -24,7 +24,7 @@ namespace ProjectX.Master.Modules.UI
         // State
         private bool _showMenu = false;
         private int _currentPanel = 0;
-        private readonly string[] _panelNames = { "Player", "Environment", "Teleport", "Misc", "Raids", "Discord", "Server Admin" };
+        private readonly string[] _panelNames = { "Player", "Environment", "Teleport", "Building+", "Raids", "Server Admin" };
         
         // Layout dimensions (enlarged for better readability)
         private const float PANEL_WIDTH = 1100f;
@@ -61,7 +61,7 @@ namespace ProjectX.Master.Modules.UI
             { "Rope Gun Cave", new Vector3(-1113, 132, -171) },
             { "Crossbow Bunker", new Vector3(-1014, 102, 1024) },
             { "End Game Bunker", new Vector3(1756, 45, 553) },
-            { "Modern Bow", new Vector3(-1133, 278, -1101) }
+            // Modern Bow removed — teleport doesn't work as intended
         };
 
         void Awake()
@@ -224,8 +224,7 @@ namespace ProjectX.Master.Modules.UI
                 case 2: DrawTeleportPanel(); break;
                 case 3: DrawMiscPanel(); break;
                 case 4: DrawRaidsPanel(); break;
-                case 5: DrawDiscordPanel(); break;
-                case 6: DrawServerAdminPanel(); break;
+                case 5: DrawServerAdminPanel(); break;
             }
             
             GUILayout.EndScrollView();
@@ -389,17 +388,20 @@ namespace ProjectX.Master.Modules.UI
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("End Boss", ProjectXStyles.Button, GUILayout.Width(colW)))
             {
-                PlayerActions.SpawnNPC((Sons.Ai.Vail.VailActorTypeId)45);
+                DebugConsole.Instance.SendCommand("addcharacter mutantboss");
+                RLog.Msg("[GUI] Spawn: addcharacter mutantboss");
             }
             if (GUILayout.Button("Armsy", ProjectXStyles.Button, GUILayout.Width(colW)))
             {
-                PlayerActions.SpawnNPC((Sons.Ai.Vail.VailActorTypeId)50);
+                DebugConsole.Instance.SendCommand("addcharacter armsy");
+                RLog.Msg("[GUI] Spawn: addcharacter armsy");
             }
             GUILayout.EndHorizontal();
             
             if (GUILayout.Button("Cannibal Group (x3)", ProjectXStyles.Button))
             {
-                PlayerActions.SpawnCannibalGroup();
+                DebugConsole.Instance.SendCommand("addcharacter cannibal 3");
+                RLog.Msg("[GUI] Spawn: addcharacter cannibal 3");
             }
         }
         
@@ -466,7 +468,11 @@ namespace ProjectX.Master.Modules.UI
             DrawDivider("ENVIRONMENT");
             
             Config.TreeRegrowRate.Value = DrawSlider("Tree Regrow Rate", Config.TreeRegrowRate.Value, 0f, 10f);
-            Config.WindIntensity.Value = DrawSlider("Wind Intensity (-1=Auto)", Config.WindIntensity.Value, -1f, 10f);
+            float newWind = DrawSlider("Wind Intensity (-1=Auto)", Config.WindIntensity.Value, -1f, 10f);
+            if (Math.Abs(newWind - Config.WindIntensity.Value) > 0.01f)
+            {
+                PlayerActions.SetWindIntensity(newWind);
+            }
             
             // Force Rain (moved from Misc panel)
             bool newRain = DrawCheckbox("Force Rain", _forceRainActive);
@@ -561,7 +567,7 @@ namespace ProjectX.Master.Modules.UI
             if (Math.Abs(durabilityNew - durabilityOld) > 0.05f)
             {
                 Config.StructureDurabilityMultiplier.Value = durabilityNew;
-                RLog.Msg($"[ProjectX] Structure Durability: {durabilityNew:F1}x");
+                Modules.StructureDurability.StructureDurabilityModule.Apply();
             }
             
             float heatOld = Config.WaterCollectorHeatRadius.Value;
@@ -609,6 +615,13 @@ namespace ProjectX.Master.Modules.UI
                 Modules.Building.BuilderEnhancements.StoneHack = newStoneHack;
             }
             
+            // Slap Chop - uses _slapchop command (fast wood chopping)
+            bool newSlapChop = DrawCheckbox("Slap Chop", Modules.Building.BuilderEnhancements.SlapChop);
+            if (newSlapChop != Modules.Building.BuilderEnhancements.SlapChop)
+            {
+                Modules.Building.BuilderEnhancements.SlapChop = newSlapChop;
+            }
+            
             // Blueprint actions (one-shot buttons)
             float colW2 = (PANEL_WIDTH - 60f) / 2f;
             GUILayout.BeginHorizontal();
@@ -621,6 +634,12 @@ namespace ProjectX.Master.Modules.UI
                 Modules.Building.BuilderEnhancements.FinishBlueprints();
             }
             GUILayout.EndHorizontal();
+            
+            // Repair All button — iterates all Structure objects and resets HP
+            if (GUILayout.Button("Repair All Structures", ProjectXStyles.Button))
+            {
+                Modules.Building.BuilderEnhancements.RepairAllStructures();
+            }
             
             DrawDivider("CRAFTING");
             
@@ -640,6 +659,12 @@ namespace ProjectX.Master.Modules.UI
                 {
                     Modules.Crafting.CraftingSpeed.SpeedMultiplier = speedNew;
                 }
+            }
+            
+            // Add All Book Pages button — unlocks all blueprint book pages
+            if (GUILayout.Button("Add All Book Pages", ProjectXStyles.Button))
+            {
+                Modules.Building.BuilderEnhancements.AddAllBookPages();
             }
             
             

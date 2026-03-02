@@ -108,8 +108,10 @@ namespace ProjectX.Master
             // Modules.PrefabRepair.PrefabRepairModule.Init();
 #endif
             
-            // 7. StructureDurability (server-safe: Harmony patch)
+            // 7. StructureDurability (client/owner: Harmony patch on GetStructureInfo)
+#if !SERVER
             Modules.StructureDurability.StructureDurabilityModule.Init();
+#endif
             
             // 8. WaterCollectors (server-safe: Harmony + distance checks)
             Modules.WaterCollectors.WaterCollectorsModule.Init();
@@ -201,8 +203,9 @@ namespace ProjectX.Master
             // =============================================
             LoggerInstance.Msg("[Server] Initializing server modules in OnGameStart...");
             
-            try { Modules.StructureDurability.StructureDurabilityModule.Init(); } 
-            catch (Exception ex) { LoggerInstance.Error($"[Server] StructureDurability init failed: {ex.Message}"); }
+            // StructureDurability is now client/owner only (#if !SERVER)
+            // try { Modules.StructureDurability.StructureDurabilityModule.Init(); } 
+            // catch (Exception ex) { LoggerInstance.Error($"[Server] StructureDurability init failed: {ex.Message}"); }
             
             try { Modules.WaterCollectors.WaterCollectorsModule.Init(); } 
             catch (Exception ex) { LoggerInstance.Error($"[Server] WaterCollectors init failed: {ex.Message}"); }

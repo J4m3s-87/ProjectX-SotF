@@ -77,7 +77,9 @@ namespace ProjectX.Master.Modules.MeatDryer
             // SdkEvents.OnInWorldUpdate does NOT fire on headless servers.
             // SeasonsManager is proven-safe to hook (WorldCommands already patches it)
             // and runs every frame on all tiers including headless.
-            // NOTE: Do NOT hook ScrewStructure types — VTable corruption risk (§62).
+            // NOTE: VTable corruption warning (§62) for ScrewStructure types may be outdated.
+            // ScaryCrossModule patches ScrewStructureDestruction.Awake from this assembly and works.
+            // See technical_retrospective.md for full analysis.
             try
             {
                 var lateUpdate = AccessTools.Method(typeof(SeasonsManager), "LateUpdate");

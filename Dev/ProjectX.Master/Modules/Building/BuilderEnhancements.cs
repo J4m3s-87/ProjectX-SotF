@@ -4,6 +4,10 @@ using HarmonyLib;
 using RedLoader;
 using TheForest;
 using TheForest.Utils;
+using UnityEngine;
+using Construction;
+using Sons.Crafting.Structures;
+using System.Runtime.InteropServices;
 
 namespace ProjectX.Master.Modules.Building
 {
@@ -158,6 +162,38 @@ namespace ProjectX.Master.Modules.Building
             }
         }
 
+        // ======================== SLAP CHOP ========================
+
+        private static bool _slapChopEnabled = false;
+
+        /// <summary>
+        /// Enable/disable fast wood chopping animation
+        /// Uses game's _slapchop command
+        /// </summary>
+        public static bool SlapChop
+        {
+            get => _slapChopEnabled;
+            set
+            {
+                _slapChopEnabled = value;
+                ApplySlapChop();
+            }
+        }
+
+        private static void ApplySlapChop()
+        {
+            try
+            {
+                string cmd = _slapChopEnabled ? "slapchop on" : "slapchop off";
+                DebugConsole.Instance.SendCommand(cmd);
+                RLog.Msg($"[BuilderEnhancements] SlapChop: {(_slapChopEnabled ? "ON" : "OFF")}");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[BuilderEnhancements] SlapChop failed: {ex.Message}");
+            }
+        }
+
         // ======================== AI GHOST PLAYER ========================
 
         private static bool _aiGhostEnabled = false;
@@ -221,6 +257,334 @@ namespace ProjectX.Master.Modules.Building
             catch (Exception ex)
             {
                 RLog.Warning($"[BuilderEnhancements] FinishBlueprints failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Repair all structures on the map by resetting their health.
+        /// Uses the cached StructureDestructionManager instance (populated by Harmony PREFIX)
+        /// to access _structureHealth dictionary and reset each damaged structure.
+        /// </summary>
+        public static void RepairAllStructures()
+        {
+            try
+            {
+                // Get cached SDM instance from Harmony POSTFIX
+                var sdm = Modules.StructureDurability.StructureDurabilityModule.CachedSDM;
+                if (sdm == null)
+                {
+                    // Fallback: find the SDM MonoBehaviour in the scene
+                    RLog.Msg("[RepairAll] CachedInstance is null, trying AccessTools...");
+                    try
+                    {
+                        // Try to get the singleton _instance field from the base type
+                        var sdmType = typeof(StructureDestructionManager);
+                        // Try _instance or Instance on the type hierarchy
+                        var field = AccessTools.Field(sdmType, "_instance") 
+                                    ?? AccessTools.Field(sdmType, "instance")
+                                    ?? AccessTools.Field(sdmType, "_Instance");
+                        if (field != null)
+                        {
+                            sdm = field.GetValue(null) as StructureDestructionManager;
+                            RLog.Msg($"[RepairAll] Found via field: {field.Name}");
+                        }
+                        
+                        // If field didn't work, try all static fields on base types
+                        if (sdm == null)
+                        {
+                            var baseType = sdmType.BaseType;
+                            while (baseType != null && sdm == null)
+                            {
+                                foreach (var f in baseType.GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
+                                {
+                                    if (f.FieldType == sdmType || f.FieldType.IsAssignableFrom(sdmType))
+                                    {
+                                        var val = f.GetValue(null);
+                                        if (val != null)
+                                        {
+                                            sdm = val as StructureDestructionManager;
+                                            RLog.Msg($"[RepairAll] Found via base field: {baseType.Name}.{f.Name}");
+                                            break;
+                                        }
+                                    }
+                                }
+                                baseType = baseType.BaseType;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        RLog.Warning($"[RepairAll] AccessTools fallback failed: {ex.Message}");
+                    }
+                }
+                
+                if (sdm == null)
+                {
+                    SonsSdk.SonsTools.ShowMessage("Repair: no StructureDestructionManager found");
+                    RLog.Warning("[RepairAll] SDM instance is null after all attempts");
+                    return;
+                }
+                
+                RLog.Msg("[RepairAll] Using cached SDM instance from Harmony PREFIX");
+                
+                // Access _structureHealth dictionary directly (like the original mod does)
+                int repaired = 0;
+                int total = 0;
+                int failedRepairs = 0;
+                try
+                {
+                    var dict = sdm._structureHealth;
+                    total = dict.Count;
+                    RLog.Msg($"[RepairAll] Found {total} tracked structures in _structureHealth");
+                    
+                    if (total == 0)
+                    {
+                        RLog.Msg("[RepairAll] No structures in dict, skipping to screw structures");
+                    }
+                    else
+                    {
+                        // Copy keys to avoid modifying during iteration
+                        var keyList = new System.Collections.Generic.List<Structure>();
+                        var enumerator = dict.Keys.GetEnumerator();
+                        while (enumerator.MoveNext())
+                            keyList.Add(enumerator.Current);
+                        
+                        foreach (var structure in keyList)
+                        {
+                            try
+                            {
+                                // First try TryRepair (game's own repair)
+                                bool completedRepair = false;
+                                if (StructureDestructionManager.TryRepair(structure, out completedRepair) && completedRepair)
+                                {
+                                    repaired++;
+                                    continue;
+                                }
+                                
+                                // Fallback: directly set Health = MaxHealth on the StructureInfo
+                                // NOTE: We only set Health, NOT ElementCount. Setting ElementCount
+                                // triggers BeamStructure.CalcSupportedBeamElementPosition internally
+                                // which crashes on beams with null prefab references (game engine bug).
+                                StructureInfo info = default;
+                                if (dict.TryGetValue(structure, out info) && info != null)
+                                {
+                                    float maxHp = info.MaxHealth;
+                                    if (maxHp > 0f)
+                                    {
+                                        info.Health = maxHp;
+                                        dict[structure] = info;
+                                        repaired++;
+                                        RLog.Msg($"[RepairAll] Direct repair: set Health={maxHp}, Elements={info.MaxElements}");
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                failedRepairs++;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RLog.Warning($"[RepairAll] Dict iteration failed: {ex.Message}");
+                }
+                
+                // Phase 2: Repair ScrewStructureDestruction items (shelves, chairs, spiked walls)
+                int screwRepaired = 0;
+                try
+                {
+                    screwRepaired = Modules.StructureDurability.StructureDurabilityModule.RepairAllScrewStructures();
+                }
+                catch (Exception ex)
+                {
+                    RLog.Warning($"[RepairAll] Screw repair failed: {ex.Message}");
+                }
+                
+                int totalRepaired = repaired + screwRepaired;
+                SonsSdk.SonsTools.ShowMessage($"Repaired {repaired} structures + {screwRepaired} prefabs");
+                RLog.Msg($"[RepairAll] Done: {repaired} structures, {screwRepaired} screw prefabs{(failedRepairs > 0 ? $", {failedRepairs} beam(s) skipped" : "")}");
+            }
+            catch (Exception ex)
+            {
+                SonsSdk.SonsTools.ShowMessage($"Repair error: {ex.Message}");
+                RLog.Warning($"[RepairAll] Failed: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Add all book pages — unlocks all blueprint book building recipes.
+        /// Uses a Harmony PREFIX on BlueprintBookController.CheckPageIsDiscovered
+        /// to force it to return true for all recipes.
+        /// </summary>
+        private static bool _allBookPagesUnlocked = false;
+
+        public static void AddAllBookPages()
+        {
+            try
+            {
+                if (_allBookPagesUnlocked)
+                {
+                    SonsSdk.SonsTools.ShowMessage("Book pages already unlocked");
+                    return;
+                }
+
+                var controllerType = AccessTools.TypeByName("Sons.Weapon.BlueprintBookController");
+                if (controllerType == null)
+                {
+                    RLog.Warning("[AddAllBookPages] BlueprintBookController type not found");
+                    SonsSdk.SonsTools.ShowMessage("Blueprint controller type not found");
+                    return;
+                }
+
+                var harmony = new HarmonyLib.Harmony("ProjectX.AddAllBookPages");
+
+                // Patch 1: CheckPageIsDiscovered — force all recipes to show as discovered
+                var checkMethod = AccessTools.Method(controllerType, "CheckPageIsDiscovered");
+                if (checkMethod != null)
+                {
+                    var prefix = typeof(BuilderEnhancements).GetMethod(
+                        nameof(CheckPageIsDiscovered_Prefix),
+                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                    harmony.Patch(checkMethod, prefix: new HarmonyLib.HarmonyMethod(prefix));
+                    RLog.Msg("[AddAllBookPages] Patched CheckPageIsDiscovered");
+                }
+                else
+                {
+                    RLog.Warning("[AddAllBookPages] CheckPageIsDiscovered method not found");
+                }
+
+                // Patch 2: StartBlueprintSelectionMode — clear _blockedPages and unlock tabs
+                var startMethod = AccessTools.Method(controllerType, "StartBlueprintSelectionMode");
+                if (startMethod != null)
+                {
+                    var prefix2 = typeof(BuilderEnhancements).GetMethod(
+                        nameof(StartBlueprintSelectionMode_Prefix),
+                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                    harmony.Patch(startMethod, prefix: new HarmonyLib.HarmonyMethod(prefix2));
+                    RLog.Msg("[AddAllBookPages] Patched StartBlueprintSelectionMode");
+                }
+                else
+                {
+                    RLog.Warning("[AddAllBookPages] StartBlueprintSelectionMode not found");
+                }
+
+                _allBookPagesUnlocked = true;
+                RLog.Msg("[AddAllBookPages] All patches applied — pages unlocked");
+                SonsSdk.SonsTools.ShowMessage("All book pages unlocked! Open book to see.");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[AddAllBookPages] Failed: {ex.Message}");
+                SonsSdk.SonsTools.ShowMessage($"Book pages failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Harmony PREFIX on BlueprintBookController.CheckPageIsDiscovered.
+        /// Forces all pages to show as discovered.
+        /// </summary>
+        private static bool CheckPageIsDiscovered_Prefix(ref bool __result, ref bool newlyDiscovered)
+        {
+            __result = true;
+            newlyDiscovered = false;
+            return false; // Skip original method
+        }
+
+        /// <summary>
+        /// Harmony PREFIX on BlueprintBookController.StartBlueprintSelectionMode.
+        /// Clears _blockedPages, sets _isInCreativeMode = true, and unlocks all tabs
+        /// so every page and category is visible.
+        /// </summary>
+        private static void StartBlueprintSelectionMode_Prefix(object __instance)
+        {
+            try
+            {
+                var instanceType = __instance.GetType();
+                
+                // 1. Clear _blockedPages (List<int> at offset 0x1B8)
+                var blockedField = AccessTools.Field(instanceType, "_blockedPages");
+                if (blockedField != null)
+                {
+                    var list = blockedField.GetValue(__instance);
+                    if (list != null)
+                    {
+                        var clearMethod = list.GetType().GetMethod("Clear");
+                        clearMethod?.Invoke(list, null);
+                        RLog.Msg("[AddAllBookPages] Cleared _blockedPages");
+                    }
+                }
+
+                // 2. Set _isInCreativeMode = true (offset 0xC8)
+                var creativeField = AccessTools.Field(instanceType, "_isInCreativeMode");
+                if (creativeField != null)
+                {
+                    creativeField.SetValue(__instance, true);
+                    RLog.Msg("[AddAllBookPages] Set _isInCreativeMode = true");
+                }
+                
+                // 3. Unlock all tabs — call LockTabs(false)
+                var lockTabsMethod = AccessTools.Method(instanceType, "LockTabs");
+                if (lockTabsMethod != null)
+                {
+                    lockTabsMethod.Invoke(__instance, new object[] { false });
+                    RLog.Msg("[AddAllBookPages] Called LockTabs(false)");
+                }
+                
+                // 4. Unlock discoverable tabs — enable all tab interactions
+                var discoverableField = AccessTools.Field(instanceType, "_discoverableTabs");
+                if (discoverableField != null)
+                {
+                    var discoverableTabs = discoverableField.GetValue(__instance);
+                    if (discoverableTabs != null)
+                    {
+                        // Enable each HeldBookInteraction in _discoverableTabs
+                        var countProp = discoverableTabs.GetType().GetProperty("Count");
+                        var itemProp = discoverableTabs.GetType().GetProperty("Item");
+                        if (countProp != null && itemProp != null)
+                        {
+                            int count = (int)countProp.GetValue(discoverableTabs);
+                            for (int i = 0; i < count; i++)
+                            {
+                                var tab = itemProp.GetValue(discoverableTabs, new object[] { i });
+                                if (tab != null)
+                                {
+                                    // HeldBookInteraction likely has an enabled/active property
+                                    var enabledField = AccessTools.Field(tab.GetType(), "_enabled") 
+                                        ?? AccessTools.Field(tab.GetType(), "enabled");
+                                    if (enabledField != null)
+                                    {
+                                        enabledField.SetValue(tab, true);
+                                    }
+                                    // Also try SetActive on the GameObject
+                                    var goField = AccessTools.Property(tab.GetType(), "gameObject");
+                                    if (goField != null)
+                                    {
+                                        var go = goField.GetValue(tab);
+                                        if (go != null)
+                                        {
+                                            var setActive = go.GetType().GetMethod("SetActive");
+                                            setActive?.Invoke(go, new object[] { true });
+                                        }
+                                    }
+                                }
+                            }
+                            RLog.Msg($"[AddAllBookPages] Enabled {count} discoverable tabs");
+                        }
+                    }
+                }
+                
+                // 5. Call OnUnlockTabs to trigger the game's own unlock logic
+                var unlockMethod = AccessTools.Method(instanceType, "OnUnlockTabs");
+                if (unlockMethod != null)
+                {
+                    unlockMethod.Invoke(__instance, null);
+                    RLog.Msg("[AddAllBookPages] Called OnUnlockTabs()");
+                }
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[AddAllBookPages] StartBlueprintSelectionMode PREFIX failed: {ex.Message}");
             }
         }
 

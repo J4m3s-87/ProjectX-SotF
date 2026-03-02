@@ -40,14 +40,15 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                 PatchChooseEventsForDay();
                 PatchInCooldown();
                 
-                // Patch VailActor.OnEnable - apply stat multipliers when actors spawn
-                PatchVailActorOnEnable();
+                // Patch VailActor.OnActorEnabled — apply damage, aggression, and HP multipliers
+                // Uses unsafe IntPtr + IL2CPP offset arithmetic (bypasses all reflection issues)
+                PatchVailActorOnActorEnabled();
                 
                 // PERMANENTLY DISABLED: RunEvent patch causes IL Compile Error which
                 // corrupts the CLR method table, leading to Tab/backpack crash.
                 // PatchRunEventSimplified();
                 
-                RLog.Msg("[RaidCustomizer] Patches applied (event queuing + stat multipliers)");
+                RLog.Msg("[RaidCustomizer] Patches applied (event queuing + stat multipliers via unsafe offsets)");
             }
             catch (Exception ex)
             {
@@ -418,47 +419,101 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         }
 #endif
         
-        private static void PatchVailActorOnEnable()
+        /// <summary>
+        /// Patch VailActor.OnActorEnabled — applies damage and aggression multipliers
+        /// using typed IL2CPP field access (mirrors original RaidCustomizer mod).
+        /// </summary>
+        private static void PatchVailActorOnActorEnabled()
         {
             try
             {
-                // Try to find OnEnable or similar activation method on VailActor
-                var original = AccessTools.Method(typeof(VailActor), "OnEnable");
+                var original = AccessTools.Method(typeof(VailActor), "OnActorEnabled");
                 if (original == null)
                 {
-                    // Try alternative method names
-                    original = AccessTools.Method(typeof(VailActor), "Awake");
-                }
-                if (original == null)
-                {
-                    original = AccessTools.Method(typeof(VailActor), "Start");
-                }
-                
-                if (original == null)
-                {
-                    RLog.Warning("[RaidCustomizer] VailActor activation method not found - stat multipliers disabled");
+                    RLog.Warning("[RaidCustomizer] VailActor.OnActorEnabled not found - damage/aggression multipliers disabled");
                     return;
                 }
                 
-                var postfix = AccessTools.Method(typeof(RaidPatches), nameof(VailActor_OnEnable_Postfix));
+                var postfix = AccessTools.Method(typeof(RaidPatches), nameof(VailActor_OnActorEnabled_Postfix));
                 _harmony.Patch(original, postfix: new HarmonyMethod(postfix));
-                RLog.Msg($"[RaidCustomizer] Patched VailActor.{original.Name} for stat multipliers");
+                RLog.Msg("[RaidCustomizer] Patched VailActor.OnActorEnabled for damage/aggression multipliers");
             }
             catch (Exception ex)
             {
-                RLog.Warning($"[RaidCustomizer] VailActor patch failed: {ex.Message}");
+                RLog.Warning($"[RaidCustomizer] VailActor.OnActorEnabled patch failed: {ex.Message}");
             }
         }
         
-        private static void VailActor_OnEnable_Postfix(VailActor __instance)
+        /// <summary>
+        /// Postfix: modify _gameSettingsDamageMultiplier, _gameSettingsAngerMultiplier, and _health
+        /// via unsafe IL2CPP pointer + offset arithmetic (bypasses all reflection/DummyDll issues).
+        /// 
+        /// Known offsets from Il2CppDumper dump.cs:
+        ///   VailActor._gameSettingsDamageMultiplier = 0x4CC (float)
+        ///   VailActor._gameSettingsAngerMultiplier  = 0x4D0 (float)
+        ///   VailActor._healthSettings               = 0x218 (ActorHealthSettings ref)
+        ///   ActorHealthSettings._health              = 0x18  (float - base HP)
+        /// </summary>
+        private const int OFFSET_DAMAGE_MULT = 0x4CC;
+        private const int OFFSET_ANGER_MULT  = 0x4D0;
+        private const int OFFSET_HEALTH_SETTINGS = 0x218;
+        private const int OFFSET_HEALTH_VALUE = 0x18;
+        
+        private static System.Reflection.PropertyInfo _cachedPointerProp;
+        private static bool _pointerPropCached = false;
+        
+        private static unsafe void VailActor_OnActorEnabled_Postfix(VailActor __instance)
         {
             try
             {
-                // Check if stat modification is enabled
                 if (!RaidConfig.StatMultiplierModificationEnabled.Value) return;
                 
-                // Apply damage and aggression multipliers
-                StatsMultiplierModifier.ApplyMultipliers(__instance);
+                // Cache the Pointer property from the runtime type (Il2CppObjectBase.Pointer)
+                if (!_pointerPropCached)
+                {
+                    _pointerPropCached = true;
+                    _cachedPointerProp = __instance.GetType().GetProperty("Pointer",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                    RLog.Msg($"[RaidCustomizer] Pointer property cached: {_cachedPointerProp != null}");
+                }
+                
+                if (_cachedPointerProp == null) return;
+                IntPtr actorPtr = (IntPtr)_cachedPointerProp.GetValue(__instance);
+                if (actorPtr == IntPtr.Zero) return;
+                
+                var typeId = __instance.TypeId;
+                
+                // --- Damage multiplier at offset 0x4CC ---
+                float* damagePtr = (float*)((byte*)actorPtr.ToPointer() + OFFSET_DAMAGE_MULT);
+                float currentDmg = *damagePtr;
+                float newDmg = StatsMultiplierModifier.GetDamageMultiplier(typeId, currentDmg);
+                if (Math.Abs(newDmg - currentDmg) > 0.001f)
+                {
+                    *damagePtr = newDmg;
+                }
+                
+                // --- Aggression multiplier at offset 0x4D0 ---
+                float* angerPtr = (float*)((byte*)actorPtr.ToPointer() + OFFSET_ANGER_MULT);
+                float currentAnger = *angerPtr;
+                float newAnger = StatsMultiplierModifier.GetAggressionMultiplier(typeId, currentAnger);
+                if (Math.Abs(newAnger - currentAnger) > 0.001f)
+                {
+                    *angerPtr = newAnger;
+                }
+                
+                // --- HP multiplier via _healthSettings._health ---
+                // Read the _healthSettings reference (IntPtr to ActorHealthSettings object)
+                IntPtr healthSettingsPtr = *(IntPtr*)((byte*)actorPtr.ToPointer() + OFFSET_HEALTH_SETTINGS);
+                if (healthSettingsPtr != IntPtr.Zero)
+                {
+                    float* healthPtr = (float*)((byte*)healthSettingsPtr.ToPointer() + OFFSET_HEALTH_VALUE);
+                    float currentHealth = *healthPtr;
+                    float hpMultiplier = StatsMultiplierModifier.GetHealthMultiplier(typeId, 1.0f);
+                    if (Math.Abs(hpMultiplier - 1.0f) > 0.01f)
+                    {
+                        *healthPtr = currentHealth * hpMultiplier;
+                    }
+                }
             }
             catch { }
         }

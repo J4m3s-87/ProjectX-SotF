@@ -500,91 +500,70 @@ namespace ProjectX.Master.Modules.Building
         {
             try
             {
-                var instanceType = __instance.GetType();
-                
-                // 1. Clear _blockedPages (List<int> at offset 0x1B8)
-                var blockedField = AccessTools.Field(instanceType, "_blockedPages");
-                if (blockedField != null)
+                var bbc = __instance as Sons.Weapon.BlueprintBookController;
+                if (bbc == null)
                 {
-                    var list = blockedField.GetValue(__instance);
-                    if (list != null)
-                    {
-                        var clearMethod = list.GetType().GetMethod("Clear");
-                        clearMethod?.Invoke(list, null);
-                        RLog.Msg("[AddAllBookPages] Cleared _blockedPages");
-                    }
+                    RLog.Warning("[AddAllBookPages] Failed to cast to BlueprintBookController");
+                    return;
                 }
 
-                // 2. Set _isInCreativeMode = true (offset 0xC8)
-                var creativeField = AccessTools.Field(instanceType, "_isInCreativeMode");
-                if (creativeField != null)
+                // 1. Clear _blockedPages — typed access (AccessTools.Field returns null on IL2CPP types)
+                try
                 {
-                    creativeField.SetValue(__instance, true);
+                    bbc._blockedPages?.Clear();
+                    RLog.Msg("[AddAllBookPages] Cleared _blockedPages");
+                }
+                catch (Exception ex) { RLog.Warning($"[AddAllBookPages] _blockedPages clear failed: {ex.Message}"); }
+
+                // 2. Set _isInCreativeMode = true — this makes CheckPageIsDiscovered pass creativeMode=true
+                try
+                {
+                    bbc._isInCreativeMode = true;
                     RLog.Msg("[AddAllBookPages] Set _isInCreativeMode = true");
                 }
-                
-                // 3. Unlock all tabs — call LockTabs(false)
-                var lockTabsMethod = AccessTools.Method(instanceType, "LockTabs");
-                if (lockTabsMethod != null)
+                catch (Exception ex) { RLog.Warning($"[AddAllBookPages] _isInCreativeMode set failed: {ex.Message}"); }
+
+                // 3. Enable all _discoverableTabs GameObjects (e.g., Notes tab)
+                try
                 {
-                    lockTabsMethod.Invoke(__instance, new object[] { false });
-                    RLog.Msg("[AddAllBookPages] Called LockTabs(false)");
-                }
-                
-                // 4. Unlock discoverable tabs — enable all tab interactions
-                var discoverableField = AccessTools.Field(instanceType, "_discoverableTabs");
-                if (discoverableField != null)
-                {
-                    var discoverableTabs = discoverableField.GetValue(__instance);
-                    if (discoverableTabs != null)
+                    var tabs = bbc._discoverableTabs;
+                    if (tabs != null)
                     {
-                        // Enable each HeldBookInteraction in _discoverableTabs
-                        var countProp = discoverableTabs.GetType().GetProperty("Count");
-                        var itemProp = discoverableTabs.GetType().GetProperty("Item");
-                        if (countProp != null && itemProp != null)
+                        int count = tabs.Count;
+                        for (int i = 0; i < count; i++)
                         {
-                            int count = (int)countProp.GetValue(discoverableTabs);
-                            for (int i = 0; i < count; i++)
+                            var tab = tabs[i];
+                            if (tab != null && tab.gameObject != null)
                             {
-                                var tab = itemProp.GetValue(discoverableTabs, new object[] { i });
-                                if (tab != null)
-                                {
-                                    // HeldBookInteraction likely has an enabled/active property
-                                    var enabledField = AccessTools.Field(tab.GetType(), "_enabled") 
-                                        ?? AccessTools.Field(tab.GetType(), "enabled");
-                                    if (enabledField != null)
-                                    {
-                                        enabledField.SetValue(tab, true);
-                                    }
-                                    // Also try SetActive on the GameObject
-                                    var goField = AccessTools.Property(tab.GetType(), "gameObject");
-                                    if (goField != null)
-                                    {
-                                        var go = goField.GetValue(tab);
-                                        if (go != null)
-                                        {
-                                            var setActive = go.GetType().GetMethod("SetActive");
-                                            setActive?.Invoke(go, new object[] { true });
-                                        }
-                                    }
-                                }
+                                tab.gameObject.SetActive(true);
                             }
-                            RLog.Msg($"[AddAllBookPages] Enabled {count} discoverable tabs");
                         }
+                        RLog.Msg($"[AddAllBookPages] Enabled {count} discoverable tabs");
                     }
                 }
-                
-                // 5. Call OnUnlockTabs to trigger the game's own unlock logic
-                var unlockMethod = AccessTools.Method(instanceType, "OnUnlockTabs");
-                if (unlockMethod != null)
+                catch (Exception ex) { RLog.Warning($"[AddAllBookPages] _discoverableTabs enable failed: {ex.Message}"); }
+
+                // 4. Unlock all tabs via LockTabs(false)
+                try
                 {
-                    unlockMethod.Invoke(__instance, null);
+                    var lockTabsMethod = AccessTools.Method(bbc.GetType(), "LockTabs");
+                    lockTabsMethod?.Invoke(bbc, new object[] { false });
+                    RLog.Msg("[AddAllBookPages] Called LockTabs(false)");
+                }
+                catch (Exception ex) { RLog.Warning($"[AddAllBookPages] LockTabs failed: {ex.Message}"); }
+
+                // 5. Trigger OnUnlockTabs to finalize
+                try
+                {
+                    var onUnlockMethod = AccessTools.Method(bbc.GetType(), "OnUnlockTabs");
+                    onUnlockMethod?.Invoke(bbc, null);
                     RLog.Msg("[AddAllBookPages] Called OnUnlockTabs()");
                 }
+                catch (Exception ex) { RLog.Warning($"[AddAllBookPages] OnUnlockTabs failed: {ex.Message}"); }
             }
             catch (Exception ex)
             {
-                RLog.Warning($"[AddAllBookPages] StartBlueprintSelectionMode PREFIX failed: {ex.Message}");
+                RLog.Warning($"[AddAllBookPages] PREFIX failed: {ex.Message}");
             }
         }
 

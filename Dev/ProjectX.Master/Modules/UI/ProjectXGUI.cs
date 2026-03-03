@@ -292,6 +292,7 @@ namespace ProjectX.Master.Modules.UI
                     bool wasInfinite = Config.InfiniteInventory.Value;
                     Config.InfiniteInventory.Value = false;
                     Modules.Stack.StackModule.ResetToSafeDefaults();
+                    Modules.Stack.StackModule.Apply(); // restore per-item config caps BEFORE fill
                     
                     SonsSdk.SonsTools.ShowMessage("Filling inventory...");
                     DebugConsole.Instance.SendCommand("addallitems");

@@ -490,6 +490,8 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         private const int OFFSET_ANGER_MULT  = 0x4D0;
         private const int OFFSET_HEALTH_SETTINGS = 0x218;
         private const int OFFSET_HEALTH_VALUE = 0x18;
+        private const int OFF_STAT_MAX = 0x24;
+        private const int OFF_STAT_CURRENT = 0x10;
         
         private static System.Reflection.PropertyInfo _cachedPointerProp;
         private static bool _pointerPropCached = false;
@@ -581,8 +583,6 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                             const int OFF_VAIL_STATS_MGR = 0x8E0;
                             const int OFF_STATS_MGR = 0x28;
                             const int OFF_STATS_LIST = 0x18;
-                            const int OFF_STAT_CURRENT = 0x10;
-                            const int OFF_STAT_MAX = 0x24;
                             
                             IntPtr vailStatsMgr = *(IntPtr*)((byte*)actorPtr.ToPointer() + OFF_VAIL_STATS_MGR);
                             if (vailStatsMgr != IntPtr.Zero)
@@ -602,30 +602,21 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                                             // Il2Cpp Array: length at 0x18, first element at 0x20
                                             int arrLen = *(int*)((byte*)itemsArray.ToPointer() + 0x18);
                                             int count = Math.Min(listSize, arrLen);
-                                            bool foundHealth = false;
                                             
-                                            for (int i = 0; i < count; i++)
+                                            // Strategy: try known HealthStat indices first, then range match
+                                            int foundIndex = FindHealthStatIndex(itemsArray, count, baseHealth, targetHealth);
+                                            
+                                            if (foundIndex >= 0)
                                             {
-                                                IntPtr statObj = *(IntPtr*)((byte*)itemsArray.ToPointer() + 0x20 + i * IntPtr.Size);
-                                                if (statObj == IntPtr.Zero) continue;
-                                                
-                                                // Identify HealthStat by _baseValue matching template base HP
-                                                // (stat[12] has base=100 for Kelvin, base=120 for Virginia)
-                                                float statBaseVal = *(float*)((byte*)statObj.ToPointer() + 0x14); // _baseValue
+                                                IntPtr statObj = *(IntPtr*)((byte*)itemsArray.ToPointer() + 0x20 + foundIndex * IntPtr.Size);
+                                                float statBaseVal = *(float*)((byte*)statObj.ToPointer() + 0x14);
                                                 float statMax = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX);
-                                                
-                                                if (Math.Abs(statBaseVal - baseHealth) < 1f || Math.Abs(statMax - targetHealth) < 1f)
-                                                {
-                                                    *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX) = targetHealth;
-                                                    *(float*)((byte*)statObj.ToPointer() + OFF_STAT_CURRENT) = targetHealth;
-                                                    *(float*)((byte*)statObj.ToPointer() + 0x14) = targetHealth; // _baseValue
-                                                    foundHealth = true;
-                                                    RLog.Msg($"[RaidCustomizer] {typeId} stats: dmg={newDmg:F1} HP={baseHealth:F0}*{hpMultiplier:F1}={targetHealth:F0} (stat[{i}] updated: base={statBaseVal:F0} max={statMax:F0}→{targetHealth:F0})");
-                                                    break;
-                                                }
+                                                *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX) = targetHealth;
+                                                *(float*)((byte*)statObj.ToPointer() + OFF_STAT_CURRENT) = targetHealth;
+                                                *(float*)((byte*)statObj.ToPointer() + 0x14) = targetHealth; // _baseValue
+                                                RLog.Msg($"[RaidCustomizer] {typeId} stats: dmg={newDmg:F1} HP={baseHealth:F0}*{hpMultiplier:F1}={targetHealth:F0} (stat[{foundIndex}] updated: base={statBaseVal:F0} max={statMax:F0}→{targetHealth:F0})");
                                             }
-                                            
-                                            if (!foundHealth)
+                                            else
                                             {
                                                 RLog.Msg($"[RaidCustomizer] {typeId} stats: dmg={newDmg:F1} HP={baseHealth:F0}*{hpMultiplier:F1}={targetHealth:F0} (template only — no matching runtime stat found)");
                                             }
@@ -729,8 +720,6 @@ namespace ProjectX.Master.Modules.RaidCustomizer
             const int OFF_VAIL_STATS_MGR = 0x8E0;
             const int OFF_STATS_MGR = 0x28;
             const int OFF_STATS_LIST = 0x18;
-            const int OFF_STAT_CURRENT = 0x10;
-            const int OFF_STAT_MAX = 0x24;
             
             // 1. Update template
             float* healthPtr = (float*)((byte*)healthSettingsPtr.ToPointer() + OFFSET_HEALTH_VALUE);
@@ -754,25 +743,86 @@ namespace ProjectX.Master.Modules.RaidCustomizer
             int arrLen = *(int*)((byte*)itemsArray.ToPointer() + 0x18);
             int count = Math.Min(listSize, arrLen);
             
+            int foundIndex = FindHealthStatIndex(itemsArray, count, baseHealth, targetHealth);
+            
+            if (foundIndex >= 0)
+            {
+                IntPtr statObj = *(IntPtr*)((byte*)itemsArray.ToPointer() + 0x20 + foundIndex * IntPtr.Size);
+                float statMax = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX);
+                float statCur = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_CURRENT);
+                *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX) = targetHealth;
+                *(float*)((byte*)statObj.ToPointer() + OFF_STAT_CURRENT) = targetHealth;
+                *(float*)((byte*)statObj.ToPointer() + 0x14) = targetHealth;
+                RLog.Msg($"[RaidCustomizer] {source} HP applied: {typeId} stat[{foundIndex}] cur={statCur:F0}→{targetHealth:F0} max={statMax:F0}→{targetHealth:F0}");
+            }
+        }
+        
+        /// <summary>
+        /// Find the HealthStat index in the runtime stats array using a multi-tier strategy:
+        /// 1. Check known indices first (stat[2] = most regular enemies, stat[12] = armored/followers)
+        /// 2. Range-based match: any stat with _max within 50% of baseHealth
+        /// 3. Last resort: first stat with positive _max
+        /// Returns -1 if no viable stat found.
+        /// </summary>
+        private static unsafe int FindHealthStatIndex(IntPtr itemsArray, int count, float baseHealth, float targetHealth)
+        {
+            // Known HealthStat indices from server logs
+            int[] knownIndices = { 2, 12 };
+            
+            // Tier 1: Try known indices — check if the stat at that position has a _max
+            // that plausibly matches the base health (within 2x range)
+            foreach (int idx in knownIndices)
+            {
+                if (idx >= count) continue;
+                IntPtr statObj = *(IntPtr*)((byte*)itemsArray.ToPointer() + 0x20 + idx * IntPtr.Size);
+                if (statObj == IntPtr.Zero) continue;
+                
+                float statMax = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX);
+                float statBase = *(float*)((byte*)statObj.ToPointer() + 0x14); // _baseValue
+                
+                // Match if _max or _baseValue is close to baseHealth or targetHealth
+                if (Math.Abs(statBase - baseHealth) < 1f 
+                    || Math.Abs(statMax - baseHealth) < 1f
+                    || Math.Abs(statMax - targetHealth) < 1f
+                    || (statMax > 0 && statMax >= baseHealth * 0.5f && statMax <= baseHealth * 2f))
+                {
+                    return idx;
+                }
+            }
+            
+            // Tier 2: Scan all stats — range-based match (within 50% of baseHealth)
             for (int i = 0; i < count; i++)
             {
                 IntPtr statObj = *(IntPtr*)((byte*)itemsArray.ToPointer() + 0x20 + i * IntPtr.Size);
                 if (statObj == IntPtr.Zero) continue;
                 
-                float statBaseVal = *(float*)((byte*)statObj.ToPointer() + 0x14);
                 float statMax = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX);
-                float statCur = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_CURRENT);
+                float statBase = *(float*)((byte*)statObj.ToPointer() + 0x14);
                 
-                if (Math.Abs(statBaseVal - baseHealth) < 1f || Math.Abs(statBaseVal - targetHealth) < 1f
-                    || Math.Abs(statMax - targetHealth) < 1f)
+                if (Math.Abs(statBase - baseHealth) < 1f 
+                    || Math.Abs(statMax - baseHealth) < 1f
+                    || Math.Abs(statMax - targetHealth) < 1f
+                    || (statMax > 0 && statMax >= baseHealth * 0.5f && statMax <= baseHealth * 2f))
                 {
-                    *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX) = targetHealth;
-                    *(float*)((byte*)statObj.ToPointer() + OFF_STAT_CURRENT) = targetHealth;
-                    *(float*)((byte*)statObj.ToPointer() + 0x14) = targetHealth;
-                    RLog.Msg($"[RaidCustomizer] {source} HP applied: {typeId} stat[{i}] cur={statCur:F0}→{targetHealth:F0} max={statMax:F0}→{targetHealth:F0}");
-                    break;
+                    return i;
                 }
             }
+            
+            // Tier 3: Last resort — first stat with positive max value (skip stat[0] and [1]
+            // which are typically non-health stats like Armor or Stamina)
+            for (int i = 2; i < count; i++)
+            {
+                IntPtr statObj = *(IntPtr*)((byte*)itemsArray.ToPointer() + 0x20 + i * IntPtr.Size);
+                if (statObj == IntPtr.Zero) continue;
+                
+                float statMax = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX);
+                if (statMax > 0)
+                {
+                    return i;
+                }
+            }
+            
+            return -1; // No viable stat found
         }
     }
 }

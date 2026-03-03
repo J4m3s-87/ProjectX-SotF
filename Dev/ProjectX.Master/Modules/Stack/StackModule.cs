@@ -48,15 +48,63 @@ namespace ProjectX.Master.Modules.Stack
                 var items = ItemDatabaseManager.Items;
                 if (items == null || items.Count == 0) return;
                 
-                // Priority 1: Infinite Inventory (everything to 999999999)
+                // Priority 1: Infinite Stacks — set all consumables & ammo to 1000
                 if (Config.InfiniteInventory.Value)
                 {
-                    foreach (var item in items)
+                    const int INF_STACK = 1000;
+                    int count = 0;
+                    
+                    // All consumable/ammo/arrow item IDs from per-item config
+                    int[] infiniteStackIds = {
+                        // Ammo (all types)
+                        646, 648, 644, 650, 647, 651, 642, 643, 652, 362, 363, 364, 369, 387,
+                        // Arrows & Bolts
+                        507, 618, 373, 368,
+                        // Throwables
+                        388, 381, 417, 474, 440,
+                        // Medication
+                        437, 455, 456, 461, 462,
+                        // Food & Drinks
+                        517, 433, 436, 438, 441, 439, 434, 464, 421, 425, 466, 401, 570, 571, 569,
+                        // Crafting Items
+                        419, 502, 418, 527, 403, 416, 420, 414, 410,
+                        // Sticks & Rocks
+                        392, 393, 476,
+                        // Printing Items
+                        390, 553, 560, 657,
+                        // Electric Items
+                        634, 661, 635, 590,
+                        // Animal Drops
+                        506, 472, 479,
+                        // Body Parts & Bones
+                        482, 480, 481, 430, 405,
+                        // Armor
+                        593, 494, 727, 554, 473, 519,
+                        // Plants & Seeds
+                        484, 451, 454, 595, 445, 465, 449, 453, 400, 594, 450, 399, 398, 447, 397, 448, 446, 452,
+                        596, 598, 599, 605, 600, 601, 602, 603, 604, 606, 597,
+                        // Misc consumables
+                        664, 508, 626, 504, 469, 518, 524, 496,
+                        // Zipline
+                        523
+                    };
+                    
+                    foreach (int id in infiniteStackIds)
                     {
-                        if (item != null) item.MaxAmount = 999999999;
+                        try
+                        {
+                            var item = ItemDatabaseManager.ItemById(id);
+                            if (item != null)
+                            {
+                                item.MaxAmount = INF_STACK;
+                                count++;
+                            }
+                        }
+                        catch { }
                     }
+                    
                     _applied = true;
-                    RLog.Msg($"[Stack] Infinite Items applied to {items.Count} items");
+                    RLog.Msg($"[Stack] Infinite Stacks ON: set {count} consumable/ammo items to {INF_STACK}");
                     return;
                 }
                 

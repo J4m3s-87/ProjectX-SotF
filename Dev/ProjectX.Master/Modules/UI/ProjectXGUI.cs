@@ -24,7 +24,7 @@ namespace ProjectX.Master.Modules.UI
         // State
         private bool _showMenu = false;
         private int _currentPanel = 0;
-        private readonly string[] _panelNames = { "Player", "Environment", "Teleport", "Building+", "Raids", "Server Admin" };
+        private readonly string[] _panelNames = { "Player", "Environment", "Teleport", "Building+", "Raids", "Server Admin", "Server Raids" };
         
         // Layout dimensions (enlarged for better readability)
         private const float PANEL_WIDTH = 1100f;
@@ -225,6 +225,7 @@ namespace ProjectX.Master.Modules.UI
                 case 3: DrawMiscPanel(); break;
                 case 4: DrawRaidsPanel(); break;
                 case 5: DrawServerAdminPanel(); break;
+                case 6: DrawServerRaidsPanel(); break;
             }
             
             GUILayout.EndScrollView();
@@ -1362,6 +1363,74 @@ namespace ProjectX.Master.Modules.UI
                 if (Math.Abs(virginiaNew - virginiaOld) > 0.05f)
                     RaidCustomizer.RaidConfig.VirginiaHealthMultiplier.Value = virginiaNew;
                 
+
+                
+                DrawDivider("LOOT RESPAWN");
+                
+                // Loot toggle — local mod state
+                try
+                {
+                    bool lootEnabled = DrawCheckbox("Loot Respawn Enabled", LootRespawn.LootRespawnModule.Enabled);
+                    if (lootEnabled != LootRespawn.LootRespawnModule.Enabled)
+                    {
+                        LootRespawn.LootRespawnModule.Enabled = lootEnabled;
+                        Config.Save();
+                    }
+                }
+                catch { GUILayout.Label("Loot module not loaded", ProjectXStyles.NormalLabel); }
+                
+                // Respawn days slider — null-safe
+                if (Config.LootRespawnDays != null)
+                {
+                    Config.LootRespawnDays.Value = (int)DrawSlider("Respawn Days", Config.LootRespawnDays.Value, 1, 30);
+                }
+                
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Reset Loot Tracker", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("loot reset");
+                if (GUILayout.Button("Show Loot Status", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("loot status");
+                GUILayout.EndHorizontal();
+                
+                DrawDivider("SERVER");
+                
+                // Structure Durability — local config
+                if (Config.StructureDurabilityMultiplier != null)
+                {
+                    Config.StructureDurabilityMultiplier.Value = DrawSlider("Structure Durability", Config.StructureDurabilityMultiplier.Value, 0.1f, 100f);
+                }
+                
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Force Save World", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("save");
+                if (GUILayout.Button("Save Config", ProjectXStyles.Button, GUILayout.Height(45)))
+                {
+                    try
+                    {
+                        // Send follower health multipliers to server
+                        ServerCmd($"config set XR_KelvinHealth {RaidCustomizer.RaidConfig.KelvinHealthMultiplier.Value}");
+                        ServerCmd($"config set XR_VirginiaHealth {RaidCustomizer.RaidConfig.VirginiaHealthMultiplier.Value}");
+                        Config.Save();
+                        RLog.Msg("[ServerAdmin] Config saved");
+                    }
+                    catch {}
+                }
+                GUILayout.EndHorizontal();
+                
+                if (GUILayout.Button("Show Server Status", ProjectXStyles.Button, GUILayout.Height(45)))
+                    ServerCmd("status");
+            }
+            catch (System.Exception ex)
+            {
+                GUILayout.Label($"Server Admin panel error: {ex.Message}", ProjectXStyles.NormalLabel);
+                RLog.Warning($"[ServerAdmin] Panel render error: {ex}");
+            }
+        }
+        
+        private void DrawServerRaidsPanel()
+        {
+            try
+            {
                 DrawDivider("RAID SCHEDULE");
                 
                 // Time of day toggles — local only, sent to server on Apply
@@ -1474,66 +1543,11 @@ namespace ProjectX.Master.Modules.UI
                     ServerCmd("raid status");
                 }
                 GUILayout.EndHorizontal();
-                
-                DrawDivider("LOOT RESPAWN");
-                
-                // Loot toggle — local mod state
-                try
-                {
-                    bool lootEnabled = DrawCheckbox("Loot Respawn Enabled", LootRespawn.LootRespawnModule.Enabled);
-                    if (lootEnabled != LootRespawn.LootRespawnModule.Enabled)
-                    {
-                        LootRespawn.LootRespawnModule.Enabled = lootEnabled;
-                        Config.Save();
-                    }
-                }
-                catch { GUILayout.Label("Loot module not loaded", ProjectXStyles.NormalLabel); }
-                
-                // Respawn days slider — null-safe
-                if (Config.LootRespawnDays != null)
-                {
-                    Config.LootRespawnDays.Value = (int)DrawSlider("Respawn Days", Config.LootRespawnDays.Value, 1, 30);
-                }
-                
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Reset Loot Tracker", ProjectXStyles.Button, GUILayout.Height(45)))
-                    ServerCmd("loot reset");
-                if (GUILayout.Button("Show Loot Status", ProjectXStyles.Button, GUILayout.Height(45)))
-                    ServerCmd("loot status");
-                GUILayout.EndHorizontal();
-                
-                DrawDivider("SERVER");
-                
-                // Structure Durability — local config
-                if (Config.StructureDurabilityMultiplier != null)
-                {
-                    Config.StructureDurabilityMultiplier.Value = DrawSlider("Structure Durability", Config.StructureDurabilityMultiplier.Value, 0.1f, 100f);
-                }
-                
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Force Save World", ProjectXStyles.Button, GUILayout.Height(45)))
-                    ServerCmd("save");
-                if (GUILayout.Button("Save Config", ProjectXStyles.Button, GUILayout.Height(45)))
-                {
-                    try
-                    {
-                        // Send follower health multipliers to server
-                        ServerCmd($"config set XR_KelvinHealth {RaidCustomizer.RaidConfig.KelvinHealthMultiplier.Value}");
-                        ServerCmd($"config set XR_VirginiaHealth {RaidCustomizer.RaidConfig.VirginiaHealthMultiplier.Value}");
-                        Config.Save();
-                        RLog.Msg("[ServerAdmin] Config saved");
-                    }
-                    catch {}
-                }
-                GUILayout.EndHorizontal();
-                
-                if (GUILayout.Button("Show Server Status", ProjectXStyles.Button, GUILayout.Height(45)))
-                    ServerCmd("status");
             }
             catch (System.Exception ex)
             {
-                GUILayout.Label($"Server Admin panel error: {ex.Message}", ProjectXStyles.NormalLabel);
-                RLog.Warning($"[ServerAdmin] Panel render error: {ex}");
+                GUILayout.Label($"Server Raids panel error: {ex.Message}", ProjectXStyles.NormalLabel);
+                RLog.Warning($"[ServerRaids] Panel render error: {ex}");
             }
         }
         

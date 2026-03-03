@@ -286,25 +286,21 @@ namespace ProjectX.Master.Modules.UI
             {
                 try
                 {
-                    // Temporarily disable Infinite Stacks to prevent freeze
-                    // (addallitems fills to stack cap — 999,999,999 would freeze the game)
+                    // ALWAYS reset stacks to safe defaults before fill.
+                    // Prevents 999M fills if Infinite Stacks was toggled on then off
+                    // (ApplyPerItemConfig only covers 118/308 items — the rest retain 999M).
                     bool wasInfinite = Config.InfiniteInventory.Value;
-                    if (wasInfinite)
-                    {
-                        Config.InfiniteInventory.Value = false;
-                        Modules.Stack.StackModule.Apply();
-                    }
+                    Config.InfiniteInventory.Value = false;
+                    Modules.Stack.StackModule.ResetToSafeDefaults();
                     
                     SonsSdk.SonsTools.ShowMessage("Filling inventory...");
                     DebugConsole.Instance.SendCommand("addallitems");
                     RLog.Msg("[ProjectXGUI] Fill Inventory triggered via addallitems");
                     
-                    // Restore Infinite Stacks if it was on
+                    // Restore previous state and re-apply stack config
                     if (wasInfinite)
-                    {
                         Config.InfiniteInventory.Value = true;
-                        Modules.Stack.StackModule.Apply();
-                    }
+                    Modules.Stack.StackModule.Apply();
                 }
                 catch (System.Exception ex)
                 {

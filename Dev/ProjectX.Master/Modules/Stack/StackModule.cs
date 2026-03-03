@@ -233,6 +233,52 @@ namespace ProjectX.Master.Modules.Stack
             _applied = false;
             Apply();
         }
+        /// <summary>
+        /// Reset ALL item MaxAmounts to safe defaults before addallitems.
+        /// Reads the game's original _maxAmount (serialized, private) via reflection.
+        /// Falls back to a safe cap of 99 if reflection fails.
+        /// Prevents 999M fills from residual Infinite Stacks toggle state.
+        /// </summary>
+        public static void ResetToSafeDefaults()
+        {
+            try
+            {
+                var items = ItemDatabaseManager.Items;
+                if (items == null || items.Count == 0) return;
+                
+                // Try to get the private _maxAmount field (original game default)
+                var f_maxAmount = HarmonyLib.AccessTools.Field(typeof(Sons.Items.Core.ItemData), "_maxAmount");
+                
+                int resetCount = 0;
+                foreach (var item in items)
+                {
+                    if (item == null || item.MaxAmount <= 9999) continue;
+                    
+                    // Read original default from serialized field
+                    int safeDefault = 99;
+                    if (f_maxAmount != null)
+                    {
+                        try
+                        {
+                            int original = (int)f_maxAmount.GetValue(item);
+                            if (original > 0 && original <= 9999)
+                                safeDefault = original;
+                        }
+                        catch { }
+                    }
+                    
+                    item.MaxAmount = safeDefault;
+                    resetCount++;
+                }
+                
+                if (resetCount > 0)
+                    RLog.Msg($"[Stack] Reset {resetCount} items to safe defaults (for Fill Inventory)");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[Stack] ResetToSafeDefaults failed: {ex.Message}");
+            }
+        }
     }
 }
 #endif

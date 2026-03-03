@@ -618,7 +618,18 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                                             }
                                             else
                                             {
-                                                RLog.Msg($"[RaidCustomizer] {typeId} stats: dmg={newDmg:F1} HP={baseHealth:F0}*{hpMultiplier:F1}={targetHealth:F0} (template only — no matching runtime stat found)");
+                                                // Diagnostic: dump first stats to understand why match failed
+                                                var diagParts = new System.Collections.Generic.List<string>();
+                                                for (int di = 0; di < Math.Min(count, 5); di++)
+                                                {
+                                                    IntPtr dObj = *(IntPtr*)((byte*)itemsArray.ToPointer() + 0x20 + di * IntPtr.Size);
+                                                    if (dObj == IntPtr.Zero) { diagParts.Add($"[{di}]=null"); continue; }
+                                                    float dBase = *(float*)((byte*)dObj.ToPointer() + 0x14);
+                                                    float dMax = *(float*)((byte*)dObj.ToPointer() + OFF_STAT_MAX);
+                                                    float dCur = *(float*)((byte*)dObj.ToPointer() + OFF_STAT_CURRENT);
+                                                    diagParts.Add($"[{di}]base={dBase:F0} max={dMax:F0} cur={dCur:F0}");
+                                                }
+                                                RLog.Msg($"[RaidCustomizer] {typeId} stats: dmg={newDmg:F1} HP={baseHealth:F0}*{hpMultiplier:F1}={targetHealth:F0} (NO MATCH — listSize={listSize} arrLen={arrLen} stats: {string.Join(", ", diagParts)})");
                                             }
                                         }
                                         else

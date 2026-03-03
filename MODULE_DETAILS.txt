@@ -7,7 +7,7 @@ This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
-Last Updated: February 08, 2026
+Last Updated: March 03, 2026
 
 ================================================================================
                                 TABLE OF CONTENTS
@@ -570,7 +570,8 @@ ORIGINAL CONFIG OPTIONS (for reference):
 PURPOSE:
 Comprehensive raid and enemy customization module. Controls raid scheduling,
 enemy spawn counts, stat multipliers for all enemy types, and multiplayer
-scaling. Also adjusts follower (Kelvin/Virginia) health.
+scaling. Also adjusts follower (Kelvin/Virginia) health with persistent
+HP multipliers that survive first-aid revival.
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ HOW TO USE                                                                   │
@@ -609,9 +610,14 @@ scaling. Also adjusts follower (Kelvin/Virginia) health.
 │ └────────────────┴──────────────────┴──────────────────┘                   │
 │ Each type also has an Aggression multiplier.                                 │
 │                                                                              │
-│ FOLLOWER HEALTH:                                                             │
-│ • XR_KelvinHealth: Kelvin HP multiplier                                      │
-│ • XR_VirginiaHealth: Virginia HP multiplier                                  │
+│ FOLLOWER HEALTH (PERSISTENT):                                                │
+│ • XR_KelvinHealth: Kelvin HP multiplier (1x-200x, base 100 HP)              │
+│   At 200x = 20,000 HP                                                       │
+│ • XR_VirginiaHealth: Virginia HP multiplier (1x-200x, base 120 HP)          │
+│   At 200x = 24,000 HP                                                       │
+│ • HP persists through first-aid revival (delayed timer reapplies)            │
+│ • Applied at spawn via VailActor.OnActorEnabled postfix                      │
+│ • Reapplied after revival via VailActor.Revive postfix (1s delay)            │
 │                                                                              │
 │ MULTIPLAYER SCALING:                                                         │
 │ • XR_AdjustByPlayerCount: Auto-scale difficulty with players                │
@@ -621,7 +627,14 @@ scaling. Also adjusts follower (Kelvin/Virginia) health.
 └──────────────────────────────────────────────────────────────────────────────┘
 
 INTERNAL MECHANICS:
-- Uses Harmony Postfix on VailActor.OnEnable() for stat application
+- Uses Harmony Postfix on VailActor.OnEnable() for enemy stat application
+- Uses Harmony Postfix on VailActor.Revive() for follower HP persistence
+- Follower HP: identifies HealthStat via _baseValue matching (not _max)
+  VailActor has 13 stats — stat[12] is HealthStat, stat[0] is behavioral
+- Writes three stat fields: _currentValue (0x10), _baseValue (0x14), _max (0x24)
+- Revive postfix uses System.Threading.Timer (1s delay) to avoid game HP reset
+  race with DyingRecoverHealth recovery logic
+- Shared ApplyFollowerHP() helper used by both OnActorEnabled and Revive paths
 - Manual Harmony patching (HarmonyPatchAll=false for IL2CPP safety)
 - Server-authoritative: Raid scheduling runs on host/server
 - Re-queues raids when config changes (MustRequeueRaids flag)
@@ -684,43 +697,58 @@ INTERNAL MECHANICS:
 ================================================================================
 
 PURPOSE:
-Provides admin commands for server hosts (currently disabled due to chat
-signature mismatch).
+Provides admin chat commands and server-side command execution for dedicated
+server hosts. Owner clients route commands to the server via ChatBox.SendLine.
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ HOW TO USE                                                                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ⚠ NOTE: This module is currently DISABLED due to technical issues.         │
+│ Type commands in the in-game chat. All commands use the /px prefix.         │
 │                                                                              │
-│ PLANNED FUNCTIONALITY (when re-enabled):                                     │
+│ COMMANDS:                                                                    │
 │                                                                              │
-│ ADMIN COMMANDS (type in chat):                                               │
-│ • revivekelvin     → Revive Kelvin if dead                                  │
-│ • revivevirginia   → Revive Virginia if dead                                │
-│ • season spring    → Change season to Spring                                │
-│ • season summer    → Change season to Summer                                │
-│ • season autumn    → Change season to Autumn                                │
-│ • season winter    → Change season to Winter                                │
-│ • time [0-24]      → Set time of day (e.g., "time 12" for noon)            │
+│ WORLD COMMANDS:                                                              │
+│ • /px world time [0-24]        → Set time of day                            │
+│ • /px world season [name]      → Change season (spring/summer/autumn/winter)│
+│ • /px world weather [type]     → Set weather (sunny/rain/snow)              │
+│ • /px world freeze             → Toggle AI freeze                           │
+│ • /px world treeregrow         → Regrow all trees                           │
+│ • /px world revivekelvin       → Revive Kelvin                              │
+│ • /px world revivevirginia     → Revive Virginia                            │
 │                                                                              │
-│ ADMIN WHITELIST:                                                             │
-│ Only players on the admin whitelist can use these commands.                 │
-│ Whitelist is based on SteamID.                                              │
+│ RAID COMMANDS:                                                               │
+│ • /px raid status              → Show queued raid events                    │
+│ • /px raid start               → Start a random raid                        │
+│ • /px raid clear               → Clear all queued raids                     │
+│ • /px raid requeue             → Requeue all raid events                    │
+│                                                                              │
+│ CONFIG COMMANDS:                                                             │
+│ • /px config get [key]         → Read config value                          │
+│ • /px config set [key] [val]   → Set config value                           │
+│ • /px config save              → Save config to disk                        │
+│ • /px config list              → List all config entries                    │
+│                                                                              │
+│ SERVER COMMANDS:                                                             │
+│ • /px save                     → Force world save                           │
+│ • /px status                   → Server status info                         │
+│                                                                              │
+│ OWNER GUI (Server Admin panel):                                              │
+│ The Owner edition GUI has a "Server Admin" panel with buttons that route    │
+│ commands via ServerCmd() → ChatBox.SendLine → /px chat hook on server.      │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-PLANNED COMMANDS:
-- revivekelvin: Revive Kelvin
-- revivevirginia: Revive Virginia
-- season [name]: Set current season
-- time [value]: Set time of day
-
-WHITELIST SYSTEM:
-- Uses SteamID-based admin whitelist
-- Whitelist file managed by OwnerWhitelistUtils
+COMMAND ROUTING:
+- Owner/Client → ChatBox.SendLine("/px ...") → server chat hook intercepts
+- Server → CommandBridge.ProcessMessage() dispatches to handlers
+- Local fallback: if player IS the server, executes locally
 
 INTERNAL MECHANICS:
-- Chat patch disabled (signature mismatch with current game version)
-- Attempts to patch ChatBox.AddLine to intercept commands
+- Chat hook via Harmony Postfix on ChatBox (multi-class fallback)
+- CommandBridge routes /px commands to registered handler modules
+- RaidCommands.cs, WorldCommands.cs, ConfigCommands.cs, LootCommands.cs,
+  ServerCommands.cs — separate handler files per command category
+- WorldCommands uses TrySendDebugCommand() for server-authoritative actions
+- Server-safe tick driver: SeasonsManager.LateUpdate Harmony Postfix
 
 ================================================================================
                          13. BUILDING CHEATS MODULE
@@ -742,7 +770,8 @@ All features are accessible from the Project X menu under "Building Cheats".
 │   Uses: GameSetupManager.SetFreeFormForcePlaceFullLoadSetting(bool)         │
 │                                                                              │
 │ • Instant Build - Structures complete instantly after placement             │
-│   Uses: DebugConsole.SendCommand("instantbookbuild on/off")                 │
+│   On dedicated server: polls finishblueprints every 0.5s (server-side)     │
+│   On SP/P2P: Harmony PREFIX on StructureCraftingSystem.Update              │
 │                                                                              │
 │ • No Wood Cuttings - Structures build without wood cutting debris           │
 │   Uses: GameSetupManager.SetConstructionSkipCuttingsSpawnSetting(bool)      │
@@ -762,9 +791,10 @@ INTERNAL MECHANICS:
 - BuilderEnhancements.cs contains all toggle logic
 - FreeForm and NoCuttings: Direct static API calls on
   Sons.Gameplay.GameSetup.GameSetupManager (requires Sons.Gameplay.GameSetup.dll)
-- Log Hack and Stone Hack: SendCommand Pivot via DebugConsole.Instance
-- Instant Build: SendCommand("instantbookbuild on/off")
-- All toggles are client-only (#if !SERVER)
+- Instant Build (Dedicated Server): ServerTickPostfix polls "finishblueprints"
+  every 0.5s via WorldCommands.TrySendDebugCommand (server-authoritative)
+- Instant Build (SP/P2P): Harmony PREFIX on StructureCraftingSystem.Update
+  writes InstantBuild=true at offset 0x71 every frame
 
 API DISCOVERY NOTES:
 - "skipwoodcuttings" and "freeformplace" console commands DO NOT EXIST

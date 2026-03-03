@@ -136,7 +136,9 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                 // Auto-save to disk
                 Config.Save();
                 
-                Log($"Set {category}/{entry.DisplayName}: {oldValue} → {newValue} (saved)");
+                // Server-side log only — no chat response to avoid flooding
+                // when the admin panel sends 20+ config set commands at once
+                RLog.Msg($"[Superuser] Set {category}/{entry.DisplayName}: {oldValue} -> {newValue} (saved)");
             }
             catch (Exception ex)
             {

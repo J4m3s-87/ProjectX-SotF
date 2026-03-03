@@ -6,6 +6,7 @@ using RedLoader;
 using Sons.Ai.Vail;
 using Sons.Characters;
 using Endnight.Types;
+using UnityEngine;
 
 namespace ProjectX.Master.Modules.RaidCustomizer
 {
@@ -43,6 +44,10 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                 // Patch VailActor.OnActorEnabled — apply damage, aggression, and HP multipliers
                 // Uses unsafe IntPtr + IL2CPP offset arithmetic (bypasses all reflection issues)
                 PatchVailActorOnActorEnabled();
+                
+                // Patch ReviveVailActor.Revive — re-apply follower HP after first-aid revival
+                // (OnActorEnabled doesn't fire when a downed companion is revived)
+                PatchReviveVailActor();
                 
                 // PERMANENTLY DISABLED: RunEvent patch causes IL Compile Error which
                 // corrupts the CLR method table, leading to Tab/backpack crash.
@@ -445,6 +450,33 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         }
         
         /// <summary>
+        /// Patch VailActor.Revive — re-apply follower HP multiplier after first-aid revival.
+        /// OnActorEnabled does NOT fire when a downed companion is revived, so this hook
+        /// ensures the HP multiplier persists through down/revive cycles.
+        /// Unlike ReviveVailActor.Revive (client-only), VailActor.Revive fires server-side.
+        /// </summary>
+        private static void PatchReviveVailActor()
+        {
+            try
+            {
+                var original = AccessTools.Method(typeof(VailActor), "Revive");
+                if (original == null)
+                {
+                    RLog.Warning("[RaidCustomizer] VailActor.Revive not found — follower HP won't persist through revives");
+                    return;
+                }
+                
+                var postfix = AccessTools.Method(typeof(RaidPatches), nameof(VailActor_Revive_Postfix));
+                _harmony.Patch(original, postfix: new HarmonyMethod(postfix));
+                RLog.Msg("[RaidCustomizer] Patched VailActor.Revive for follower HP persistence");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[RaidCustomizer] VailActor.Revive patch failed: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
         /// Postfix: modify _gameSettingsDamageMultiplier, _gameSettingsAngerMultiplier, and _health
         /// via unsafe IL2CPP pointer + offset arithmetic (bypasses all reflection/DummyDll issues).
         /// 
@@ -461,14 +493,28 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         
         private static System.Reflection.PropertyInfo _cachedPointerProp;
         private static bool _pointerPropCached = false;
+        private static bool _loggedFirstCall = false;
+        
+        // Cache the ORIGINAL base HP per healthSettings pointer.
+        // This makes HP modification idempotent: always baseHP × multiplier,
+        // so re-applying gives the same result (1000, not 10000, not 100000).
+        private static readonly System.Collections.Generic.Dictionary<IntPtr, float> _baseHealthCache 
+            = new System.Collections.Generic.Dictionary<IntPtr, float>();
         
         private static unsafe void VailActor_OnActorEnabled_Postfix(VailActor __instance)
         {
             try
             {
-                if (!RaidConfig.StatMultiplierModificationEnabled.Value) return;
+                bool enabled = RaidConfig.StatMultiplierModificationEnabled.Value;
                 
-                // Cache the Pointer property from the runtime type (Il2CppObjectBase.Pointer)
+                if (!_loggedFirstCall)
+                {
+                    _loggedFirstCall = true;
+                    RLog.Msg($"[RaidCustomizer] OnActorEnabled postfix first call — StatOverrides={enabled}");
+                }
+                
+                if (!enabled) return;
+                
                 if (!_pointerPropCached)
                 {
                     _pointerPropCached = true;
@@ -483,7 +529,7 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                 
                 var typeId = __instance.TypeId;
                 
-                // --- Damage multiplier at offset 0x4CC ---
+                // --- Damage multiplier at offset 0x4CC (idempotent — replaces value) ---
                 float* damagePtr = (float*)((byte*)actorPtr.ToPointer() + OFFSET_DAMAGE_MULT);
                 float currentDmg = *damagePtr;
                 float newDmg = StatsMultiplierModifier.GetDamageMultiplier(typeId, currentDmg);
@@ -492,7 +538,7 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                     *damagePtr = newDmg;
                 }
                 
-                // --- Aggression multiplier at offset 0x4D0 ---
+                // --- Aggression multiplier at offset 0x4D0 (idempotent — replaces value) ---
                 float* angerPtr = (float*)((byte*)actorPtr.ToPointer() + OFFSET_ANGER_MULT);
                 float currentAnger = *angerPtr;
                 float newAnger = StatsMultiplierModifier.GetAggressionMultiplier(typeId, currentAnger);
@@ -501,21 +547,232 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                     *angerPtr = newAnger;
                 }
                 
-                // --- HP multiplier via _healthSettings._health ---
-                // Read the _healthSettings reference (IntPtr to ActorHealthSettings object)
+                // --- HP multiplier via _healthSettings._health (IDEMPOTENT via base cache) ---
                 IntPtr healthSettingsPtr = *(IntPtr*)((byte*)actorPtr.ToPointer() + OFFSET_HEALTH_SETTINGS);
                 if (healthSettingsPtr != IntPtr.Zero)
                 {
                     float* healthPtr = (float*)((byte*)healthSettingsPtr.ToPointer() + OFFSET_HEALTH_VALUE);
                     float currentHealth = *healthPtr;
                     float hpMultiplier = StatsMultiplierModifier.GetHealthMultiplier(typeId, 1.0f);
+                    
                     if (Math.Abs(hpMultiplier - 1.0f) > 0.01f)
                     {
-                        *healthPtr = currentHealth * hpMultiplier;
+                        // Cache the original base HP on first encounter.
+                        if (!_baseHealthCache.TryGetValue(healthSettingsPtr, out float baseHealth))
+                        {
+                            baseHealth = currentHealth;
+                            _baseHealthCache[healthSettingsPtr] = baseHealth;
+                        }
+                        
+                        float targetHealth = baseHealth * hpMultiplier;
+                        
+                        // 1. Write to template (affects future stat reads)
+                        if (Math.Abs(targetHealth - currentHealth) > 0.5f)
+                        {
+                            *healthPtr = targetHealth;
+                        }
+                        
+                        // 2. Write to RUNTIME stat system via pointer chain:
+                        //    VailActor._statsManager (0x8E0) → VailStatsManager._statsManager (0x28)
+                        //    → StatsManager._stats (0x18) → List<Stat> items
+                        //    Stat._currentValue (0x10), Stat._max (0x24)
+                        try
+                        {
+                            const int OFF_VAIL_STATS_MGR = 0x8E0;
+                            const int OFF_STATS_MGR = 0x28;
+                            const int OFF_STATS_LIST = 0x18;
+                            const int OFF_STAT_CURRENT = 0x10;
+                            const int OFF_STAT_MAX = 0x24;
+                            
+                            IntPtr vailStatsMgr = *(IntPtr*)((byte*)actorPtr.ToPointer() + OFF_VAIL_STATS_MGR);
+                            if (vailStatsMgr != IntPtr.Zero)
+                            {
+                                IntPtr statsMgr = *(IntPtr*)((byte*)vailStatsMgr.ToPointer() + OFF_STATS_MGR);
+                                if (statsMgr != IntPtr.Zero)
+                                {
+                                    IntPtr statsList = *(IntPtr*)((byte*)statsMgr.ToPointer() + OFF_STATS_LIST);
+                                    if (statsList != IntPtr.Zero)
+                                    {
+                                        // Il2Cpp List<T>: _items at 0x10 (array ref), _size at 0x18
+                                        IntPtr itemsArray = *(IntPtr*)((byte*)statsList.ToPointer() + 0x10);
+                                        int listSize = *(int*)((byte*)statsList.ToPointer() + 0x18);
+                                        
+                                        if (itemsArray != IntPtr.Zero && listSize > 0)
+                                        {
+                                            // Il2Cpp Array: length at 0x18, first element at 0x20
+                                            int arrLen = *(int*)((byte*)itemsArray.ToPointer() + 0x18);
+                                            int count = Math.Min(listSize, arrLen);
+                                            bool foundHealth = false;
+                                            
+                                            for (int i = 0; i < count; i++)
+                                            {
+                                                IntPtr statObj = *(IntPtr*)((byte*)itemsArray.ToPointer() + 0x20 + i * IntPtr.Size);
+                                                if (statObj == IntPtr.Zero) continue;
+                                                
+                                                // Identify HealthStat by _baseValue matching template base HP
+                                                // (stat[12] has base=100 for Kelvin, base=120 for Virginia)
+                                                float statBaseVal = *(float*)((byte*)statObj.ToPointer() + 0x14); // _baseValue
+                                                float statMax = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX);
+                                                
+                                                if (Math.Abs(statBaseVal - baseHealth) < 1f || Math.Abs(statMax - targetHealth) < 1f)
+                                                {
+                                                    *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX) = targetHealth;
+                                                    *(float*)((byte*)statObj.ToPointer() + OFF_STAT_CURRENT) = targetHealth;
+                                                    *(float*)((byte*)statObj.ToPointer() + 0x14) = targetHealth; // _baseValue
+                                                    foundHealth = true;
+                                                    RLog.Msg($"[RaidCustomizer] {typeId} stats: dmg={newDmg:F1} HP={baseHealth:F0}*{hpMultiplier:F1}={targetHealth:F0} (stat[{i}] updated: base={statBaseVal:F0} max={statMax:F0}→{targetHealth:F0})");
+                                                    break;
+                                                }
+                                            }
+                                            
+                                            if (!foundHealth)
+                                            {
+                                                RLog.Msg($"[RaidCustomizer] {typeId} stats: dmg={newDmg:F1} HP={baseHealth:F0}*{hpMultiplier:F1}={targetHealth:F0} (template only — no matching runtime stat found)");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            RLog.Msg($"[RaidCustomizer] {typeId} stats: dmg={newDmg:F1} HP={baseHealth:F0}*{hpMultiplier:F1}={targetHealth:F0} (template only — stats list empty)");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Fallback: log template-only modification
+                            RLog.Msg($"[RaidCustomizer] {typeId} stats: dmg={newDmg:F1} HP={baseHealth:F0}*{hpMultiplier:F1}={targetHealth:F0} (template only — stat chain error)");
+                        }
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[RaidCustomizer] OnActorEnabled postfix error: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Postfix for VailActor.Revive — re-apply HP multiplier to the revived companion.
+        /// __instance is the VailActor being revived, so we can read TypeId and reuse
+        /// the same pointer chain as OnActorEnabled.
+        /// </summary>
+        private static unsafe void VailActor_Revive_Postfix(VailActor __instance)
+        {
+            try
+            {
+                if (!RaidConfig.StatMultiplierModificationEnabled.Value) return;
+                if (!_pointerPropCached || _cachedPointerProp == null) return;
+                
+                var typeId = __instance.TypeId;
+                var classId = VailTypes.GetActorClass(typeId);
+                if ((int)classId != 4) return; // Only followers (class 4)
+                
+                IntPtr actorPtr = (IntPtr)_cachedPointerProp.GetValue(__instance);
+                if (actorPtr == IntPtr.Zero) return;
+                
+                IntPtr healthSettingsPtr = *(IntPtr*)((byte*)actorPtr.ToPointer() + OFFSET_HEALTH_SETTINGS);
+                if (healthSettingsPtr == IntPtr.Zero) return;
+                
+                if (!_baseHealthCache.TryGetValue(healthSettingsPtr, out float baseHealth))
+                {
+                    float* healthPtr = (float*)((byte*)healthSettingsPtr.ToPointer() + OFFSET_HEALTH_VALUE);
+                    baseHealth = *healthPtr;
+                    _baseHealthCache[healthSettingsPtr] = baseHealth;
+                }
+                
+                float hpMultiplier = StatsMultiplierModifier.GetHealthMultiplier(typeId, 1.0f);
+                if (Math.Abs(hpMultiplier - 1.0f) < 0.01f) return;
+                
+                float targetHealth = baseHealth * hpMultiplier;
+                
+                // Capture values for delayed application
+                // The game's revive logic resets HP AFTER Revive() returns,
+                // so we schedule the HP re-application 1 second later.
+                var capturedActorPtr = actorPtr;
+                var capturedHealthSettingsPtr = healthSettingsPtr;
+                var capturedTypeId = typeId;
+                var capturedTarget = targetHealth;
+                var capturedBase = baseHealth;
+                
+                System.Threading.Timer delayTimer = null;
+                delayTimer = new System.Threading.Timer(_ =>
+                {
+                    try
+                    {
+                        ApplyFollowerHP(capturedActorPtr, capturedHealthSettingsPtr, capturedTarget, capturedBase, capturedTypeId, "Revive(delayed)");
+                    }
+                    catch (Exception ex)
+                    {
+                        RLog.Warning($"[RaidCustomizer] Delayed revive HP error: {ex.Message}");
+                    }
+                    finally
+                    {
+                        delayTimer?.Dispose();
+                    }
+                }, null, 1000, System.Threading.Timeout.Infinite);
+                
+                RLog.Msg($"[RaidCustomizer] Revive detected: {typeId} — scheduled HP restore ({capturedTarget:F0}) in 1s");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[RaidCustomizer] Revive postfix error: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Shared helper: writes target HP to the template and runtime stat system.
+        /// Used by both OnActorEnabled (immediate) and Revive (delayed).
+        /// </summary>
+        private static unsafe void ApplyFollowerHP(IntPtr actorPtr, IntPtr healthSettingsPtr, float targetHealth, float baseHealth, object typeId, string source)
+        {
+            const int OFF_VAIL_STATS_MGR = 0x8E0;
+            const int OFF_STATS_MGR = 0x28;
+            const int OFF_STATS_LIST = 0x18;
+            const int OFF_STAT_CURRENT = 0x10;
+            const int OFF_STAT_MAX = 0x24;
+            
+            // 1. Update template
+            float* healthPtr = (float*)((byte*)healthSettingsPtr.ToPointer() + OFFSET_HEALTH_VALUE);
+            *healthPtr = targetHealth;
+            
+            // 2. Apply to runtime stat system
+            IntPtr vailStatsMgr = *(IntPtr*)((byte*)actorPtr.ToPointer() + OFF_VAIL_STATS_MGR);
+            if (vailStatsMgr == IntPtr.Zero) return;
+            
+            IntPtr statsMgr = *(IntPtr*)((byte*)vailStatsMgr.ToPointer() + OFF_STATS_MGR);
+            if (statsMgr == IntPtr.Zero) return;
+            
+            IntPtr statsList = *(IntPtr*)((byte*)statsMgr.ToPointer() + OFF_STATS_LIST);
+            if (statsList == IntPtr.Zero) return;
+            
+            IntPtr itemsArray = *(IntPtr*)((byte*)statsList.ToPointer() + 0x10);
+            int listSize = *(int*)((byte*)statsList.ToPointer() + 0x18);
+            
+            if (itemsArray == IntPtr.Zero || listSize <= 0) return;
+            
+            int arrLen = *(int*)((byte*)itemsArray.ToPointer() + 0x18);
+            int count = Math.Min(listSize, arrLen);
+            
+            for (int i = 0; i < count; i++)
+            {
+                IntPtr statObj = *(IntPtr*)((byte*)itemsArray.ToPointer() + 0x20 + i * IntPtr.Size);
+                if (statObj == IntPtr.Zero) continue;
+                
+                float statBaseVal = *(float*)((byte*)statObj.ToPointer() + 0x14);
+                float statMax = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX);
+                float statCur = *(float*)((byte*)statObj.ToPointer() + OFF_STAT_CURRENT);
+                
+                if (Math.Abs(statBaseVal - baseHealth) < 1f || Math.Abs(statBaseVal - targetHealth) < 1f
+                    || Math.Abs(statMax - targetHealth) < 1f)
+                {
+                    *(float*)((byte*)statObj.ToPointer() + OFF_STAT_MAX) = targetHealth;
+                    *(float*)((byte*)statObj.ToPointer() + OFF_STAT_CURRENT) = targetHealth;
+                    *(float*)((byte*)statObj.ToPointer() + 0x14) = targetHealth;
+                    RLog.Msg($"[RaidCustomizer] {source} HP applied: {typeId} stat[{i}] cur={statCur:F0}→{targetHealth:F0} max={statMax:F0}→{targetHealth:F0}");
+                    break;
+                }
+            }
         }
     }
 }

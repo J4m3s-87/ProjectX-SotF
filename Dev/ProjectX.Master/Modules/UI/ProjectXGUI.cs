@@ -1351,6 +1351,17 @@ namespace ProjectX.Master.Modules.UI
                     ServerCmd("world revive virginia");
                 GUILayout.EndHorizontal();
                 
+                // Follower health multiplier sliders
+                float kelvinOld = RaidCustomizer.RaidConfig.KelvinHealthMultiplier.Value;
+                float kelvinNew = DrawSlider("Kelvin HP Multi", kelvinOld, 1f, 200f);
+                if (Math.Abs(kelvinNew - kelvinOld) > 0.05f)
+                    RaidCustomizer.RaidConfig.KelvinHealthMultiplier.Value = kelvinNew;
+                
+                float virginiaOld = RaidCustomizer.RaidConfig.VirginiaHealthMultiplier.Value;
+                float virginiaNew = DrawSlider("Virginia HP Multi", virginiaOld, 1f, 200f);
+                if (Math.Abs(virginiaNew - virginiaOld) > 0.05f)
+                    RaidCustomizer.RaidConfig.VirginiaHealthMultiplier.Value = virginiaNew;
+                
                 DrawDivider("RAID SCHEDULE");
                 
                 // Time of day toggles — local only, sent to server on Apply
@@ -1503,7 +1514,17 @@ namespace ProjectX.Master.Modules.UI
                 if (GUILayout.Button("Force Save World", ProjectXStyles.Button, GUILayout.Height(45)))
                     ServerCmd("save");
                 if (GUILayout.Button("Save Config", ProjectXStyles.Button, GUILayout.Height(45)))
-                { try { Config.Save(); RLog.Msg("[ServerAdmin] Config saved"); } catch {} }
+                {
+                    try
+                    {
+                        // Send follower health multipliers to server
+                        ServerCmd($"config set XR_KelvinHealth {RaidCustomizer.RaidConfig.KelvinHealthMultiplier.Value}");
+                        ServerCmd($"config set XR_VirginiaHealth {RaidCustomizer.RaidConfig.VirginiaHealthMultiplier.Value}");
+                        Config.Save();
+                        RLog.Msg("[ServerAdmin] Config saved");
+                    }
+                    catch {}
+                }
                 GUILayout.EndHorizontal();
                 
                 if (GUILayout.Button("Show Server Status", ProjectXStyles.Button, GUILayout.Height(45)))

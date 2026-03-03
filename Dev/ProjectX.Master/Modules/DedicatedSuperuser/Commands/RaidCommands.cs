@@ -64,17 +64,10 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                 foreach (var evt in eventData._searchPartyEvents)
                 {
                     if (RaidCustomizer.EventTools.IsActualSearchParty(evt))
-                    {
-                        // Only pick Creepy (1) and Muddy (3) raids — these path aggressively
-                        // toward the player's base. Cannibal (0) raids are patrol/scout events
-                        // that may spawn far away and never reach the cross.
-                        int typeVal = (int)evt.type;
-                        if (typeVal == 1 || typeVal == 3)
-                            searchParties.Add(evt);
-                    }
+                        searchParties.Add(evt);
                 }
 
-                RLog.Msg($"[RaidCustomizer] RunRandomRaid: {searchParties.Count} valid creepy/muddy raids (cannibal patrols excluded)");
+                RLog.Msg($"[RaidCustomizer] RunRandomRaid: {searchParties.Count} valid raids (all types)");
 
                 if (searchParties.Count == 0)
                 {
@@ -332,8 +325,8 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
 
 
         /// <summary>
-        /// Print detailed raid schedule to in-game chat (visible to all players)
-        /// Uses ChatResponse.SendLine() which goes through ChatBox — the native chat pipeline.
+        /// Print a compact raid summary to in-game chat as a SINGLE message.
+        /// Avoids sending multiple ChatBox.SendLine calls which causes server lag.
         /// </summary>
         public static void PrintRaidStatus()
         {
@@ -346,24 +339,44 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                     return;
                 }
 
-                // Get detailed raid list
                 var raids = RaidCustomizer.QueuedEventHandler.GetQueuedRaidList();
                 
+                // Build a single compact summary
+                string summary;
                 if (raids.Count == 0)
                 {
-                    ChatResponse.SendLine("No raids queued");
+                    summary = "No raids queued";
                 }
                 else
                 {
-                    ChatResponse.SendLine($"=== Queued Raids ({raids.Count}) ===");
+                    // Group by day for compact display: "Day 26: Heavy 16:00, Painted 19:00 | Day 27: ..."
+                    var parts = new List<string>();
+                    parts.Add($"{raids.Count} raids queued");
+                    
+                    int currentDay = -1;
+                    var dayEntries = new List<string>();
+                    
                     foreach (var (day, hour, period, name, isBoss) in raids)
                     {
+                        if (day != currentDay)
+                        {
+                            if (dayEntries.Count > 0)
+                            {
+                                parts.Add($"Day {currentDay}: {string.Join(", ", dayEntries)}");
+                                dayEntries.Clear();
+                            }
+                            currentDay = day;
+                        }
                         string bossTag = isBoss ? " [BOSS]" : "";
-                        ChatResponse.SendLine($"Day {day}, {hour:D2}:00 ({period}) — {name}{bossTag}");
+                        dayEntries.Add($"{name}{bossTag} {hour:D2}:00");
                     }
+                    if (dayEntries.Count > 0)
+                        parts.Add($"Day {currentDay}: {string.Join(", ", dayEntries)}");
+                    
+                    summary = string.Join(" | ", parts);
                 }
                 
-                // Summary line
+                // Append active/total count
                 var eventData = RaidCustomizer.RaidPatches.GetWorldEventData(worldEvents);
                 if (eventData != null)
                 {
@@ -378,8 +391,10 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                                 active++;
                         }
                     }
-                    ChatResponse.SendLine($"Raids: {active}/{total} active | Last queued day: {worldEvents._lastQueuedDay}");
+                    summary += $" | {active}/{total} active";
                 }
+                
+                ChatResponse.SendLine(summary);
             }
             catch (Exception ex)
             {

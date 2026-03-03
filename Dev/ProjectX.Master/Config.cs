@@ -1449,9 +1449,9 @@ namespace ProjectX.Master
             XRaidsFollowersCategory = ConfigSystem.CreateFileCategory("X Raids - Followers", "X Raids - Followers", configFile);
             
             XR_VirginiaHealth = XRaidsFollowersCategory.CreateEntry<float>("XR_VirginiaHealth", 1.0f, "Virginia Health Multiplier");
-            XR_VirginiaHealth.SetRange(0.1f, 10f);
+            XR_VirginiaHealth.SetRange(1f, 200f);
             XR_KelvinHealth = XRaidsFollowersCategory.CreateEntry<float>("XR_KelvinHealth", 1.0f, "Kelvin Health Multiplier");
-            XR_KelvinHealth.SetRange(0.1f, 10f);
+            XR_KelvinHealth.SetRange(1f, 200f);
             
             // ===== CATEGORY: X RAIDS - MULTIPLAYER =====
             XRaidsMultiplayerCategory = ConfigSystem.CreateFileCategory("X Raids - Multiplayer", "X Raids - Multiplayer", configFile);

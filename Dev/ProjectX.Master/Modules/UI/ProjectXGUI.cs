@@ -24,7 +24,7 @@ namespace ProjectX.Master.Modules.UI
         // State
         private bool _showMenu = false;
         private int _currentPanel = 0;
-        private readonly string[] _panelNames = { "Player", "Environment", "Teleport", "Building+", "Server Admin", "Server Raids" };
+        private readonly string[] _panelNames = { "Player", "Environment", "Teleport", "Building+", "Raids", "Server Admin" };
         
         // Layout dimensions (enlarged for better readability)
         private const float PANEL_WIDTH = 1100f;
@@ -223,8 +223,8 @@ namespace ProjectX.Master.Modules.UI
                 case 1: DrawEnvironmentPanel(); break;
                 case 2: DrawTeleportPanel(); break;
                 case 3: DrawMiscPanel(); break;
-                case 4: DrawServerAdminPanel(); break;
-                case 5: DrawRaidsPanel(); break;
+                case 4: DrawRaidsPanel(); break;
+                case 5: DrawServerAdminPanel(); break;
             }
             
             GUILayout.EndScrollView();

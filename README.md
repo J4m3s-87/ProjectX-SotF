@@ -10,7 +10,11 @@
 
 ## What Is Project X?
 
-Project X replaces 20+ standalone mods with a single, unified package built from the ground up. It's the **only mod for Sons of the Forest that works on dedicated servers** — headless environments where every other mod fails because there's no game window, no renderer, and no UI.
+Project X combines the functionality of 20+ standalone mods into a single, unified package built from the ground up. Rather than juggling 15–20 separate mods with independent configs and update cycles, everything is managed from one assembly with one config system.
+
+The key difference is **dedicated server support**. Most existing mods are built on the `SonsMod` base class, which depends on a visible game window with a player camera and `OnGUI()` callbacks. A headless dedicated server (`SonsOfTheForestDS.exe`) has no renderer and no UI — so mods that rely on `SonsMod` lifecycle callbacks, IMGUI rendering, or camera-dependent logic simply won't load. Simpler mods (like Hotbar or AmmoUi) that don't depend on these systems may work fine on servers, but the more complex feature mods — raid customisation, loot respawn, structure durability, admin tools — typically don't.
+
+Project X was designed from the start to work across all environments: solo, co-op host, dedicated server, and client.
 
 From a single shared codebase, three editions are compiled:
 
@@ -111,6 +115,50 @@ Dev/
 Installer/                 # One-click client installer
 ```
 
+## How Project X Differs from the Originals
+
+Every feature in Project X was independently implemented. The original mods were studied to understand _which game APIs to target_ and what player-facing behaviour to achieve — but the implementations had to be completely rewritten because the architectures are incompatible.
+
+The originals use `SonsMod` with `[HarmonyPatchAll]` attribute scanning. Project X uses static classes with manual `harmony.Patch()` per method. You cannot copy code between these patterns — a `[HarmonyPatch]` attribute doesn't work in a manual patching system, and a `SonsMod.OnInGameUpdate()` callback doesn't exist in static modules.
+
+### Why Everything Had to Be Rebuilt
+
+Most original mods are built on the `SonsMod` base class, which depends on Unity's renderer and lifecycle callbacks (`OnInGameUpdate()`, `OnGameStart()`). On a headless dedicated server, these callbacks never fire — the mod simply doesn't load. This isn't a minor incompatibility; it means:
+
+- **No `SonsMod` lifecycle** — We built our own tick drivers and event hooks using manual Harmony patches
+- **No GUI on servers** — We built a remote command system (`/px` commands via chat protocol) so admins can control everything from their game client
+- **Server-authoritative stats** — Enemy HP/damage must be modified on the server using unsafe pointer arithmetic because IL2CPP strips the normal reflection APIs
+- **Permissions** — On a public server you can't give everyone admin access, so we built role-based access control (Owner/Admin/Player) synced via Bolt
+
+### Module-by-Module Comparison
+
+Modules with an original counterpart — studied the concept, rebuilt from scratch:
+
+| Module                 | Project X           | Original                                                                        | Key Architectural Difference                                                                                                                                                                                 |
+| ---------------------- | ------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **RaidCustomizer**     | 99.6KB, 11 files    | 76KB, 16 files                                                                  | Server-authoritative scheduling, unsafe pointer writes at IL2CPP offsets (0x4CC/0x4D0) because reflection is stripped. 4 failed approaches before finding working solution. Multiplayer player-count scaling |
+| **DedicatedSuperuser** | 102.6KB, 11 files   | 33KB                                                                            | 3.1× larger. Remote `/px` command bridge, RBAC permissions, chat protocol routing                                                                                                                            |
+| **ScaryCross**         | 70.4KB, 3 files     | 16KB                                                                            | 4.4× larger. Custom `DemonDetector` MonoBehaviour, progressive heat/fire state machine, direct `VailActor.IgniteSelf()` bypass (stimuli system doesn't work from modded components)                          |
+| **BroadcastMessage**   | 66.2KB, 4 files     | 7KB                                                                             | 9.5× larger. Discord rich embeds with zero-dependency JSON + in-game welcome system                                                                                                                          |
+| **Loot Respawn**       | 10.4KB, 2 files     | Full C# on [GitHub](https://github.com/laserman120/SOTF-Mod-LootRespawnControl) | Integer hash replaced MD5 — 600+ `PickUp.Awake()` calls made MD5 a bottleneck                                                                                                                                |
+| **Water Collectors**   | 15.2KB, 2 files     | ~3KB                                                                            | 5.1× larger. `Physics.OverlapSphere()` stripped by IL2CPP — replaced with Harmony `OnEnable` tracking + `Vector3.Distance`                                                                                   |
+| **Meat Dryer**         | 18.1KB, 2 files     | ~5KB                                                                            | 3.6× larger. Complete rewrite with seasonal drying system and fire proximity detection                                                                                                                       |
+| **Stack Sizes**        | 14.9KB, 1 file      | ~4KB                                                                            | 3.7× larger. Per-item config entries across 14 categories, reset-to-defaults, tier guards                                                                                                                    |
+| **Enemy Stats**        | (in RaidCustomizer) | —                                                                               | 4 failed approaches: `AccessTools.Field` → null, `GetField(NonPublic)` → null, `GetStat(Type)` → MissingMethodException, then unsafe `IntPtr + offset` pointer arithmetic                                    |
+| **Follower HP**        | (in RaidCustomizer) | —                                                                               | VailActor has 13 stats, multiple with `_max=100`. Match by `_baseValue` not `_max`. Post-revive 1-second delayed timer to avoid game HP reset race                                                           |
+
+Modules that exist **only** in Project X — no original equivalent:
+
+- **Permission System** (15.5KB) — RBAC synced between server and clients
+- **Config Sync** (14.9KB) — Real-time server→client config broadcast
+- **Admin Bridge** (20.3KB) — Remote `/px` commands via hybrid Bolt/chat protocol
+- **Building Enhancements** (26.9KB) — Custom building tools with server-side instant build
+- **Integrity / Anti-Cheat** (40.6KB) — Server-side cheat detection
+- **Custom GUI** (144KB) — Permission-aware IMGUI with 6 tabbed panels
+- **One-click Installer** — Auto-detects game via Steam registry, backs up existing mods
+
+See [`CREDITS.md`](CREDITS.md) for full attribution of all studied mods and their authors.
+
 ## Technical Approach
 
 Project X is built on a fundamentally different architecture from standard Sons of the Forest mods:
@@ -120,6 +168,7 @@ Project X is built on a fundamentally different architecture from standard Sons 
 - **Unsafe memory access** via pointer arithmetic at IL2CPP offsets for stats and state
 - **Hybrid networking** — Bolt (server→client) + ChatBox interception (client→server)
 - **Server-safe tick driver** — `SeasonsManager.LateUpdate` postfix for headless servers
+- **Four-tier conditional compilation** — `#if SERVER / OWNER / CLIENT` strips irrelevant code from each build
 
 See [`community_technical_guide.md`](community_technical_guide.md) for the full IL2CPP pattern catalogue (23 patterns documented).
 

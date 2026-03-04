@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ToniMacaroni/RedLoader/main/MetadataSchema.json",
+  "id": "ProjectX.Client",
+  "name": "ProjectX Client Edition",
+  "author": "J4m3s",
+  "version": "1.7.0",
+  "description": "Client Edition - For friends joining your server",
+  "gameVersion": "1.0.0",
+  "platform": "Universal",
+  "type": "Mod",
+  "dependencies": [],
+  "url": "..."
+}

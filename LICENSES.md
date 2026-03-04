@@ -126,9 +126,10 @@ repositories were identified at the time of development:
   AxelModMenu (ImAxel0), ZiplineExtender (SmokyAce), BroadcastMessage
   (SmokyAce & ThirtyTwelve), ItemCarryAmount (SmokyAce),
   WaterfallSoundControl (Toni Macaroni), Relocator (Toni Macaroni),
-  RealisticMeatDryer (badboy7), SonsHotbar (AEDEV),
+  RealisticMeatDryer (DarkAvatar7), SonsHotbar (AEDEV),
   LessUselessGuns (sknthelisper), OpenSesame (tempbito),
-  StructureDurability (tempbito)
+  StructureDurability (tempbito), CompatibleModsSynchronizer (tempbito),
+  FasterCrafting (Laughingcat)
 
 ## LGPL Compliance Notice
 

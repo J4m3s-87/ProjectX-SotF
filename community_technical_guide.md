@@ -30,8 +30,12 @@
   - [18. Direct Memory String Read](#18-direct-memory-string-read)
   - [19. Server-Safe Tick Driver](#19-server-safe-tick-driver)
   - [20. Anti-Cheat Hybrid Protocol](#20-anti-cheat-hybrid-protocol)
+  - [21. Direct VailActor API Bypass (Stimuli Workaround)](#21-direct-vailactor-api-bypass-stimuli-workaround)
+  - [22. Persistent Game State Override via PREFIX + Marshal](#22-persistent-game-state-override-via-prefix--marshal)
+  - [23. Follower HP Persistence via Stat Forensics + Delayed Timer](#23-follower-hp-persistence-via-stat-forensics--delayed-timer)
 - [Additional Standards](#additional-standards)
 - [Architecture Evolution](#architecture-evolution)
+- [Stat Override Architecture](#stat-override-architecture)
 - [Custom Structure Patterns](#custom-structure-patterns)
 
 ---
@@ -40,21 +44,24 @@
 
 ### IL2CPP / Reflection
 
-| Issue                                                                                                                                             | Root Cause                                                                                                                            | Resolution                                                                                                                                                                                      |
-| :------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **The Reflection Paradox** — Fields visible in `dump.cs` return `null` via `AccessTools.Field`                                                    | IL2CPP strips metadata for private fields, even if the binary offset exists                                                           | **Method Access Pivot**: Prefer getter methods or properties (`AccessTools.Property`) over direct field access. **Field Flood Diagnostic**: Iterate all fields at runtime to verify visibility. |
-| **Stripped Engine Methods** — `MissingMethodException` on `FindObjectsOfType<T>` or `Scene.GetRootGameObjects`                                    | IL2CPP strips generic methods and rarely-used Unity API calls                                                                         | **Harmony Awake Interception**: Patch `Awake()` on the target type — components come to you. `GameObject.Find(name)` works for known names. `GetComponent<T>()` is never stripped.              |
-| **Total Object-Finding API Stripping** — ALL variants stripped: `FindObjectsOfType<T>()`, `FindObjectsOfType(Type)`, `Scene.GetRootGameObjects()` | Only singular `FindObjectOfType<T>()` survives for types the game itself queries                                                      | **Reactive over Polling**: Use Harmony Postfix on the target type's `Awake()`. Zero API calls needed — objects register themselves via your hook.                                               |
-| **FindObjectsOfType Generic Stripping** — `MissingMethodException` for ALL types                                                                  | IL2CPP strips ALL plural `FindObjectsOfType` generic instantiations — only singular `FindObjectOfType<T>()` survives for select types | **Harmony Awake Interception**: Patch the target type's `Awake()` with a Postfix.                                                                                                               |
-| **GetComponentsInChildren Stripping** — `MissingMethodException` on `GetComponentsInChildren<T>()`                                                | IL2CPP strips plural generic component queries                                                                                        | **Transform Traversal Pattern**: Recursively walk `Transform.GetChild(i)` with `GetComponent<T>()` on each child. See Pattern #8.                                                               |
-| **GetFields() Returns Only IL2CPP Base Fields** — Returns 2 fields: `isWrapped`, `pooledPtr`                                                      | `System.Reflection.GetFields()` on IL2CPP types only sees the managed wrapper fields                                                  | Use `AccessTools.Field` (~60% of types) or **direct memory offset access** via `Marshal.Copy` (100%). See Pattern #9.                                                                           |
-| **AccessTools.Field Type-Specific Failure** — Returns `null` for some types but works for others                                                  | Stripping is **per-type**, not per-field or per-visibility. No reliable way to predict which types are affected.                      | First try `AccessTools.Field`. If null, fall back to **direct memory offset access** using offsets from `dump.cs`. See Pattern #9.                                                              |
-| **Physics.OverlapSphere Stripping** — Proximity checks silently fail, no colliders returned                                                       | `Physics.OverlapSphere()` is stripped — returns null/empty silently (no exception)                                                    | **Harmony OnEnable Tracking**: Patch `OnEnable()` to maintain a static list. Replace physics queries with `Vector3.Distance` checks. See Pattern #11.                                           |
-| **DummyDll Type Hierarchy Gap** — `.Cast<T>()` and `.TryCast<T>()` fail to compile                                                                | DummyDll stubs lack `Il2CppObjectBase` in the type hierarchy at compile time                                                          | **Double-Cast + Reflection Pattern** (#12): Cast via `(Il2CppObjectBase)(object)obj`, then `MakeGenericMethod`.                                                                                 |
-| **Assembly Dependency Chain Trap** — `CS0012` when referencing types with deep inheritance                                                        | The type's **entire inheritance chain** must be present. IL2CPP hierarchies are fragmented across DLLs.                               | **String-Based Harmony Pattern** (#13): Use `AccessTools.TypeByName()` + `object __instance`.                                                                                                   |
-| **MakeGenericMethod on Stripped Generics** — Returns null or crashes                                                                              | Generic instantiation doesn't exist in the IL2CPP binary. Reflection cannot resurrect stripped code.                                  | **Harmony Interception**: Patch the target type's methods directly — the component comes to you via `__instance`.                                                                               |
-| **Cross-Type Invoke on Interface-Typed Objects** — "Object does not match target type"                                                            | IL2CPP wraps interface-typed objects with a different managed proxy than concrete-typed objects                                       | **Direct Memory String Read** (Pattern #18): `Marshal.ReadIntPtr` at dump.cs offset + `Il2CppStringToManaged`.                                                                                  |
-| **MonoBehaviour Callback Trap** — `Update()`, `OnGUI()` never fire on injected MonoBehaviours                                                     | IL2CPP-injected MonoBehaviours don't receive lifecycle callbacks. Only `Awake()` fires reliably.                                      | **Piggyback Pattern**: Create static methods, call from an existing working callback. See Pattern #6.                                                                                           |
+| Issue                                                                                                                                             | Root Cause                                                                                                                                      | Resolution                                                                                                                                                                                      |
+| :------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **The Reflection Paradox** — Fields visible in `dump.cs` return `null` via `AccessTools.Field`                                                    | IL2CPP strips metadata for private fields, even if the binary offset exists                                                                     | **Method Access Pivot**: Prefer getter methods or properties (`AccessTools.Property`) over direct field access. **Field Flood Diagnostic**: Iterate all fields at runtime to verify visibility. |
+| **Stripped Engine Methods** — `MissingMethodException` on `FindObjectsOfType<T>` or `Scene.GetRootGameObjects`                                    | IL2CPP strips generic methods and rarely-used Unity API calls                                                                                   | **Harmony Awake Interception**: Patch `Awake()` on the target type — components come to you. `GameObject.Find(name)` works for known names. `GetComponent<T>()` is never stripped.              |
+| **Total Object-Finding API Stripping** — ALL variants stripped: `FindObjectsOfType<T>()`, `FindObjectsOfType(Type)`, `Scene.GetRootGameObjects()` | Only singular `FindObjectOfType<T>()` survives for types the game itself queries                                                                | **Reactive over Polling**: Use Harmony Postfix on the target type's `Awake()`. Zero API calls needed — objects register themselves via your hook.                                               |
+| **FindObjectsOfType Generic Stripping** — `MissingMethodException` for ALL types                                                                  | IL2CPP strips ALL plural `FindObjectsOfType` generic instantiations — only singular `FindObjectOfType<T>()` survives for select types           | **Harmony Awake Interception**: Patch the target type's `Awake()` with a Postfix.                                                                                                               |
+| **GetComponentsInChildren Stripping** — `MissingMethodException` on `GetComponentsInChildren<T>()`                                                | IL2CPP strips plural generic component queries                                                                                                  | **Transform Traversal Pattern**: Recursively walk `Transform.GetChild(i)` with `GetComponent<T>()` on each child. See Pattern #8.                                                               |
+| **GetFields() Returns Only IL2CPP Base Fields** — Returns 2 fields: `isWrapped`, `pooledPtr`                                                      | `System.Reflection.GetFields()` on IL2CPP types only sees the managed wrapper fields                                                            | Use `AccessTools.Field` (~60% of types) or **direct memory offset access** via `Marshal.Copy` (100%). See Pattern #9.                                                                           |
+| **AccessTools.Field Type-Specific Failure** — Returns `null` for some types but works for others                                                  | Stripping is **per-type**, not per-field or per-visibility. No reliable way to predict which types are affected.                                | First try `AccessTools.Field`. If null, fall back to **direct memory offset access** using offsets from `dump.cs`. See Pattern #9.                                                              |
+| **Non-Generic Method MissingMethodException** — `StatsManager.GetStat(System.Type)` throws despite being in `dump.cs`                             | The `Type` parameter maps to `Il2CppSystem.Type` at runtime, not `System.Type`. Generic version also stripped.                                  | **Bypass the API entirely**: Use unsafe IntPtr + offset to read/write data directly in IL2CPP memory (Pattern #9).                                                                              |
+| **Physics.OverlapSphere Overload Stripping** — 3-param overload throws `MissingMethodException`, 2-param works                                    | IL2CPP strips the `(Vector3, float, int)` overload. 2-param `(Vector3, float)` is preserved.                                                    | **Use 2-param + code filtering**: Call without layerMask, filter results with `GetComponentInParent<VailActor>()` or use Harmony OnEnable Tracking (Pattern #11).                               |
+| **DummyDll Type Hierarchy Gap** — `.Cast<T>()` and `.TryCast<T>()` fail to compile                                                                | DummyDll stubs lack `Il2CppObjectBase` in the type hierarchy at compile time                                                                    | **Double-Cast + Reflection Pattern** (#12): Cast via `(Il2CppObjectBase)(object)obj`, then `MakeGenericMethod`.                                                                                 |
+| **Assembly Dependency Chain Trap** — `CS0012` when referencing types with deep inheritance                                                        | The type's **entire inheritance chain** must be present. IL2CPP hierarchies are fragmented across DLLs.                                         | **String-Based Harmony Pattern** (#13): Use `AccessTools.TypeByName()` + `object __instance`.                                                                                                   |
+| **MakeGenericMethod on Stripped Generics** — Returns null or crashes                                                                              | Generic instantiation doesn't exist in the IL2CPP binary. Reflection cannot resurrect stripped code.                                            | **Harmony Interception**: Patch the target type's methods directly — the component comes to you via `__instance`.                                                                               |
+| **Follower HP Stat Misidentification** — Writing to HealthStat has no effect despite `_max=5000`                                                  | VailActor has 13 stats; multiple have `_max=100`. Matching by `_max` picks wrong stat (behavioral, not health). Also, `Revive()` resets timing. | Match by `_baseValue` (0x14) not `_max`. Use 1-second delayed timer after Revive postfix. See Pattern #23.                                                                                      |
+| **ScaryObject Stimuli Ineffective for Burn** — Scare/flee works but fire stimulus fails to ignite                                                 | Stimuli grid requires specific source actor context not replicable from modded components                                                       | **Direct Actor API Bypass** (Pattern #21): Use `VailActor.IgniteSelf(burnTime)` directly. Keep stimuli for scare/flee only.                                                                     |
+| **Cross-Type Invoke on Interface-Typed Objects** — "Object does not match target type"                                                            | IL2CPP wraps interface-typed objects with a different managed proxy than concrete-typed objects                                                 | **Direct Memory String Read** (Pattern #18): `Marshal.ReadIntPtr` at dump.cs offset + `Il2CppStringToManaged`.                                                                                  |
+| **MonoBehaviour Callback Trap** — `Update()`, `OnGUI()` never fire on injected MonoBehaviours                                                     | IL2CPP-injected MonoBehaviours don't receive lifecycle callbacks. Only `Awake()` fires reliably.                                                | **Piggyback Pattern**: Create static methods, call from an existing working callback. See Pattern #6.                                                                                           |
 
 ### Harmony Patching
 
@@ -502,6 +509,113 @@ _Combine NetEvent and ChatBox for server-side mod verification._
 - **Background→Main Thread Deferred Queue**: Player connection events fire on Bolt background threads, but `BoltNetwork` operations require the main thread. Queue via `lock` and process in the tick driver (Pattern #19).
 - **IL2CPP Cast for BoltConnection**: Use try-catch direct cast, not `is`/`as` (Pattern #14).
 
+### 21. Direct VailActor API Bypass (Stimuli Workaround)
+
+_Skip the stimuli system — call the actor's ignition API directly._
+
+When `ScaryObject.Fire()` stimuli broadcasts fail to produce burn damage (common when the source `VailActor` is null or improperly initialized), bypass the stimuli system entirely:
+
+```csharp
+// Proven API — same as PlayerActions.BurnAllEnemies()
+foreach (var actor in detectedActors)
+{
+    if (actor == null) continue;
+    int id = actor.GetInstanceID();
+    if (_ignitedActors.Contains(id)) continue;
+
+    actor.IgniteSelf(burnTimeSeconds);  // Direct burn — no stimuli needed
+    _ignitedActors.Add(id);
+}
+
+// Clear _ignitedActors periodically (e.g., every 2s) to allow re-ignition
+```
+
+**Key insight**: `VailActor.IgniteSelf(float)` handles all burn state (visual effects, damage, audio) internally. The stimuli system is only needed for area-of-effect scare/flee behavior. Use `HashSet<int>` of instance IDs to prevent per-frame spam.
+
+### 22. Persistent Game State Override via PREFIX + Marshal
+
+_Force game state every frame via Harmony PREFIX + direct memory writes._
+
+When `AccessTools.Field()` returns `null` and high-level APIs have no effect on dedicated servers, use a Harmony PREFIX combined with `Marshal.WriteByte`/`Marshal.WriteInt32`:
+
+```csharp
+private const int AI_PAUSED_OFFSET = 0x100;  // from dump.cs
+private static PropertyInfo _pointerProp;
+
+// Setup: cache Pointer property, patch Update()
+_pointerProp = instance.GetType().GetProperty("Pointer",
+    BindingFlags.Instance | BindingFlags.Public |
+    BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
+
+_harmony.Patch(AccessTools.Method(simType, "Update"),
+    prefix: new HarmonyMethod(typeof(MyModule), nameof(UpdatePrefix)));
+
+// PREFIX: runs every frame, enforces target value
+private static void UpdatePrefix(object __instance)
+{
+    if (_pointerProp == null) return;
+    try
+    {
+        IntPtr ptr = (IntPtr)_pointerProp.GetValue(__instance);
+        if (ptr == IntPtr.Zero) return;
+        byte target = Config.FreezeAI.Value ? (byte)1 : (byte)0;
+        Marshal.WriteByte(ptr + AI_PAUSED_OFFSET, target);
+    }
+    catch { } // Silent — runs every frame
+}
+```
+
+**Key rules:**
+
+1. Get the IL2CPP memory offset from `dump.cs` (the `// 0xNN` comment on each field)
+2. Access the native pointer via the `Pointer` property (inherited from `Il2CppObjectBase`)
+3. Use `Marshal.WriteByte` for bools, `Marshal.WriteInt32` for ints/enums
+4. PREFIX on the class's `Update()`/`LateUpdate()` ensures the value is enforced every frame
+5. Config value controls the PREFIX behavior — toggling is instant without re-patching
+
+### 23. Follower HP Persistence via Stat Forensics + Delayed Timer
+
+_Correctly identify and persist follower HP through stat matching and timed writes._
+
+When modifying follower (Kelvin/Virginia) HP at runtime, two problems stack:
+
+**Problem 1 — Wrong Stat Matching:**
+
+VailActor's `StatsManager._stats` contains **13 entries**. Multiple stats have `_max=100`. Matching by `_max` selects stat[0] (a behavioral stat with `_baseValue=0.0`), NOT stat[12] (the real HealthStat with `_baseValue=100.0`).
+
+```csharp
+// WRONG — matches behavioral stat[0]:
+if (Math.Abs(statMax - baseHealth) < 1f) { ... }
+
+// CORRECT — matches real HealthStat (stat[12]):
+float statBaseVal = *(float*)((byte*)statObj.ToPointer() + 0x14); // _baseValue
+if (Math.Abs(statBaseVal - baseHealth) < 1f)
+{
+    *(float*)((byte*)statObj.ToPointer() + 0x24) = targetHealth; // _max
+    *(float*)((byte*)statObj.ToPointer() + 0x10) = targetHealth; // _currentValue
+    *(float*)((byte*)statObj.ToPointer() + 0x14) = targetHealth; // _baseValue
+}
+```
+
+**Problem 2 — Post-Revive HP Reset:**
+
+`VailActor.Revive()` fires when helping a downed companion. The game's recovery logic runs AFTER the Harmony postfix and resets `_currentValue`.
+
+```csharp
+// Schedule HP re-application 1 second later:
+System.Threading.Timer delayTimer = null;
+delayTimer = new System.Threading.Timer(_ =>
+{
+    try { ApplyFollowerHP(capturedActorPtr, capturedTarget); }
+    catch { }
+    finally { delayTimer?.Dispose(); }
+}, null, 1000, System.Threading.Timeout.Infinite);
+```
+
+> **⚠️ The stat forensics technique** (dump all stats, compare across state transitions, match by `_baseValue`) is reusable for any stat system modification. Never assume stat ordering — always verify by dumping and comparing.
+
+> **⚠️ `_baseValue` serves dual purpose** — it identifies the stat AND is used by the recovery system to determine target HP after revival. Writing `_baseValue = targetHealth` ensures recovery aims for the multiplied value.
+
 ---
 
 ## Additional Standards
@@ -551,6 +665,28 @@ IL2CPP metadata stripping on dedicated servers means:
 - **Damage/Aggression multipliers fail** — reflection returns `null` for all field names
 
 **Lesson:** On dedicated servers, always prefer Harmony method patching over field reflection. If a gameplay value is calculated by a method, patch the method.
+
+---
+
+## Stat Override Architecture
+
+The RaidCustomizer stat multiplier system required **four iterations** before finding a working approach:
+
+| Attempt | Approach                                                    | Result                   | Why                                                             |
+| ------- | ----------------------------------------------------------- | ------------------------ | --------------------------------------------------------------- |
+| 1       | `AccessTools.Field(typeof(VailActor), "_damageMultiplier")` | `null`                   | IL2CPP strips private field metadata                            |
+| 2       | Runtime `GetField()` with `BindingFlags.NonPublic`          | `null`                   | IL2CPP exposes private fields as **properties**, not fields     |
+| 3       | `StatsManager.GetStat(typeof(HealthStat))` (non-generic)    | `MissingMethodException` | `Type` parameter maps to `Il2CppSystem.Type`, not `System.Type` |
+| 4       | **Unsafe IntPtr + offset** (Pattern #9b)                    | ✅ **Works**             | Direct memory write at known IL2CPP offsets                     |
+
+**Working solution** (VailActor.OnActorEnabled postfix, unsafe pointer arithmetic):
+
+- `_gameSettingsDamageMultiplier` at offset 0x4CC (float)
+- `_gameSettingsAngerMultiplier` at offset 0x4D0 (float)
+- `_healthSettings` at offset 0x218 (ptr) → `_health` at offset 0x18 (float)
+- `.Pointer` property cached via `GetProperty("Pointer")` at runtime (DummyDll gap workaround)
+
+**Key lesson:** When both reflection AND typed API calls fail, unsafe pointer arithmetic at known IL2CPP offsets is the final reliable approach (Pattern #9b).
 
 ---
 
@@ -659,4 +795,4 @@ If you've encountered other IL2CPP patterns or pitfalls not covered here, consid
 
 ---
 
-_This guide was compiled from 300+ development phases of iterative IL2CPP modding. Many patterns were discovered through systematic failure — if something seems overly specific, it's because someone hit that exact wall._
+_This guide was compiled from 400+ development phases of iterative IL2CPP modding. Many patterns were discovered through systematic failure — if something seems overly specific, it's because someone hit that exact wall._

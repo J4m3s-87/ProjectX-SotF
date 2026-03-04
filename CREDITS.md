@@ -12,28 +12,33 @@ No code was copied — all implementations were independently written.
 
 | Feature Area                              | Inspired By                      | Original Author         | License  | Source                                                               |
 | ----------------------------------------- | -------------------------------- | ----------------------- | -------- | -------------------------------------------------------------------- |
-| Raid Customization                        | RaidCustomizer                   | codengine (skynet86)    | —        | —                                                                    |
+| Raid Customization                        | RaidCustomizer                   | codengine (skynet86)    | Unknown  | [sotf-mods](https://sotf-mods.com/mods/codengine/RaidCustomizer/)    |
 | Scary Cross                               | ScaryCross                       | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/ScaryCross)                  |
 | Dedicated Server Admin                    | DedicatedSuperuser               | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/DedicatedSuperuser)          |
-| Zipline Extension                         | ZiplineExtender                  | SmokyAce                | —        | —                                                                    |
-| Stone Gate                                | StoneGate                        | SmokyAce                | —        | —                                                                    |
-| Meat Dryer                                | RealisticMeatDryer               | badboy7                 | —        | —                                                                    |
-| Broadcast Message                         | BroadcastMessage                 | SmokyAce & ThirtyTwelve | —        | —                                                                    |
-| Log/Item Carry (BuilderStacks, Inventory) | LogCarryAmount / ItemCarryAmount | SmokyAce                | —        | —                                                                    |
-| Waterfall Audio                           | WaterfallSoundControl            | Toni Macaroni           | —        | —                                                                    |
-| Ammo UI                                   | AmmoUi                           | ImAxel0                 | —        | —                                                                    |
-| Open Sesame (Doors)                       | OpenSesame                       | tempbito                | —        | —                                                                    |
-| Hotbar                                    | SonsHotbar                       | AEDEV                   | —        | —                                                                    |
-| Stack Sizes                               | StackMod                         | Terroducky              | —        | —                                                                    |
+| Zipline Extension                         | ZiplineExtender                  | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
+| Stone Gate                                | StoneGate                        | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
+| Meat Dryer                                | RealisticMeatDryer               | DarkAvatar7             | Unknown  | [sotf-mods](https://sotf-mods.com/mods/DarkAvatar7/)                 |
+| Broadcast Message                         | BroadcastMessage                 | SmokyAce & ThirtyTwelve | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
+| Log/Item Carry (BuilderStacks, Inventory) | LogCarryAmount / ItemCarryAmount | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
+| Waterfall Audio                           | WaterfallSoundControl            | Toni Macaroni           | Unknown  | [sotf-mods](https://sotf-mods.com/mods/ToniMacaroni/)                |
+| Ammo UI                                   | AmmoUi                           | ImAxel0                 | Unknown  | [GitHub](https://github.com/ImAxel0)                                 |
+| Open Sesame (Doors)                       | OpenSesame                       | tempbito                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/tempbito/)                    |
+| Hotbar                                    | SonsHotbar                       | AEDEV                   | Unknown  | [sotf-mods](https://sotf-mods.com/mods/AEDEV/)                       |
+| Stack Sizes                               | StackMod                         | Terroducky              | Unknown  | [sotf-mods](https://sotf-mods.com/mods/Terroducky/)                  |
 | Loot Respawn                              | LootRespawnControl               | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/SOTF-Mod-LootRespawnControl) |
 | WaterCollectors                           | Realistic Water Collectors       | GLaD0S (laserman120)    | GPL-3.0  | [GitHub](https://github.com/laserman120/Realistic-Water-Collectors)  |
-| Structure Durability                      | StructureDurability              | tempbito                | —        | —                                                                    |
-| Relocator                                 | Relocator                        | Toni Macaroni           | —        | —                                                                    |
-| WeaponDamage                              | LessUselessGuns                  | sknthelisper            | —        | —                                                                    |
-| Crafting Speed                            | FasterCrafting                   | _(seeking author)_      | —        | —                                                                    |
-| Mod Compatibility                         | CompatibleModsSynchronizer       | _(seeking author)_      | —        | —                                                                    |
+| Structure Durability                      | StructureDurability              | tempbito                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/tempbito/)                    |
+| Relocator                                 | Relocator                        | Toni Macaroni           | Unknown  | [sotf-mods](https://sotf-mods.com/mods/ToniMacaroni/)                |
+| WeaponDamage                              | LessUselessGuns                  | sknthelisper            | Unknown  | [sotf-mods](https://sotf-mods.com/mods/sknthelisper/)                |
+| Crafting Speed                            | FasterCrafting                   | Laughingcat             | Unknown  | [sotf-mods](https://sotf-mods.com/mods/Laughingcat/)                 |
+| Mod Compatibility                         | CompatibleModsSynchronizer       | tempbito                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/tempbito/)                    |
 | Prefab Repair                             | PrefabRepair                     | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/PrefabRepair)                |
-| Spawn Control                             | VailSpawnControl                 | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/VailSpawnControl)            |
+| Spawn Control (studied only)              | VailSpawnControl                 | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/VailSpawnControl)            |
+
+> **License note:** Mods marked "Unknown" were downloaded as compiled DLLs from
+> sotf-mods.com. No license files were bundled with the downloads and no public
+> source repositories were found at the time of writing. These mods were studied
+> as reference material only — no code was copied.
 
 ## Fully Original Features
 

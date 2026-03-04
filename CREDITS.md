@@ -10,30 +10,30 @@ No code was copied — all implementations were independently written.
 
 ## Mod Authors & Inspirations
 
-| Feature Area                              | Inspired By                      | Original Author         |
-| ----------------------------------------- | -------------------------------- | ----------------------- |
-| Raid Customization                        | RaidCustomizer                   | codengine (skynet86)    |
-| Scary Cross                               | ScaryCross                       | _(seeking author)_      |
-| Dedicated Server Admin                    | DedicatedSuperuser               | _(seeking author)_      |
-| Zipline Extension                         | ZiplineExtender                  | SmokyAce                |
-| Stone Gate                                | StoneGate                        | SmokyAce                |
-| Meat Dryer                                | RealisticMeatDryer               | SmokyAce                |
-| Broadcast Message                         | BroadcastMessage                 | SmokyAce                |
-| Log/Item Carry (BuilderStacks, Inventory) | LogCarryAmount / ItemCarryAmount | SmokyAce & ThirtyTwelve |
-| Waterfall Audio                           | WaterfallSoundControl            | Toni Macaroni           |
-| Ammo UI                                   | AmmoUi                           | ImAxel0                 |
-| Open Sesame (Doors)                       | OpenSesame                       | Searica                 |
-| Hotbar                                    | SonsHotbar                       | AEDEV                   |
-| Stack Sizes                               | StackMod                         | Terroducky              |
-| Loot Respawn                              | LootRespawnControl               | \_GLAD0S                |
-| WaterCollectors                           | Realistic Water Collectors       | \_GLAD0S                |
-| Structure Durability                      | StructureDurability              | _(seeking author)_      |
-| Relocator                                 | Relocator                        | _(seeking author)_      |
-| WeaponDamage                              | LessUselessGuns                  | _(seeking author)_      |
-| Crafting Speed                            | FasterCrafting                   | _(seeking author)_      |
-| Mod Compatibility                         | CompatibleModsSynchronizer       | _(seeking author)_      |
-| Prefab Repair                             | PrefabRepair                     | _(seeking author)_      |
-| Spawn Control                             | VailSpawnControl                 | _(seeking author)_      |
+| Feature Area                              | Inspired By                      | Original Author         | License  | Source                                                               |
+| ----------------------------------------- | -------------------------------- | ----------------------- | -------- | -------------------------------------------------------------------- |
+| Raid Customization                        | RaidCustomizer                   | codengine (skynet86)    | —        | —                                                                    |
+| Scary Cross                               | ScaryCross                       | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/ScaryCross)                  |
+| Dedicated Server Admin                    | DedicatedSuperuser               | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/DedicatedSuperuser)          |
+| Zipline Extension                         | ZiplineExtender                  | SmokyAce                | —        | —                                                                    |
+| Stone Gate                                | StoneGate                        | SmokyAce                | —        | —                                                                    |
+| Meat Dryer                                | RealisticMeatDryer               | badboy7                 | —        | —                                                                    |
+| Broadcast Message                         | BroadcastMessage                 | SmokyAce & ThirtyTwelve | —        | —                                                                    |
+| Log/Item Carry (BuilderStacks, Inventory) | LogCarryAmount / ItemCarryAmount | SmokyAce                | —        | —                                                                    |
+| Waterfall Audio                           | WaterfallSoundControl            | Toni Macaroni           | —        | —                                                                    |
+| Ammo UI                                   | AmmoUi                           | ImAxel0                 | —        | —                                                                    |
+| Open Sesame (Doors)                       | OpenSesame                       | tempbito                | —        | —                                                                    |
+| Hotbar                                    | SonsHotbar                       | AEDEV                   | —        | —                                                                    |
+| Stack Sizes                               | StackMod                         | Terroducky              | —        | —                                                                    |
+| Loot Respawn                              | LootRespawnControl               | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/SOTF-Mod-LootRespawnControl) |
+| WaterCollectors                           | Realistic Water Collectors       | GLaD0S (laserman120)    | GPL-3.0  | [GitHub](https://github.com/laserman120/Realistic-Water-Collectors)  |
+| Structure Durability                      | StructureDurability              | tempbito                | —        | —                                                                    |
+| Relocator                                 | Relocator                        | Toni Macaroni           | —        | —                                                                    |
+| WeaponDamage                              | LessUselessGuns                  | sknthelisper            | —        | —                                                                    |
+| Crafting Speed                            | FasterCrafting                   | _(seeking author)_      | —        | —                                                                    |
+| Mod Compatibility                         | CompatibleModsSynchronizer       | _(seeking author)_      | —        | —                                                                    |
+| Prefab Repair                             | PrefabRepair                     | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/PrefabRepair)                |
+| Spawn Control                             | VailSpawnControl                 | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/VailSpawnControl)            |
 
 ## Fully Original Features
 

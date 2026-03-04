@@ -97,6 +97,39 @@ No modifications have been made to any of these libraries.
 - **License:** Unity Companion License
 - **Source:** https://www.nuget.org/packages/UnityEngine.Modules
 
+## Studied Mods (Reference Material)
+
+The following community mods were studied as reference material during
+development to understand which game APIs to target. These mods are not
+linked, bundled, or redistributed with Project X. All Project X modules
+were independently implemented on a different architecture.
+
+### GLaD0S (laserman120) — AGPL-3.0
+
+- **ScaryCross** — https://github.com/laserman120/ScaryCross
+- **DedicatedSuperuser** — https://github.com/laserman120/DedicatedSuperuser
+- **LootRespawnControl** — https://github.com/laserman120/SOTF-Mod-LootRespawnControl
+- **PrefabRepair** — https://github.com/laserman120/PrefabRepair
+- **VailSpawnControl** — https://github.com/laserman120/VailSpawnControl
+
+### GLaD0S (laserman120) — GPL-3.0
+
+- **Realistic Water Collectors** — https://github.com/laserman120/Realistic-Water-Collectors
+
+### Other Studied Mods (No License Found)
+
+The following mods were downloaded as compiled DLLs from sotf-mods.com.
+No license files were bundled with the downloads and no public source
+repositories were identified at the time of development:
+
+- RaidCustomizer (codengine), StackMod (Terroducky), AmmoUi (ImAxel0),
+  AxelModMenu (ImAxel0), ZiplineExtender (SmokyAce), BroadcastMessage
+  (SmokyAce & ThirtyTwelve), ItemCarryAmount (SmokyAce),
+  WaterfallSoundControl (Toni Macaroni), Relocator (Toni Macaroni),
+  RealisticMeatDryer (badboy7), SonsHotbar (AEDEV),
+  LessUselessGuns (sknthelisper), OpenSesame (tempbito),
+  StructureDurability (tempbito)
+
 ## LGPL Compliance Notice
 
 Project X uses RedLoader, SonsSdk, SonsAxLib, and Il2CppInterop under the

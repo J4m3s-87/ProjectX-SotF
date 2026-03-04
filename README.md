@@ -18,11 +18,11 @@ Project X was designed from the start to work across all environments: solo, co-
 
 From a single shared codebase, three editions are compiled:
 
-| Edition    | DLL                   | For                                                               |
-| ---------- | --------------------- | ----------------------------------------------------------------- |
-| **Owner**  | `ProjectX.Owner.dll`  | Server admin's game client — full dashboard + remote commands     |
-| **Server** | `ProjectX.Server.dll` | Headless dedicated server (`SonsOfTheForestDS.exe`)               |
-| **Client** | `ProjectX.Client.dll` | Players joining the server — permission-gated, vanilla by default |
+| Edition    | DLL                   | For                                                                                                                    |
+| ---------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Owner**  | `ProjectX.Owner.dll`  | Server admin's game client — full dashboard + remote commands                                                          |
+| **Server** | `ProjectX.Server.dll` | Headless dedicated server (`SonsOfTheForestDS.exe`)                                                                    |
+| **Client** | `ProjectX.Client.dll` | Players joining the server — receives server-pushed config (economy, raids, durability, etc.), UI access gated by role |
 
 ## Features
 

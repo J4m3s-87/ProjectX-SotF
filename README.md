@@ -10,13 +10,15 @@
 
 ## What Is Project X?
 
-Project X combines the functionality of 20+ standalone mods into a single, unified package built from the ground up. Rather than juggling 15–20 separate mods with independent configs and update cycles, everything is managed from one assembly with one config system.
+Project X combines the functionality of 20+ standalone mods into a single, unified package. Rather than juggling 15–20 separate mods — each with its own config file, update cycle, and crash potential — everything is managed from one assembly with one config system and one update to deploy.
 
-The key difference is **dedicated server support**. Most existing mods are built on the `SonsMod` base class, which depends on a visible game window with a player camera and `OnGUI()` callbacks. A headless dedicated server (`SonsOfTheForestDS.exe`) has no renderer and no UI — so mods that rely on `SonsMod` lifecycle callbacks, IMGUI rendering, or camera-dependent logic simply won't load. Simpler mods (like Hotbar or AmmoUi) that don't depend on these systems may work fine on servers, but the more complex feature mods — raid customisation, loot respawn, structure durability, admin tools — typically don't.
+The key difference is **dedicated server support**. Most existing mods are built on the `SonsMod` base class, which depends on a visible game window with a player camera and `OnGUI()` callbacks. A headless dedicated server (`SonsOfTheForestDS.exe`) has no renderer and no UI — so mods that rely on `SonsMod` lifecycle callbacks, IMGUI rendering, or camera-dependent logic simply won't load. Simpler mods (like Hotbar or AmmoUi) that don't depend on these systems may work fine, but the more complex feature mods — raid customisation, loot respawn, admin tools — typically don't.
 
 Project X was designed from the start to work across all environments: solo, co-op host, dedicated server, and client.
 
-From a single shared codebase, three editions are compiled:
+### Three Editions, One Codebase
+
+From a single shared codebase, three separate editions are compiled using `#if SERVER / OWNER / CLIENT` conditional compilation — code that doesn't belong in an edition is physically stripped at build time:
 
 | Edition    | DLL                   | For                                                                                                                    |
 | ---------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -24,66 +26,95 @@ From a single shared codebase, three editions are compiled:
 | **Server** | `ProjectX.Server.dll` | Headless dedicated server (`SonsOfTheForestDS.exe`)                                                                    |
 | **Client** | `ProjectX.Client.dll` | Players joining the server — receives server-pushed config (economy, raids, durability, etc.), UI access gated by role |
 
+No other Sons of the Forest mod uses multi-tier conditional compilation. The originals are single-build, client-only.
+
+---
+
 ## Features
 
-<details>
-<summary><strong>🎮 Player Cheats & Quality of Life</strong></summary>
+### Player Cheats & Quality of Life
 
-- God Mode, Infinite Stamina, No Hunger/Thirst/Fatigue
-- NoClip / Fly Mode with WASD + Space/Ctrl
-- No Fall Damage, Season Control
-- Unstuck Kelvin / Virginia (teleport companions to you)
-</details>
+- **God Mode** — Full invulnerability via the game's debug console API
+- **Infinite Stamina** — Never run out of energy
+- **No Hunger / No Thirst / No Fatigue** — Survival stats locked at full. _Unlike simple toggle mods, this uses hybrid reflection injection to bypass protected IL2CPP methods that are normally inaccessible_
+- **No Fall Damage** — Safe exploration from any height
+- **NoClip / Fly Mode** — Full 3D flight with physics bypass, WASD + Space/Ctrl for vertical control
+- **Season Control** — Instantly switch between Spring, Summer, Autumn, and Winter
+- **Unstuck Kelvin / Virginia** — Teleport companions 2m in front of you when they get stuck
 
-<details>
-<summary><strong>🏗️ Building & Construction</strong></summary>
+### Building & Construction
 
-- Free Form Placement — remove snap restrictions
-- Instant Build — skip construction animations
-- Structure Relocator — pick up and reposition buildings
-- Structure Durability Multiplier (slider)
-- Log Hack / Stone Hack — infinite building materials
-</details>
+- **Free Form Placement** — Remove snapping restrictions. _We discovered that the commonly referenced console commands (`freeformplace`, `skipwoodcuttings`) don't actually exist — we found the real API: `GameSetupManager.SetFreeFormForcePlaceFullLoadSetting()`_
+- **Instant Build** — Skip construction animations. _On dedicated servers, this uses a polling-based approach (server tick → `finishblueprints` every 0.5s) because the standard Harmony prefix approach requires a client-side game loop_
+- **Structure Relocator** — Pick up and reposition placed structures instead of destroying them, with a backup dictionary that preserves original placement modes
+- **Structure Durability Multiplier** — Configurable slider. _Rebuilt using Harmony postfix on `GetStructureInfo()` because IL2CPP strips direct field access on `ScrewStructure._hp`_
+- **Log Hack / Stone Hack** — Infinite building materials
 
-<details>
-<summary><strong>⚔️ Combat & Enemies</strong></summary>
+### Weapons & Combat
 
-- Weapon Damage Multiplier
-- Per-type Enemy HP / Damage / Aggression multipliers (Cannibals, Creepies, Bosses)
-- Kelvin & Virginia HP Persistence — survives first-aid revival
-- Kill All / Burn All / Freeze AI
-</details>
+- **Weapon Damage Multiplier** — Adjustable slider for player weapon damage
+- **Enemy HP & Damage Multipliers** — Per-type control over Cannibals, Creepies, and Bosses. _This required developing an entirely new approach: after 4 failed attempts (AccessTools.Field → null, GetField(NonPublic) → null, GetStat(Type) → MissingMethodException, property setter → wrong type), we landed on unsafe pointer arithmetic — direct memory writes at offsets 0x4CC (HP), 0x4D0 (damage), and 0x218+0x18 (aggression). IL2CPP strips all normal reflection paths_
+- **Kelvin & Virginia HP Persistence** — _The first mod to keep companion HP at a set value even after first aid revival._ VailActor has 13 stats, many sharing `_max=100`. We identify the correct stat by matching `_baseValue` (not `_max`), and use a 1-second delayed timer after revival to avoid a race condition with the game's `DyingRecoverHealth` recovery logic
+- **Kill All / Burn All Enemies** — Radius-based with entity filtering
+- **Freeze AI** — Pause world simulation entirely
 
-<details>
-<summary><strong>🎒 Inventory & Items</strong></summary>
+### Inventory & Items
 
-- 75+ individually configurable stack sizes across 14 categories
-- Infinite Items toggle
-- Builder Stacks — separate carry amounts for building materials
-- Ammo UI — on-screen ammunition counter
-</details>
+- **Custom Stack Sizes** — 75+ individually configurable items across 14 categories (Crafting, Meds, Food, Armor, Ammo, and more). _3.7× larger than the original StackMod — adds per-item config entries, reset-to-defaults crash prevention, and tier guards_
+- **Infinite Items** — Toggle to set all items to max
+- **Builder Stacks** — Separate carry amount overrides for building materials with category filtering and backup/restore
+- **Ammo UI** — On-screen ammunition counter showing current weapon ammo. _Condensed from 6 files (58KB) to 1 file (10KB) with sprite caching and frame throttling_
 
-<details>
-<summary><strong>🌍 World & Environment</strong></summary>
+### World & Environment
 
-- **Raid Customiser** — scheduling, spawn control, enemy limits, boss configuration
-- Loot Respawn — configurable respawn timer
-- Extended Ziplines & Rope Bridges (up to 15,000 units)
-- Crafting Speed multiplier
-- Water Collector heat radius
-- Waterfall volume control
-</details>
+- **Raid Customiser** — Full control over enemy raid scheduling, frequency, and composition. Configure time-of-day windows (morning/day/evening/night), spawn factors, enemy limits, enable/disable specific enemy types, and control boss spawn counts. Quick-action buttons for triggering, clearing, or requeuing raids on demand. _Server-authoritative — the server controls all raid scheduling, with multiplayer player-count scaling that adjusts difficulty based on how many players are connected_
+- **Loot Respawn** — Configurable respawn timer based on in-game days. _Replaced MD5 hashing with integer hash (name + quantized position) after profiling showed 600+ `PickUp.Awake()` calls during world load made `MD5.Create()` + `ComputeHash()` a performance bottleneck_
+- **Zipline Extender** — Extended zipline and rope bridge ranges up to 15,000 units (vanilla ~40m). _Uses a polling pattern instead of Harmony attributes for IL2CPP compatibility_
+- **Water Collector Heat Radius** — Keep rain catchers unfrozen in winter when near fire. _5.1× larger than the original — `Physics.OverlapSphere()` is stripped by IL2CPP, so we built a Harmony `OnEnable` tracking system for heat sources with `Vector3.Distance` checks and state-cached `SetFrozen()` calls_
+- **Crafting Speed** — Multiplier for crafting animation speed
+- **Waterfall Sound Control** — Audio volume slider via polling system
 
-<details>
-<summary><strong>🔥 Unique Features</strong></summary>
+### Unique Features — No Other Mod Has These
 
-- **Scary Cross** — electrified cross structure with demon detection, fire effects, and progressive damage
-- **Meat Dryer** — seasonal drying speeds with fire proximity detection
-- **Discord Bridge** — player join/leave/death/raid alerts with rich embeds
-- **Admin Bridge** — 40+ remote commands via in-game chat (`/px` prefix)
-- **RBAC Permissions** — Owner/Admin roles via SteamID, menu adapts in real-time
-- **Config Sync** — settings broadcast to all clients via Bolt, no restarts needed
-</details>
+- **Scary Cross** — Electrified cross structure with a custom `DemonDetector` MonoBehaviour. When powered, it detects nearby enemies, progressively increases light intensity (4096–32768), heats up, catches fire, and burns enemies within range. Progressive lightbulb failure based on HP damage. _4.4× larger than the original (70KB vs 16KB) — the original's stimuli system doesn't work from modded components, so we bypass it entirely with direct `VailActor.IgniteSelf()` calls_
+- **Meat Dryer** — Complete rewrite with seasonal drying speeds (Spring 30×, Summer 25×, Autumn 15×, Winter 5×) and fire proximity detection with per-season temperature thresholds. _3.6× larger than the original — the original was bugged and had no seasonal awareness_
+- **Discord Bridge** — Player join/leave/death/raid alerts as colour-coded rich embeds with Project X branding (#1a1a1a + #ff0000). _Built with zero-dependency JSON construction — no external HTTP libraries, just manual JSON escaping for IL2CPP compatibility. 9.5× larger than the original BroadcastMessage (66KB vs 7KB)_
+- **In-Game Welcome System** — Players joining the server receive a multi-line orientation via chat covering server rules, features, and save mechanics (world auto-saves vs manual personal saves)
+- **One-Click Installer** — Pure batch/PowerShell installer that auto-detects the game via Steam registry and VDF parsing, backs up existing mods to timestamped directories, validates prerequisites (.NET 6.0, VC++), and deploys with zero dependencies
+
+---
+
+## The Admin Bridge
+
+On a dedicated server, there's no screen to click on. Project X solves this with a **hybrid networking protocol** — Bolt for server-to-client messaging, and the game's chat system for client-to-server commands:
+
+1. Type `/px godmode on` in the game chat from your Owner client
+2. The chat message is intercepted before it reaches other players
+3. The command is routed to the server's `CommandBridge`
+4. The server executes the command and sends a confirmation back
+
+Over 40 commands covering player cheats, world settings, raid control, config management, and server administration — all without needing direct console access to the server.
+
+### Permission System (RBAC)
+
+Project X implements **Role-Based Access Control** with Owner and Admin tiers, managed via `roles.json` using SteamID64 mappings. When a player joins, the server broadcasts their permission level via Bolt, and the client's menu adapts in real-time — showing or hiding features based on authorisation. Standard players see nothing; the mod is invisible to them.
+
+### Config Sync
+
+When the server owner adjusts settings — stack sizes, durability multipliers, raid frequency — those changes are broadcast to all connected clients in real-time via Bolt GlobalEvents. No config files to distribute, no restarts required. The admin sets the server economy and every player receives those settings automatically.
+
+---
+
+## The Custom GUI
+
+An **83KB IMGUI menu system** built entirely on Unity's built-in GUI system — not the SUI framework used by other mods (which crashes on dedicated servers). Activated with the Insert key:
+
+- **6 tabbed panels**: Player, Weather, World, System, Structures, Raids
+- **Full slider and checkbox controls** with real-time feedback
+- **Permission-aware rendering** — panels show/hide based on RBAC role
+- **Red and black branded theme** with resolution-independent layout
+
+---
 
 ## Quick Install (Client)
 
@@ -96,6 +127,67 @@ From a single shared codebase, three editions are compiled:
 
 See [`Installer/payload/README.txt`](Installer/payload/README.txt) for manual install instructions and troubleshooting.
 
+---
+
+## How Project X Differs from the Originals
+
+Every feature was independently implemented. The original mods were studied to understand _which game APIs to target_ — but the implementations had to be completely rewritten because the architectures are incompatible.
+
+The originals use `SonsMod` with `[HarmonyPatchAll]` attribute scanning. Project X uses static classes with manual `harmony.Patch()` per method. You cannot copy code between these patterns — a `[HarmonyPatch]` attribute doesn't work in a manual patching system, and a `SonsMod.OnInGameUpdate()` callback doesn't exist in static modules.
+
+### Why Everything Had to Be Rebuilt
+
+Most original mods depend on Unity's renderer and lifecycle callbacks (`OnInGameUpdate()`, `OnGameStart()`). On a headless dedicated server, these callbacks never fire. This isn't a minor incompatibility:
+
+- **No `SonsMod` lifecycle** — We built our own tick drivers using Harmony postfixes on `SeasonsManager.LateUpdate`
+- **No GUI on servers** — We built a remote command system (`/px` via chat protocol) for headless admin control
+- **Server-authoritative stats** — Enemy stats must be modified on the server via unsafe pointer arithmetic because IL2CPP strips reflection APIs
+- **Permissions** — Public servers need access control, so we built RBAC synced between server and clients via Bolt
+
+### Module-by-Module Comparison
+
+| Module                 | Project X         | Original                                                             | Key Difference                                                  |
+| ---------------------- | ----------------- | -------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **RaidCustomizer**     | 99.6KB, 11 files  | 76KB, 16 files                                                       | Server-authoritative, unsafe pointer stats, multiplayer scaling |
+| **DedicatedSuperuser** | 102.6KB, 11 files | 33KB                                                                 | 3.1× larger — remote command bridge, RBAC, chat routing         |
+| **ScaryCross**         | 70.4KB, 3 files   | 16KB                                                                 | 4.4× larger — custom DemonDetector, heat/fire state machine     |
+| **BroadcastMessage**   | 66.2KB, 4 files   | 7KB                                                                  | 9.5× larger — Discord rich embeds + in-game welcome             |
+| **MeatDryer**          | 18.1KB, 2 files   | ~5KB                                                                 | 3.6× larger — seasonal system, fire proximity                   |
+| **WaterCollectors**    | 15.2KB, 2 files   | ~3KB                                                                 | 5.1× larger — IL2CPP-safe heat tracking                         |
+| **Stack**              | 14.9KB, 1 file    | ~4KB                                                                 | 3.7× larger — per-item configs, tier guards                     |
+| **LootRespawn**        | 10.4KB, 2 files   | [GitHub](https://github.com/laserman120/SOTF-Mod-LootRespawnControl) | Integer hash replacing MD5 bottleneck                           |
+
+**Modules with no original equivalent (~260KB+ of unique code):**
+
+- **Permission System** (15.5KB) — RBAC synced between server and clients
+- **Config Sync** (14.9KB) — Real-time server→client config broadcast
+- **Admin Bridge** (20.3KB) — Remote `/px` commands via hybrid Bolt/chat protocol
+- **Building Enhancements** (26.9KB) — Server-side instant build + correct API discovery
+- **Integrity / Anti-Cheat** (40.6KB) — Server-side cheat detection
+- **Custom GUI** (144KB) — Permission-aware IMGUI with 6 tabbed panels
+
+See [`CREDITS.md`](CREDITS.md) for full attribution of all studied mods and their authors.
+
+---
+
+## Technical Approach
+
+- **Static class modules** with manual `Init()` — no `SonsMod` lifecycle dependency
+- **Manual Harmony patching** per method — no `[HarmonyPatchAll]` (IL2CPP vtable safety)
+- **Unsafe memory access** via pointer arithmetic at IL2CPP offsets
+- **Hybrid networking** — Bolt (server→client) + ChatBox interception (client→server)
+- **Server-safe tick driver** — `SeasonsManager.LateUpdate` postfix for headless servers
+- **Four-tier conditional compilation** — `#if SERVER / OWNER / CLIENT` strips irrelevant code
+- **Defensive polling patterns** instead of event-driven Harmony for maximum stability
+- **Cached reflection** for protected methods using `AccessTools`
+- **DebugConsole dispatch** as a universal bypass for stripped internal APIs
+
+72 source files, 750KB+ of custom C# code, 200+ documented development phases.
+
+See [`community_technical_guide.md`](community_technical_guide.md) for the full IL2CPP pattern catalogue (23 patterns documented).
+
+---
+
 ## Project Structure
 
 ```
@@ -105,7 +197,6 @@ Dev/
 │   │   ├── RaidCustomizer/
 │   │   ├── DedicatedSuperuser/
 │   │   ├── ScaryCross/
-│   │   ├── StoneGate/
 │   │   ├── UI/
 │   │   └── ...
 │   └── Assets/            # Binary assets (icons, models)
@@ -115,72 +206,23 @@ Dev/
 Installer/                 # One-click client installer
 ```
 
-## How Project X Differs from the Originals
-
-Every feature in Project X was independently implemented. The original mods were studied to understand _which game APIs to target_ and what player-facing behaviour to achieve — but the implementations had to be completely rewritten because the architectures are incompatible.
-
-The originals use `SonsMod` with `[HarmonyPatchAll]` attribute scanning. Project X uses static classes with manual `harmony.Patch()` per method. You cannot copy code between these patterns — a `[HarmonyPatch]` attribute doesn't work in a manual patching system, and a `SonsMod.OnInGameUpdate()` callback doesn't exist in static modules.
-
-### Why Everything Had to Be Rebuilt
-
-Most original mods are built on the `SonsMod` base class, which depends on Unity's renderer and lifecycle callbacks (`OnInGameUpdate()`, `OnGameStart()`). On a headless dedicated server, these callbacks never fire — the mod simply doesn't load. This isn't a minor incompatibility; it means:
-
-- **No `SonsMod` lifecycle** — We built our own tick drivers and event hooks using manual Harmony patches
-- **No GUI on servers** — We built a remote command system (`/px` commands via chat protocol) so admins can control everything from their game client
-- **Server-authoritative stats** — Enemy HP/damage must be modified on the server using unsafe pointer arithmetic because IL2CPP strips the normal reflection APIs
-- **Permissions** — On a public server you can't give everyone admin access, so we built role-based access control (Owner/Admin/Player) synced via Bolt
-
-### Module-by-Module Comparison
-
-Modules with an original counterpart — studied the concept, rebuilt from scratch:
-
-| Module                 | Project X           | Original                                                                        | Key Architectural Difference                                                                                                                                                                                 |
-| ---------------------- | ------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **RaidCustomizer**     | 99.6KB, 11 files    | 76KB, 16 files                                                                  | Server-authoritative scheduling, unsafe pointer writes at IL2CPP offsets (0x4CC/0x4D0) because reflection is stripped. 4 failed approaches before finding working solution. Multiplayer player-count scaling |
-| **DedicatedSuperuser** | 102.6KB, 11 files   | 33KB                                                                            | 3.1× larger. Remote `/px` command bridge, RBAC permissions, chat protocol routing                                                                                                                            |
-| **ScaryCross**         | 70.4KB, 3 files     | 16KB                                                                            | 4.4× larger. Custom `DemonDetector` MonoBehaviour, progressive heat/fire state machine, direct `VailActor.IgniteSelf()` bypass (stimuli system doesn't work from modded components)                          |
-| **BroadcastMessage**   | 66.2KB, 4 files     | 7KB                                                                             | 9.5× larger. Discord rich embeds with zero-dependency JSON + in-game welcome system                                                                                                                          |
-| **Loot Respawn**       | 10.4KB, 2 files     | Full C# on [GitHub](https://github.com/laserman120/SOTF-Mod-LootRespawnControl) | Integer hash replaced MD5 — 600+ `PickUp.Awake()` calls made MD5 a bottleneck                                                                                                                                |
-| **Water Collectors**   | 15.2KB, 2 files     | ~3KB                                                                            | 5.1× larger. `Physics.OverlapSphere()` stripped by IL2CPP — replaced with Harmony `OnEnable` tracking + `Vector3.Distance`                                                                                   |
-| **Meat Dryer**         | 18.1KB, 2 files     | ~5KB                                                                            | 3.6× larger. Complete rewrite with seasonal drying system and fire proximity detection                                                                                                                       |
-| **Stack Sizes**        | 14.9KB, 1 file      | ~4KB                                                                            | 3.7× larger. Per-item config entries across 14 categories, reset-to-defaults, tier guards                                                                                                                    |
-| **Enemy Stats**        | (in RaidCustomizer) | —                                                                               | 4 failed approaches: `AccessTools.Field` → null, `GetField(NonPublic)` → null, `GetStat(Type)` → MissingMethodException, then unsafe `IntPtr + offset` pointer arithmetic                                    |
-| **Follower HP**        | (in RaidCustomizer) | —                                                                               | VailActor has 13 stats, multiple with `_max=100`. Match by `_baseValue` not `_max`. Post-revive 1-second delayed timer to avoid game HP reset race                                                           |
-
-Modules that exist **only** in Project X — no original equivalent:
-
-- **Permission System** (15.5KB) — RBAC synced between server and clients
-- **Config Sync** (14.9KB) — Real-time server→client config broadcast
-- **Admin Bridge** (20.3KB) — Remote `/px` commands via hybrid Bolt/chat protocol
-- **Building Enhancements** (26.9KB) — Custom building tools with server-side instant build
-- **Integrity / Anti-Cheat** (40.6KB) — Server-side cheat detection
-- **Custom GUI** (144KB) — Permission-aware IMGUI with 6 tabbed panels
-- **One-click Installer** — Auto-detects game via Steam registry, backs up existing mods
-
-See [`CREDITS.md`](CREDITS.md) for full attribution of all studied mods and their authors.
-
-## Technical Approach
-
-Project X is built on a fundamentally different architecture from standard Sons of the Forest mods:
-
-- **Static class modules** with manual `Init()` — no `SonsMod` lifecycle dependency
-- **Manual Harmony patching** per method — no `[HarmonyPatchAll]` attribute scanning (IL2CPP vtable safety)
-- **Unsafe memory access** via pointer arithmetic at IL2CPP offsets for stats and state
-- **Hybrid networking** — Bolt (server→client) + ChatBox interception (client→server)
-- **Server-safe tick driver** — `SeasonsManager.LateUpdate` postfix for headless servers
-- **Four-tier conditional compilation** — `#if SERVER / OWNER / CLIENT` strips irrelevant code from each build
-
-See [`community_technical_guide.md`](community_technical_guide.md) for the full IL2CPP pattern catalogue (23 patterns documented).
-
 ## Documentation
 
-| Document                                                       | Description                         |
-| -------------------------------------------------------------- | ----------------------------------- |
-| [`WHAT_IS_PROJECT_X.md`](WHAT_IS_PROJECT_X.md)                 | Detailed feature breakdown          |
-| [`MODULE_DETAILS.txt`](MODULE_DETAILS.txt)                     | Per-module technical reference      |
-| [`community_technical_guide.md`](community_technical_guide.md) | IL2CPP modding patterns & solutions |
-| [`CREDITS.md`](CREDITS.md)                                     | Attribution & mod inspirations      |
-| [`LICENSES.md`](LICENSES.md)                                   | Third-party license details         |
+| Document                                                       | Description                                      |
+| -------------------------------------------------------------- | ------------------------------------------------ |
+| [`MODULE_DETAILS.txt`](MODULE_DETAILS.txt)                     | Per-module technical reference with usage guides |
+| [`community_technical_guide.md`](community_technical_guide.md) | IL2CPP modding patterns & solutions              |
+| [`CREDITS.md`](CREDITS.md)                                     | Attribution & mod inspirations                   |
+| [`LICENSES.md`](LICENSES.md)                                   | Third-party license details                      |
+
+## Who It's For
+
+- **Dedicated server operators** who had limited modding options before Project X
+- **Friend groups** who want modded co-op without managing 20+ separate mods
+- **Community server owners** who need admin tools, permissions, config sync, and Discord integration
+- **Players** who want one install instead of troubleshooting 15 mod conflicts
+
+One file. One install. Everything works.
 
 ## License
 

@@ -1,0 +1,37 @@
+# ============================================================
+# IL2CPP Banned APIs — Stripped or Broken at Runtime
+# ============================================================
+# Each line: PATTERN | SEVERITY | DESCRIPTION
+# PATTERN:     Regex-safe string to grep for in .cs files
+# SEVERITY:    ERROR (always crashes) or WARN (may silently fail)
+# DESCRIPTION: Why it's banned and what to use instead
+#
+# Lines starting with # are comments.
+# This file is checked by: make -f Tools/Makefile lint
+# ============================================================
+
+# --- Physics Queries (ALL overloads stripped) ---
+Physics\.OverlapSphere|ERROR|All OverlapSphere overloads stripped. Use Harmony OnEnable tracking + Vector3.Distance
+Physics\.OverlapBox|WARN|Likely stripped like OverlapSphere. Use Harmony tracking pattern
+Physics\.OverlapCapsule|WARN|Likely stripped like OverlapSphere. Use Harmony tracking pattern
+
+# --- Object Finding (plural variants stripped) ---
+FindObjectsOfType|ERROR|Generic plural FindObjectsOfType<T> stripped for ALL types. Use Harmony Awake interception
+FindObjectsByType|ERROR|Stripped. Use Harmony Awake interception pattern
+
+# --- Component Queries (plural variants stripped) ---
+GetComponentsInChildren|ERROR|Generic plural stripped. Use recursive Transform.GetChild() + GetComponent<T>() singular
+GetComponentsInParent|WARN|Likely stripped. Use manual parent traversal
+
+# --- Scene Queries (stripped) ---
+Scene\.GetRootGameObjects|ERROR|Stripped. Use Harmony Awake interception pattern
+
+# --- Lifecycle Callbacks on Injected Types ---
+# These are not syntax errors but design warnings.
+# If a [RegisterTypeInIl2Cpp] class defines these, they will never fire.
+# Uncomment if you want stricter checking:
+# void Update\(\)|WARN|Update() never fires on [RegisterTypeInIl2Cpp] types. Use manual tick loop
+# void FixedUpdate\(\)|WARN|FixedUpdate() never fires on injected types
+# void OnTriggerEnter|WARN|OnTriggerEnter never fires on injected types. Use active scanning
+# void OnTriggerExit|WARN|OnTriggerExit never fires on injected types
+# void OnCollisionEnter|WARN|OnCollisionEnter never fires on injected types

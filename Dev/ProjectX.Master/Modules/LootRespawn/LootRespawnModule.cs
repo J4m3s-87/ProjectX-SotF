@@ -78,7 +78,8 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // Apply Harmony patches
                 _harmony = new HarmonyLib.Harmony("ProjectX.LootRespawn");
                 _harmony.PatchAll(typeof(PickUpAwakePatch));
-                _harmony.PatchAll(typeof(PickUpOnEnablePatch));
+                try { _harmony.PatchAll(typeof(PickUpOnEnablePatch)); }
+                catch (Exception ex) { RLog.Warning($"[LootRespawn] OnEnable patch failed (non-critical): {ex.Message}"); }
                 _harmony.PatchAll(typeof(PickUpCollectPatch));
 
                 RLog.Msg($"[LootRespawn] ★ Initialized — {_collectedLoot.Count} tracked items loaded, days={RespawnConfig.RespawnDays}");
@@ -124,7 +125,7 @@ namespace ProjectX.Master.Modules.LootRespawn
             try
             {
                 // Server-authoritative: only track when we are the server or singleplayer
-                if (!BoltNetwork.isServerOrNotRunning) return;
+                if (IsMultiplayerClient()) return;
 
                 // Fast exit if nothing is tracked
                 if (_collectedLoot.Count == 0) return;
@@ -190,7 +191,7 @@ namespace ProjectX.Master.Modules.LootRespawn
             try
             {
                 // Server-authoritative: only track when we are the server or singleplayer
-                if (!BoltNetwork.isServerOrNotRunning) return true;
+                if (IsMultiplayerClient()) return true;
 
                 // Skip player-placed items (clones)
                 string objName = pickup.name;
@@ -235,6 +236,23 @@ namespace ProjectX.Master.Modules.LootRespawn
             }
 
             return 0;
+        }
+
+        // --- Server Authority ---
+
+        /// <summary>
+        /// Returns true if we are a multiplayer CLIENT (not the server/host).
+        /// Uses the same pattern as StoneGate/Network modules:
+        ///   BoltNetwork.isRunning && BoltNetwork.isClient
+        /// Avoids BoltNetwork.isServerOrNotRunning which doesn't exist in IL2CPP interop.
+        /// </summary>
+        private static bool IsMultiplayerClient()
+        {
+            try
+            {
+                return BoltNetwork.isRunning && BoltNetwork.isClient;
+            }
+            catch { return false; } // If Bolt isn't available, treat as singleplayer
         }
 
         // --- Identifier Generation ---

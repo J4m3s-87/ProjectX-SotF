@@ -9,6 +9,7 @@ namespace ProjectX.Master.Modules.LootRespawn
     {
         private static int _respawnDays = 3;
         private static bool _enabled = true;
+        private static bool _consoleLogging = false;
 
         /// <summary>
         /// Number of in-game days before loot respawns
@@ -29,11 +30,20 @@ namespace ProjectX.Master.Modules.LootRespawn
         }
 
         /// <summary>
+        /// Enable verbose logging for debugging loot respawn tracking
+        /// </summary>
+        public static bool ConsoleLogging
+        {
+            get => _consoleLogging;
+            set => _consoleLogging = value;
+        }
+
+        /// <summary>
         /// Log current configuration
         /// </summary>
         public static void LogConfig()
         {
-            RLog.Msg($"[RespawnConfig] Enabled: {_enabled}, Days: {_respawnDays}");
+            RLog.Msg($"[RespawnConfig] Enabled: {_enabled}, Days: {_respawnDays}, Logging: {_consoleLogging}");
         }
     }
 }

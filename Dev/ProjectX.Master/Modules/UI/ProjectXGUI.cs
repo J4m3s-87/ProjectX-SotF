@@ -493,6 +493,15 @@ namespace ProjectX.Master.Modules.UI
             if (newDays != Config.LootRespawnDays.Value) Config.LootRespawnDays.Value = newDays;
             GUILayout.EndHorizontal();
             
+            // Reset button + debug toggle
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Reset Loot Tracker", ProjectXStyles.Button, GUILayout.Height(35)))
+                Modules.LootRespawn.LootRespawnModule.Reset();
+            bool newLogging = DrawCheckbox("Debug Logging", Modules.LootRespawn.RespawnConfig.ConsoleLogging);
+            if (newLogging != Modules.LootRespawn.RespawnConfig.ConsoleLogging)
+                Modules.LootRespawn.RespawnConfig.ConsoleLogging = newLogging;
+            GUILayout.EndHorizontal();
+            
             // Status display
             GUILayout.Label(Modules.LootRespawn.LootRespawnModule.GetStatus(), ProjectXStyles.NormalLabel);
         }
@@ -1388,6 +1397,10 @@ namespace ProjectX.Master.Modules.UI
                 if (GUILayout.Button("Show Loot Status", ProjectXStyles.Button, GUILayout.Height(45)))
                     ServerCmd("loot status");
                 GUILayout.EndHorizontal();
+                
+                // Status display
+                try { GUILayout.Label(LootRespawn.LootRespawnModule.GetStatus(), ProjectXStyles.NormalLabel); }
+                catch { /* module not loaded */ }
                 
                 DrawDivider("SERVER");
                 

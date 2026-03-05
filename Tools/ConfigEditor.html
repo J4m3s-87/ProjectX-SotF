@@ -1,0 +1,2203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project X Config Editor</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --card: #1c2128;
+        --border: #30363d;
+        --accent: #c9302c;
+        --accent2: #ff4444;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --green: #3fb950;
+        --blue: #58a6ff;
+        --orange: #d29922;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .header {
+        background: linear-gradient(
+          135deg,
+          #1a0505 0%,
+          #2d0a0a 50%,
+          #1a0505 100%
+        );
+        border-bottom: 2px solid var(--accent);
+        padding: 20px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+      .header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--accent2);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+      .header-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--accent2);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(201, 48, 44, 0.4);
+      }
+      .btn-secondary {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      .btn-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent2);
+      }
+      .btn-green {
+        background: #238636;
+        color: #fff;
+      }
+      .btn-green:hover {
+        background: #2ea043;
+        transform: translateY(-1px);
+      }
+      .btn-reset {
+        background: var(--surface);
+        color: var(--orange);
+        border: 1px solid var(--orange);
+      }
+      .btn-reset:hover {
+        background: var(--orange);
+        color: #000;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .toc a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+      }
+      .toc a:hover {
+        color: var(--accent2);
+        border-color: var(--accent);
+      }
+      .section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        margin-bottom: 16px;
+        overflow: hidden;
+        transition: border-color 0.2s;
+      }
+      .section:hover {
+        border-color: #444c56;
+      }
+      .section-header {
+        padding: 14px 20px;
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        user-select: none;
+      }
+      .section-header h2 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--accent2);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .section-header .chevron {
+        color: var(--muted);
+        transition: transform 0.2s;
+        font-size: 12px;
+      }
+      .section-header.collapsed .chevron {
+        transform: rotate(-90deg);
+      }
+      .section-body {
+        padding: 8px 20px 16px;
+      }
+      .section-body.hidden {
+        display: none;
+      }
+      .field {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #21262d;
+        gap: 12px;
+      }
+      .field:last-child {
+        border-bottom: none;
+      }
+      .field-label {
+        flex: 0 0 240px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+      }
+      .field-desc {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .field-control {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .field-value {
+        color: var(--blue);
+        font-size: 12px;
+        font-weight: 600;
+        min-width: 50px;
+        text-align: right;
+      }
+      .field-default {
+        font-size: 10px;
+        color: var(--muted);
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        white-space: nowrap;
+      }
+      .field-default:hover {
+        opacity: 1;
+        color: var(--orange);
+      }
+      input[type="range"] {
+        flex: 1;
+        accent-color: var(--accent);
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        outline: none;
+        -webkit-appearance: none;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--accent2);
+        cursor: pointer;
+        border: 2px solid var(--bg);
+      }
+      input[type="text"],
+      input[type="number"] {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text);
+        padding: 6px 10px;
+        font-family: inherit;
+        font-size: 13px;
+        width: 100%;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      input[type="text"]:focus,
+      input[type="number"]:focus {
+        border-color: var(--accent);
+      }
+      select {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text);
+        padding: 6px 10px;
+        font-family: inherit;
+        font-size: 13px;
+        outline: none;
+        cursor: pointer;
+      }
+      select:focus {
+        border-color: var(--accent);
+      }
+      .toggle-wrap {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      .toggle-wrap input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--border);
+        border-radius: 12px;
+        transition: 0.2s;
+      }
+      .toggle-slider:before {
+        content: "";
+        position: absolute;
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: 0.2s;
+      }
+      .toggle-wrap input:checked + .toggle-slider {
+        background: var(--green);
+      }
+      .toggle-wrap input:checked + .toggle-slider:before {
+        transform: translateX(20px);
+      }
+      .toggle-label {
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .changed {
+        background: rgba(201, 48, 44, 0.08);
+      }
+      .drop-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(201, 48, 44, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .drop-overlay.active {
+        opacity: 1;
+      }
+      .drop-overlay span {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--accent2);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      }
+      .status-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--card);
+        border-top: 1px solid var(--border);
+        padding: 8px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        z-index: 100;
+      }
+      .status-bar .changes {
+        color: var(--orange);
+        font-weight: 600;
+      }
+      .status-bar .file-info {
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>⚙ Project X Config Editor</h1>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="loadFile()">
+          📂 Load .cfg
+        </button>
+        <button class="btn btn-reset" onclick="resetAllDefaults()">
+          ↺ Reset All
+        </button>
+        <button class="btn btn-green" onclick="exportFile()">
+          💾 Save .cfg
+        </button>
+      </div>
+    </div>
+
+    <div class="drop-overlay" id="dropOverlay">
+      <span>Drop .cfg file here</span>
+    </div>
+
+    <div class="container" id="editor"></div>
+
+    <div class="status-bar">
+      <span class="file-info" id="statusFile"
+        >No file loaded — using defaults</span
+      >
+      <span class="changes" id="statusChanges"></span>
+    </div>
+
+    <input type="file" id="fileInput" accept=".cfg" style="display: none" />
+
+    <script>
+      // Schema: derived from Config.cs
+      const SCHEMA = [
+        {
+          section: "ProjectX - Cheats",
+          label: "Cheats",
+          fields: [
+            { key: "GodMode", label: "God Mode", type: "bool", default: false },
+            {
+              key: "IsInfStamina",
+              label: "Infinite Stamina",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "IsNoHungry",
+              label: "No Hunger",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "IsNoDehydration",
+              label: "No Thirst",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "IsNoSleep",
+              label: "No Sleep",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "IsInfiniteAmmo",
+              label: "Infinite Ammo",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "IsNoFallDamage",
+              label: "No Fall Damage",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "InfiniteLogs",
+              label: "Infinite Logs",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "InfiniteStones",
+              label: "Infinite Stones",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "InfiniteInventory",
+              label: "Infinite Inventory",
+              type: "bool",
+              default: false,
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Movement",
+          label: "Movement",
+          fields: [
+            {
+              key: "IsNoClip",
+              label: "NoClip / Fly Hack",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "NoClipSpeed",
+              label: "Flight Speed",
+              type: "float",
+              default: 2.5,
+              min: 0.5,
+              max: 20,
+              step: 0.5,
+            },
+            {
+              key: "NoClipUpDownSpeed",
+              label: "Flight Vertical Speed",
+              type: "float",
+              default: 0.5,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "WalkSpeed",
+              label: "Walk Speed",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "RunSpeed",
+              label: "Run Speed",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "SwimSpeed",
+              label: "Swim Speed",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "JumpMultiplier",
+              label: "Jump Multiplier",
+              type: "float",
+              default: 1.0,
+              min: 0.5,
+              max: 10,
+              step: 0.5,
+            },
+            {
+              key: "IsNoGravity",
+              label: "No Gravity",
+              type: "bool",
+              default: false,
+            },
+          ],
+        },
+        {
+          section: "ProjectX - World",
+          label: "World",
+          fields: [
+            {
+              key: "FreezeAI",
+              label: "Freeze AI (Stop Spawning)",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "IsLockTime",
+              label: "Lock Time of Day",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "DaytimeSpeed",
+              label: "Day/Night Cycle Speed",
+              type: "float",
+              default: 1.0,
+              min: 0,
+              max: 10,
+              step: 0.1,
+              desc: "1 = normal",
+            },
+            {
+              key: "TreeRegrowRate",
+              label: "Tree Regrow Rate",
+              type: "float",
+              default: 1.0,
+              min: 0,
+              max: 10,
+              step: 0.5,
+            },
+            {
+              key: "WindIntensity",
+              label: "Wind Intensity",
+              type: "float",
+              default: -1.0,
+              min: -1,
+              max: 10,
+              step: 0.5,
+              desc: "-1 = auto",
+            },
+            {
+              key: "KillRadius",
+              label: "Kill/Burn All Radius (m)",
+              type: "float",
+              default: 0,
+              min: 0,
+              max: 500,
+              step: 10,
+              desc: "0 = all loaded",
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Modules",
+          label: "Modules",
+          fields: [
+            {
+              key: "RelocatorEnabled",
+              label: "Relocator Enabled",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "LootRespawnEnabled",
+              label: "Loot Respawn Enabled",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "LootRespawnDays",
+              label: "Loot Respawn Days",
+              type: "int",
+              default: 3,
+              min: 1,
+              max: 30,
+            },
+            {
+              key: "StructureDurabilityMultiplier",
+              label: "Structure Durability",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 100,
+              step: 0.5,
+              desc: "100 = invincible",
+            },
+            {
+              key: "FasterCraftingEnabled",
+              label: "Faster Crafting",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "CraftingSpeedMultiplier",
+              label: "Crafting Speed",
+              type: "float",
+              default: 5.0,
+              min: 1,
+              max: 10,
+              step: 0.5,
+              desc: "1=normal, 10=instant",
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Zipline",
+          label: "Zipline",
+          fields: [
+            {
+              key: "MaxZipLineLength",
+              label: "Max Zipline Length",
+              type: "text",
+              default: "3.4028234663852886E+38",
+              desc: "Game default ~150",
+            },
+            {
+              key: "MaxShootingDistance",
+              label: "Max Shooting Distance",
+              type: "text",
+              default: "3.4028234663852886E+38",
+              desc: "Game default ~50",
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Features",
+          label: "Features",
+          fields: [
+            {
+              key: "WaterCollectorHeatRadius",
+              label: "Water Collector Heat Radius",
+              type: "float",
+              default: 2.5,
+              min: 0.5,
+              max: 10,
+              step: 0.5,
+            },
+            {
+              key: "MeatDryerProximityCheckInterval",
+              label: "Meat Dryer Check Interval (s)",
+              type: "float",
+              default: 2.0,
+              min: 0.5,
+              max: 10,
+              step: 0.5,
+            },
+            {
+              key: "MeatDryerSpeedMultiplier",
+              label: "Meat Dryer Speed",
+              type: "float",
+              default: 1.0,
+              min: 1,
+              max: 50,
+              step: 1,
+            },
+            {
+              key: "MeatDryerCureTimeDays",
+              label: "Meat Dryer Cure Time (days)",
+              type: "float",
+              default: -1.0,
+              min: -1,
+              max: 10,
+              step: 0.1,
+              desc: "-1 = use default",
+            },
+            {
+              key: "MeatDryerInstantDry",
+              label: "Meat Dryer Instant Dry",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "MeatDryerNoFireRequired",
+              label: "Meat Dryer No Fire Required",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "FlashlightIntensity",
+              label: "Flashlight Brightness",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 5,
+              step: 0.1,
+            },
+            {
+              key: "MaxRopeBridgeLength",
+              label: "Max Rope Bridge Length",
+              type: "text",
+              default: "3.4028234663852886E+38",
+              desc: "Game default ~24m",
+            },
+            {
+              key: "WaterfallVolume",
+              label: "Waterfall Volume",
+              type: "float",
+              default: 1.0,
+              min: 0,
+              max: 3,
+              step: 0.1,
+              desc: "0 = mute",
+            },
+            {
+              key: "MeatDryerFireRadius",
+              label: "Meat Dryer Fire Radius",
+              type: "float",
+              default: 4.0,
+              min: 3,
+              max: 30,
+              step: 1,
+              desc: "meters to detect fire",
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Discord",
+          label: "Discord",
+          fields: [
+            {
+              key: "EnableDiscordBridge",
+              label: "Enable Discord Bridge",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "DiscordBotToken",
+              label: "Bot Token",
+              type: "text",
+              default: "",
+              preserve: true,
+            },
+            {
+              key: "DiscordChannelId",
+              label: "Channel ID",
+              type: "text",
+              default: "",
+              preserve: true,
+            },
+            {
+              key: "EnableWelcomeMessage",
+              label: "Enable Welcome Message",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "WelcomeMessageDelay",
+              label: "Welcome Delay (seconds)",
+              type: "float",
+              default: 30,
+              min: 1,
+              max: 60,
+              step: 1,
+            },
+            {
+              key: "WelcomeMessageText",
+              label: "Welcome Message Text",
+              type: "text",
+              default:
+                "Visit https://discord.gg/GQDfkdUD for the Mod Pack and Server Information",
+            },
+            {
+              key: "DiscordWelcomeChannelId",
+              label: "Welcome Channel ID / URL",
+              type: "text",
+              default: "",
+              preserve: true,
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Keys",
+          label: "Keybinds",
+          fields: [
+            {
+              key: "OpenKey",
+              label: "Open Menu Key",
+              type: "text",
+              default: "insert",
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Stacks Crafting",
+          label: "Stacks — Crafting",
+          fields: [
+            {
+              key: "MaxTapeStack",
+              label: "Duct Tape",
+              type: "stack",
+              default: "100",
+            },
+            {
+              key: "MaxClothStack",
+              label: "Cloth",
+              type: "stack",
+              default: "1000",
+            },
+            {
+              key: "MaxWireStack",
+              label: "Wire",
+              type: "stack",
+              default: "100",
+            },
+            {
+              key: "MaxBatteriesStack",
+              label: "Batteries",
+              type: "stack",
+              default: "6",
+            },
+            {
+              key: "MaxRopeStack",
+              label: "Ropes",
+              type: "stack",
+              default: "8",
+            },
+            {
+              key: "MaxBoardStack",
+              label: "Circuit Boards",
+              type: "stack",
+              default: "6",
+            },
+            {
+              key: "MaxC4Stack",
+              label: "C4 Bricks",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxVodkaStack",
+              label: "Vodka",
+              type: "stack",
+              default: "6",
+            },
+            {
+              key: "MaxWatchStack",
+              label: "Watches",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxCoinStack",
+              label: "Coins",
+              type: "stack",
+              default: "1000",
+            },
+            {
+              key: "MaxResinStack",
+              label: "Resin",
+              type: "stack",
+              default: "1000",
+            },
+            {
+              key: "MaxMeshStack",
+              label: "Tech Mesh",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxHookStack",
+              label: "Grappling Hooks",
+              type: "stack",
+              default: "2",
+            },
+            {
+              key: "MaxGpsCaseStack",
+              label: "GPS Cases",
+              type: "stack",
+              default: "5",
+            },
+            {
+              key: "MaxSolarStack",
+              label: "Solar Panels",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxBatteryStack",
+              label: "Golfcart Batteries",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxBulbStack",
+              label: "Light Bulbs",
+              type: "stack",
+              default: "8",
+            },
+            {
+              key: "MaxRadioStack",
+              label: "Radios",
+              type: "stack",
+              default: "1",
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Stacks Food",
+          label: "Stacks — Food & Meds",
+          fields: [
+            { key: "MaxMedsStack", label: "Meds", type: "stack", default: "6" },
+            {
+              key: "MaxHealthMixStack",
+              label: "Health Mix",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxHealthMixPlusStack",
+              label: "Health+ Mix",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxEnergyMixStack",
+              label: "Energy Mix",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxEnergyMixPlusStack",
+              label: "Energy+ Mix",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxPotStack",
+              label: "Cooking Pots",
+              type: "stack",
+              default: "1",
+            },
+            { key: "MaxMeatStack", label: "Meat", type: "stack", default: "7" },
+            { key: "MaxFishStack", label: "Fish", type: "stack", default: "3" },
+            { key: "MaxMreStack", label: "MREs", type: "stack", default: "6" },
+            {
+              key: "MaxEnergyBarStack",
+              label: "Energy Bars",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxEnergyDrinkStack",
+              label: "Energy Drinks",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxCannedFoodStack",
+              label: "Canned Food",
+              type: "stack",
+              default: "6",
+            },
+            {
+              key: "MaxCatFoodStack",
+              label: "Cat Food",
+              type: "stack",
+              default: "1",
+            },
+            {
+              key: "MaxRamenStack",
+              label: "Ramen",
+              type: "stack",
+              default: "4",
+            },
+            {
+              key: "MaxCrunchieStack",
+              label: "Crunchie Wunchies",
+              type: "stack",
+              default: "4",
+            },
+            {
+              key: "MaxOysterStack",
+              label: "Oysters",
+              type: "stack",
+              default: "5",
+            },
+            {
+              key: "MaxEggStack",
+              label: "Turtle Eggs",
+              type: "stack",
+              default: "4",
+            },
+            {
+              key: "MaxSteakBiteStack",
+              label: "Steak Bites",
+              type: "stack",
+              default: "1",
+            },
+            {
+              key: "MaxBaconBiteStack",
+              label: "Bacon Bites",
+              type: "stack",
+              default: "1",
+            },
+            {
+              key: "MaxBrainBiteStack",
+              label: "Brain Bites",
+              type: "stack",
+              default: "1",
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Stacks Combat",
+          label: "Stacks — Combat & Armor",
+          fields: [
+            {
+              key: "MaxMolotovStack",
+              label: "Molotovs",
+              type: "stack",
+              default: "6",
+            },
+            {
+              key: "MaxGrenadeStack",
+              label: "Grenades",
+              type: "stack",
+              default: "5",
+            },
+            {
+              key: "MaxBombStack",
+              label: "Sticky Bombs",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxSpearStack",
+              label: "Spears",
+              type: "stack",
+              default: "5",
+            },
+            {
+              key: "MaxFlareStack",
+              label: "Flares",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxAmmoStack",
+              label: "All Ammo",
+              type: "stack",
+              default: "1000",
+            },
+            {
+              key: "MaxStoneArrowStack",
+              label: "Stone Arrows",
+              type: "stack",
+              default: "20",
+            },
+            {
+              key: "MaxPrintedArrowStack",
+              label: "Printed Arrows",
+              type: "stack",
+              default: "20",
+            },
+            {
+              key: "MaxCarbonArrowStack",
+              label: "Carbon Arrows",
+              type: "stack",
+              default: "20",
+            },
+            {
+              key: "MaxBoltStack",
+              label: "Crossbow Bolts",
+              type: "stack",
+              default: "20",
+            },
+            {
+              key: "MaxZiplineStack",
+              label: "Ziplines",
+              type: "stack",
+              default: "4",
+            },
+            {
+              key: "MaxCreepyArmorStack",
+              label: "Creepy Armor",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxBoneArmorStack",
+              label: "Bone Armor",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxSolafiteArmorStack",
+              label: "Solafite Armor",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxTechArmorStack",
+              label: "Tech Armor",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxLeafArmorStack",
+              label: "Leaf Armor",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxHideArmorStack",
+              label: "Hide Armor",
+              type: "stack",
+              default: "10",
+            },
+          ],
+        },
+        {
+          section: "ProjectX - Stacks Resources",
+          label: "Stacks — Resources",
+          fields: [
+            {
+              key: "MaxStickStack",
+              label: "Sticks",
+              type: "stack",
+              default: "20",
+            },
+            {
+              key: "MaxRockStack",
+              label: "Rocks",
+              type: "stack",
+              default: "10",
+            },
+            {
+              key: "MaxSmallRockStack",
+              label: "Small Rocks",
+              type: "stack",
+              default: "30",
+            },
+            {
+              key: "MaxShellStack",
+              label: "Shells",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxHideStack",
+              label: "Hides",
+              type: "stack",
+              default: "5",
+            },
+            {
+              key: "MaxFeatherStack",
+              label: "Feathers",
+              type: "stack",
+              default: "1000",
+            },
+            {
+              key: "MaxAnimalHeadStack",
+              label: "Animal Heads",
+              type: "stack",
+              default: "1",
+            },
+            {
+              key: "MaxHeadStack",
+              label: "Heads",
+              type: "stack",
+              default: "1",
+            },
+            { key: "MaxArmStack", label: "Arms", type: "stack", default: "2" },
+            { key: "MaxLegStack", label: "Legs", type: "stack", default: "2" },
+            {
+              key: "MaxSkullStack",
+              label: "Skulls",
+              type: "stack",
+              default: "3",
+            },
+            {
+              key: "MaxBoneStack",
+              label: "Bones",
+              type: "stack",
+              default: "16",
+            },
+            {
+              key: "MaxLeafStack",
+              label: "Leaves",
+              type: "stack",
+              default: "1000",
+            },
+            {
+              key: "MaxPlantStack",
+              label: "Plants",
+              type: "stack",
+              default: "20",
+            },
+            {
+              key: "MaxSeedStack",
+              label: "Seeds",
+              type: "stack",
+              default: "20",
+            },
+            {
+              key: "MaxSolafiteStack",
+              label: "Solafite",
+              type: "stack",
+              default: "20",
+            },
+            {
+              key: "MaxPouchStack",
+              label: "Skin Pouches",
+              type: "stack",
+              default: "6",
+            },
+            {
+              key: "MaxGliderStack",
+              label: "Hang Gliders",
+              type: "stack",
+              default: "1",
+            },
+            {
+              key: "MaxTarpStack",
+              label: "Tarps",
+              type: "stack",
+              default: "4",
+            },
+            {
+              key: "MaxAirTankStack",
+              label: "Air Tanks",
+              type: "stack",
+              default: "4",
+            },
+            {
+              key: "MaxPaperTargetStack",
+              label: "Paper Targets",
+              type: "stack",
+              default: "50",
+            },
+            {
+              key: "MaxGolfBallStack",
+              label: "Golf Balls",
+              type: "stack",
+              default: "50",
+            },
+            {
+              key: "MaxCashStack",
+              label: "Cash",
+              type: "stack",
+              default: "1000000",
+            },
+          ],
+        },
+        {
+          section: "ProjectX - ScaryCross",
+          label: "Scary Cross",
+          fields: [
+            {
+              key: "SC_TempRiseThreshold",
+              label: "Temp Rise Threshold",
+              type: "float",
+              default: 60,
+              min: 1,
+              max: 100,
+              step: 1,
+            },
+            {
+              key: "SC_BurnThreshold",
+              label: "Burn Threshold",
+              type: "float",
+              default: 60,
+              min: 1,
+              max: 100,
+              step: 1,
+            },
+            {
+              key: "SC_DamageThreshold",
+              label: "Damage Threshold",
+              type: "float",
+              default: 95,
+              min: 1,
+              max: 100,
+              step: 1,
+            },
+            {
+              key: "SC_DamageAfterSec",
+              label: "Damage After (s)",
+              type: "float",
+              default: 10,
+              min: 1,
+              max: 60,
+              step: 1,
+            },
+            {
+              key: "SC_LightIntensityRise",
+              label: "Light Rise Rate",
+              type: "float",
+              default: 25,
+              min: 1,
+              max: 50,
+              step: 1,
+            },
+            {
+              key: "SC_LightIntensityReduce",
+              label: "Light Reduce Rate",
+              type: "float",
+              default: 8,
+              min: 1,
+              max: 50,
+              step: 1,
+            },
+            {
+              key: "SC_TempRisePerSec",
+              label: "Temp Rise Rate",
+              type: "float",
+              default: 25,
+              min: 1,
+              max: 50,
+              step: 1,
+            },
+            {
+              key: "SC_TempReducePerSec",
+              label: "Temp Reduce Rate",
+              type: "float",
+              default: 8,
+              min: 1,
+              max: 50,
+              step: 1,
+            },
+            {
+              key: "SC_EffigyMinRange",
+              label: "Effigy Min Range",
+              type: "float",
+              default: 24,
+              min: 1,
+              max: 100,
+              step: 1,
+            },
+            {
+              key: "SC_EffigyMaxRange",
+              label: "Effigy Max Range",
+              type: "float",
+              default: 48,
+              min: 1,
+              max: 100,
+              step: 1,
+            },
+            {
+              key: "SC_EffigyMinStrength",
+              label: "Effigy Min Strength",
+              type: "float",
+              default: 0.5,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "SC_EffigyMaxStrength",
+              label: "Effigy Max Strength",
+              type: "float",
+              default: 10,
+              min: 1,
+              max: 20,
+              step: 0.5,
+            },
+            {
+              key: "SC_EffigyDisabledRange",
+              label: "Effigy Disabled Range",
+              type: "float",
+              default: 14,
+              min: 1,
+              max: 50,
+              step: 1,
+            },
+            {
+              key: "SC_EffigyDisabledStrength",
+              label: "Effigy Disabled Strength",
+              type: "float",
+              default: 0.25,
+              min: 0.1,
+              max: 5,
+              step: 0.05,
+            },
+            {
+              key: "SC_BurnDemonRangeMin",
+              label: "Burn Demon Range Min",
+              type: "float",
+              default: 18,
+              min: 1,
+              max: 50,
+              step: 1,
+            },
+            {
+              key: "SC_BurnDemonRangeMax",
+              label: "Burn Demon Range Max",
+              type: "float",
+              default: 36,
+              min: 1,
+              max: 100,
+              step: 1,
+            },
+            {
+              key: "SC_BurnDemonTime",
+              label: "Burn Demon Duration",
+              type: "float",
+              default: 30,
+              min: 1,
+              max: 120,
+              step: 1,
+            },
+            {
+              key: "SC_DemonDetectRadiusMin",
+              label: "Detect Radius Min",
+              type: "float",
+              default: 14,
+              min: 1,
+              max: 50,
+              step: 1,
+            },
+            {
+              key: "SC_DemonDetectRadiusMax",
+              label: "Detect Radius Max",
+              type: "float",
+              default: 24,
+              min: 1,
+              max: 100,
+              step: 1,
+            },
+          ],
+        },
+        {
+          section: "X Raids - General",
+          label: "X Raids — General",
+          fields: [
+            {
+              key: "XR_AllowCreepy",
+              label: "Allow Creepy Raids",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "XR_AllowCannibals",
+              label: "Allow Cannibal Raids",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "XR_AllowMuddies",
+              label: "Allow Muddy Raids",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "XR_AnnounceRaids",
+              label: "Announce Raids",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "XR_PlaySound",
+              label: "Play Sound on Announce",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "XR_IncludeEndgame",
+              label: "Include Endgame Raids",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "XR_IncludeForest",
+              label: "Include Forest-Only Raids",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "XR_RaidsPerDay",
+              label: "Max Raids Per Day",
+              type: "int",
+              default: -1,
+              min: -1,
+              max: 24,
+              desc: "-1 = game default",
+            },
+            {
+              key: "XR_Distribution",
+              label: "Raid Distribution",
+              type: "select",
+              default: "Evenly",
+              options: ["Evenly", "Randomly", "Stacked"],
+            },
+            {
+              key: "XR_ConsiderTime",
+              label: "Consider Current Time",
+              type: "bool",
+              default: false,
+            },
+          ],
+        },
+        {
+          section: "X Raids - Times",
+          label: "X Raids — Times",
+          fields: [
+            {
+              key: "XR_RaidAtNight",
+              label: "Raids at Night",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "XR_RaidAtDay",
+              label: "Raids at Day",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "XR_RaidAtEvening",
+              label: "Raids at Evening",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "XR_RaidAtMorning",
+              label: "Raids at Morning",
+              type: "bool",
+              default: true,
+            },
+          ],
+        },
+        {
+          section: "X Raids - Normal",
+          label: "X Raids — Normal",
+          fields: [
+            {
+              key: "XR_MinSpawnFactor",
+              label: "Min Spawn Factor",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_MaxSpawnFactor",
+              label: "Max Spawn Factor",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_EnemyLimit",
+              label: "Max Enemies Per Raid",
+              type: "int",
+              default: 20,
+              min: 1,
+              max: 30,
+            },
+            {
+              key: "XR_Cooldown",
+              label: "Cooldown Days",
+              type: "int",
+              default: -1,
+              min: -1,
+              max: 50,
+              desc: "-1=default, 0=none",
+            },
+            {
+              key: "XR_IgnoreDayLimit",
+              label: "Ignore Day Limit",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "XR_IgnoreAngerLimit",
+              label: "Ignore Anger Limit",
+              type: "bool",
+              default: false,
+            },
+          ],
+        },
+        {
+          section: "X Raids - Boss",
+          label: "X Raids — Boss",
+          fields: [
+            {
+              key: "XR_BossCount",
+              label: "Boss Spawn Count",
+              type: "int",
+              default: 1,
+              min: 1,
+              max: 30,
+            },
+            {
+              key: "XR_BossCooldown",
+              label: "Boss Cooldown Days",
+              type: "int",
+              default: -1,
+              min: -1,
+              max: 50,
+              desc: "-1 = default",
+            },
+            {
+              key: "XR_BossIgnoreDay",
+              label: "Ignore Boss Day Limit",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "XR_BossIgnoreAnger",
+              label: "Ignore Boss Anger Limit",
+              type: "bool",
+              default: false,
+            },
+          ],
+        },
+        {
+          section: "X Raids - Enemy Stats",
+          label: "X Raids — Enemy Stats",
+          fields: [
+            {
+              key: "XR_EnableStats",
+              label: "Enable Stat Overrides",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "XR_OverrideOnLoad",
+              label: "Override Health on Save Load",
+              type: "bool",
+              default: true,
+            },
+            {
+              key: "XR_CannibalHealth",
+              label: "Cannibal Health ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_CannibalDamage",
+              label: "Cannibal Damage ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_CannibalAggro",
+              label: "Cannibal Aggression ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_CreepHealth",
+              label: "Creep Health ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_CreepDamage",
+              label: "Creep Damage ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_CreepAggro",
+              label: "Creep Aggression ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_BossHealth",
+              label: "Boss Health ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_BossDamage",
+              label: "Boss Damage ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_BossAggro",
+              label: "Boss Aggression ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+          ],
+        },
+        {
+          section: "X Raids - Followers",
+          label: "X Raids — Followers",
+          fields: [
+            {
+              key: "XR_VirginiaHealth",
+              label: "Virginia Health ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+            {
+              key: "XR_KelvinHealth",
+              label: "Kelvin Health ×",
+              type: "float",
+              default: 1.0,
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+          ],
+        },
+        {
+          section: "X Raids - Multiplayer",
+          label: "X Raids — Multiplayer",
+          fields: [
+            {
+              key: "XR_AdjustByPlayers",
+              label: "Adjust by Player Count",
+              type: "bool",
+              default: false,
+            },
+            {
+              key: "XR_ExtraRaids",
+              label: "Extra Raids Per Player",
+              type: "int",
+              default: 2,
+              min: 0,
+              max: 10,
+            },
+            {
+              key: "XR_ExtraSpawns",
+              label: "Extra Enemies Per Player",
+              type: "int",
+              default: 2,
+              min: 0,
+              max: 10,
+            },
+            {
+              key: "XR_ExtraBosses",
+              label: "Extra Bosses Per Player",
+              type: "int",
+              default: 1,
+              min: 0,
+              max: 10,
+            },
+          ],
+        },
+      ];
+
+      let values = {};
+      let loadedFileName = null;
+      let rawFileText = null; // preserve original file for comment-safe export
+
+      function init() {
+        // Initialize to defaults
+        SCHEMA.forEach((s) =>
+          s.fields.forEach((f) => (values[f.key] = f.default)),
+        );
+        renderEditor();
+      }
+
+      function renderEditor() {
+        const editor = document.getElementById("editor");
+        // TOC
+        let html = '<div class="toc">';
+        SCHEMA.forEach((s, i) => {
+          html += `<a href="#section-${i}">${s.label}</a>`;
+        });
+        html += "</div>";
+
+        // Sections
+        SCHEMA.forEach((s, i) => {
+          html += `<div class="section" id="section-${i}">`;
+          html += `<div class="section-header" onclick="toggleSection(${i})"><h2>${s.label}</h2><span class="chevron">▼</span></div>`;
+          html += `<div class="section-body" id="body-${i}">`;
+          s.fields.forEach((f) => {
+            html += renderField(f);
+          });
+          html += "</div></div>";
+        });
+        editor.innerHTML = html;
+        updateAllDisplays();
+      }
+
+      function renderField(f) {
+        const isChanged = String(values[f.key]) !== String(f.default);
+        let control = "";
+
+        if (f.type === "bool") {
+          control = `
+      <label class="toggle-wrap">
+        <input type="checkbox" id="ctrl-${f.key}" ${values[f.key] ? "checked" : ""} onchange="setBool('${f.key}', this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="toggle-label" id="lbl-${f.key}">${values[f.key] ? "ON" : "OFF"}</span>`;
+        } else if (f.type === "float") {
+          const val = parseFloat(values[f.key]);
+          control = `
+      <input type="range" id="ctrl-${f.key}" min="${f.min}" max="${f.max}" step="${f.step}" value="${val}" oninput="setFloat('${f.key}', this.value)">
+      <span class="field-value" id="val-${f.key}">${val}</span>`;
+        } else if (f.type === "int") {
+          const val = parseInt(values[f.key]);
+          control = `
+      <input type="range" id="ctrl-${f.key}" min="${f.min}" max="${f.max}" step="1" value="${val}" oninput="setInt('${f.key}', this.value)">
+      <span class="field-value" id="val-${f.key}">${val}</span>`;
+        } else if (f.type === "stack") {
+          control = `<input type="number" id="ctrl-${f.key}" value="${values[f.key]}" min="1" max="999999999" style="width:120px" oninput="setStack('${f.key}', this.value)">`;
+        } else if (f.type === "select") {
+          control = `<select id="ctrl-${f.key}" onchange="setSelect('${f.key}', this.value)">`;
+          f.options.forEach((o) => {
+            control += `<option ${values[f.key] === o ? "selected" : ""}>${o}</option>`;
+          });
+          control += "</select>";
+        } else {
+          control = `<input type="text" id="ctrl-${f.key}" value="${escapeAttr(values[f.key])}" oninput="setText('${f.key}', this.value)">`;
+        }
+
+        const desc = f.desc ? `<div class="field-desc">${f.desc}</div>` : "";
+        return `
+    <div class="field ${isChanged ? "changed" : ""}" id="field-${f.key}">
+      <div class="field-label">${f.label}${desc}</div>
+      <div class="field-control">${control}</div>
+      <span class="field-default" title="Reset to default: ${escapeAttr(String(f.default))}" onclick="resetField('${f.key}')">↺ ${escapeHtml(String(f.default))}</span>
+    </div>`;
+      }
+
+      function escapeAttr(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function toggleSection(i) {
+        const body = document.getElementById(`body-${i}`);
+        const header = body.previousElementSibling;
+        body.classList.toggle("hidden");
+        header.classList.toggle("collapsed");
+      }
+
+      function findField(key) {
+        for (const s of SCHEMA)
+          for (const f of s.fields) if (f.key === key) return f;
+        return null;
+      }
+
+      function updateField(key) {
+        const f = findField(key);
+        if (!f) return;
+        const isChanged = String(values[key]) !== String(f.default);
+        const el = document.getElementById(`field-${key}`);
+        if (el) el.className = `field ${isChanged ? "changed" : ""}`;
+        updateChangesCount();
+      }
+
+      function setBool(key, val) {
+        values[key] = val;
+        const lbl = document.getElementById(`lbl-${key}`);
+        if (lbl) lbl.textContent = val ? "ON" : "OFF";
+        updateField(key);
+      }
+
+      function setFloat(key, val) {
+        values[key] = parseFloat(val);
+        const display = document.getElementById(`val-${key}`);
+        if (display) display.textContent = parseFloat(val).toFixed(1);
+        updateField(key);
+      }
+
+      function setInt(key, val) {
+        values[key] = parseInt(val);
+        const display = document.getElementById(`val-${key}`);
+        if (display) display.textContent = parseInt(val);
+        updateField(key);
+      }
+
+      function setStack(key, val) {
+        values[key] = val;
+        updateField(key);
+      }
+
+      function setText(key, val) {
+        values[key] = val;
+        updateField(key);
+      }
+
+      function setSelect(key, val) {
+        values[key] = val;
+        updateField(key);
+      }
+
+      function resetField(key) {
+        const f = findField(key);
+        if (!f) return;
+        values[key] = f.default;
+        const ctrl = document.getElementById(`ctrl-${key}`);
+        if (f.type === "bool") {
+          ctrl.checked = f.default;
+          setBool(key, f.default);
+        } else if (f.type === "float") {
+          ctrl.value = f.default;
+          setFloat(key, f.default);
+        } else if (f.type === "int") {
+          ctrl.value = f.default;
+          setInt(key, f.default);
+        } else {
+          ctrl.value = f.default;
+          updateField(key);
+        }
+      }
+
+      function resetAllDefaults() {
+        if (!confirm("Reset ALL settings to defaults? (Discord credentials are preserved)")) return;
+        SCHEMA.forEach((s) =>
+          s.fields.forEach((f) => {
+            if (!f.preserve) values[f.key] = f.default;
+          }),
+        );
+        renderEditor();
+      }
+
+      function updateAllDisplays() {
+        SCHEMA.forEach((s) =>
+          s.fields.forEach((f) => {
+            const ctrl = document.getElementById(`ctrl-${f.key}`);
+            if (!ctrl) return;
+            if (f.type === "bool") {
+              ctrl.checked = values[f.key];
+              const lbl = document.getElementById(`lbl-${f.key}`);
+              if (lbl) lbl.textContent = values[f.key] ? "ON" : "OFF";
+            } else if (f.type === "float") {
+              ctrl.value = values[f.key];
+              const d = document.getElementById(`val-${f.key}`);
+              if (d) d.textContent = parseFloat(values[f.key]).toFixed(1);
+            } else if (f.type === "int") {
+              ctrl.value = values[f.key];
+              const d = document.getElementById(`val-${f.key}`);
+              if (d) d.textContent = values[f.key];
+            } else {
+              ctrl.value = values[f.key];
+            }
+            updateField(f.key);
+          }),
+        );
+        updateChangesCount();
+      }
+
+      function updateChangesCount() {
+        let count = 0;
+        SCHEMA.forEach((s) =>
+          s.fields.forEach((f) => {
+            if (String(values[f.key]) !== String(f.default)) count++;
+          }),
+        );
+        document.getElementById("statusChanges").textContent =
+          count > 0 ? `${count} value(s) changed from defaults` : "";
+      }
+
+      // File I/O
+      function loadFile() {
+        document.getElementById("fileInput").click();
+      }
+
+      document.getElementById("fileInput").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) parseFile(file);
+      });
+
+      function parseFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          rawFileText = text; // store original for comment-preserving export
+          parseCfg(text);
+          loadedFileName = file.name;
+          document.getElementById("statusFile").textContent =
+            `Loaded: ${file.name}`;
+          renderEditor();
+        };
+        reader.readAsText(file);
+      }
+
+      function parseCfg(text) {
+        const lines = text.split("\n");
+        lines.forEach((line) => {
+          line = line.trim();
+          if (!line || line.startsWith("[") || line.startsWith("#")) return;
+          const eq = line.indexOf("=");
+          if (eq < 0) return;
+          const key = line.substring(0, eq).trim();
+          let val = line.substring(eq + 1).trim();
+
+          const f = findField(key);
+          if (!f) return;
+
+          if (f.type === "bool") {
+            values[key] = val === "true";
+          } else if (f.type === "float") {
+            values[key] = parseFloat(val);
+          } else if (f.type === "int") {
+            values[key] = parseInt(val);
+          } else if (f.type === "stack") {
+            values[key] = val.replace(/"/g, "");
+          } else {
+            values[key] = val.replace(/^"|"$/g, "");
+          }
+        });
+      }
+
+      // Format a single field value for .cfg output
+      function formatValue(f) {
+        if (f.type === "bool") {
+          return `${values[f.key]}`;
+        } else if (f.type === "float") {
+          let v = parseFloat(values[f.key]);
+          if (v > 1e30) return `${f.default}`;
+          return v % 1 === 0 ? v.toFixed(1) : `${v}`;
+        } else if (f.type === "int") {
+          return `${parseInt(values[f.key])}`;
+        } else if (f.type === "stack") {
+          return `"${values[f.key]}"`;
+        } else if (f.type === "select") {
+          return `"${values[f.key]}"`;
+        } else {
+          // Text fields — always quote
+          return `"${values[f.key]}"`;
+        }
+      }
+
+      function exportFile() {
+        let output;
+
+        if (rawFileText) {
+          // ── Comment-preserving export ──
+          // Walk original file line-by-line. Update known key=value lines,
+          // keep everything else (comments, blanks, unknown keys) verbatim.
+          const lines = rawFileText.split("\n");
+          const emitted = new Set(); // track keys we've written
+          const result = [];
+          let currentSection = null;
+
+          for (const rawLine of lines) {
+            const trimmed = rawLine.trim();
+
+            // Section header
+            const secMatch = trimmed.match(/^\["(.+?)"\]$/);
+            if (secMatch) {
+              currentSection = secMatch[1];
+              result.push(rawLine);
+              continue;
+            }
+
+            // Comment or blank — keep verbatim
+            if (!trimmed || trimmed.startsWith("#")) {
+              result.push(rawLine);
+              continue;
+            }
+
+            // Key = value line
+            const eq = trimmed.indexOf("=");
+            if (eq >= 0) {
+              const key = trimmed.substring(0, eq).trim();
+              const f = findField(key);
+              if (f) {
+                // Known field — write updated value
+                result.push(`${key} = ${formatValue(f)}`);
+                emitted.add(key);
+              } else {
+                // Unknown field — preserve as-is
+                result.push(rawLine);
+              }
+              continue;
+            }
+
+            // Anything else — keep
+            result.push(rawLine);
+          }
+
+          // Append any schema fields that weren't in the original file
+          SCHEMA.forEach((s) => {
+            const missing = s.fields.filter((f) => !emitted.has(f.key));
+            if (missing.length > 0) {
+              // Check if section header exists
+              if (!result.some((l) => l.trim() === `["${s.section}"]`)) {
+                result.push("");
+                result.push(`["${s.section}"]`);
+              }
+              missing.forEach((f) => {
+                result.push(`${f.key} = ${formatValue(f)}`);
+                emitted.add(f.key);
+              });
+            }
+          });
+
+          output = result.join("\n");
+        } else {
+          // ── Fresh export (no file loaded) ──
+          let parts = [];
+          SCHEMA.forEach((s) => {
+            parts.push(`["${s.section}"]`);
+            s.fields.forEach((f) => {
+              parts.push(`${f.key} = ${formatValue(f)}`);
+            });
+            parts.push("");
+          });
+          output = parts.join("\n");
+        }
+
+        const blob = new Blob([output], { type: "text/plain" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = loadedFileName || "ProjectX.Master.cfg";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      // Drag and drop
+      document.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        document.getElementById("dropOverlay").classList.add("active");
+      });
+      document.addEventListener("dragleave", (e) => {
+        if (e.relatedTarget === null)
+          document.getElementById("dropOverlay").classList.remove("active");
+      });
+      document.addEventListener("drop", (e) => {
+        e.preventDefault();
+        document.getElementById("dropOverlay").classList.remove("active");
+        const file = e.dataTransfer.files[0];
+        if (file) parseFile(file);
+      });
+
+      init();
+    </script>
+  </body>
+</html>

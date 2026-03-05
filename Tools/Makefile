@@ -14,6 +14,9 @@
 SHELL := pwsh.exe
 .SHELLFLAGS := -NoProfile -NoLogo -NonInteractive -Command
 
+# Load local path overrides if present (gitignored)
+-include Tools/Makefile.local
+
 CONFIGURATION := Release
 VERBOSITY := minimal
 

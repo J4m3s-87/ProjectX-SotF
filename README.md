@@ -10,7 +10,7 @@
 
 ## What Is Project X?
 
-Project X combines the functionality of 20+ standalone mods into a single, unified package. Rather than juggling 15–20 separate mods — each with its own config file, update cycle, and crash potential — everything is managed from one assembly with one config system and one update to deploy.
+Project X combines the functionality of 20+ standalone mods into a single, unified package. Instead of installing and maintaining 15–20 separate DLLs — each with its own update cycle, each registering its own Harmony patches, and each a potential source of conflicts or crashes — everything runs from one assembly with shared infrastructure.
 
 The key difference is **dedicated server support**. Most existing mods are built on the `SonsMod` base class, which depends on a visible game window with a player camera and `OnGUI()` callbacks. A headless dedicated server (`SonsOfTheForestDS.exe`) has no renderer and no UI — so mods that rely on `SonsMod` lifecycle callbacks, IMGUI rendering, or camera-dependent logic simply won't load. Simpler mods (like Hotbar or AmmoUi) that don't depend on these systems may work fine, but the more complex feature mods — raid customisation, loot respawn, admin tools — typically don't.
 
@@ -99,9 +99,37 @@ Over 40 commands covering player cheats, world settings, raid control, config ma
 
 Project X implements **Role-Based Access Control** with Owner and Admin tiers, managed via `roles.json` using SteamID64 mappings. When a player joins, the server broadcasts their permission level via Bolt, and the client's menu adapts in real-time — showing or hiding features based on authorisation. Standard players see nothing; the mod is invisible to them.
 
-### Config Sync
+### Config Sync — Live Server Economy Control
 
-When the server owner adjusts settings — stack sizes, durability multipliers, raid frequency — those changes are broadcast to all connected clients in real-time via Bolt GlobalEvents. No config files to distribute, no restarts required. The admin sets the server economy and every player receives those settings automatically.
+When the server owner or admin adjusts settings, those changes are broadcast to all connected clients in real-time via Bolt GlobalEvents. No config files to distribute, no server restarts required. The admin sets the server economy and every player receives those settings automatically.
+
+**What can be changed live while the server is running:**
+
+**Raid Economy** — Full control over how raids behave on the server:
+
+- Raid scheduling: raids per day, time-of-day windows (morning/day/evening/night)
+- Enemy types: enable/disable Cannibals, Creepies, and Muddies independently
+- Spawn control: min/max spawn factors, enemy limits, boss spawn counts
+- Stat multipliers: per-type HP and damage multipliers for Cannibals, Creepies, and Bosses (0.1×–10×)
+- Cooldowns: separate cooldown timers for normal and boss raids
+- Day/anger gate overrides: bypass minimum day and anger requirements
+- Multiplayer scaling: extra raids, spawns, and bosses per connected player
+
+**World Economy** — Server-wide settings that affect all players:
+
+- Structure durability multiplier (1×–100×)
+- Stack sizes across 75+ items in 14 categories
+- Loot respawn enable/disable and respawn interval (1–30 in-game days)
+- Crafting speed multiplier (1×–10×)
+- Water collector heat radius
+- Weapon damage multiplier
+- Building cheats: free form placement, instant build, log/stone hacks
+
+**Companion Settings:**
+
+- Kelvin and Virginia HP multipliers
+
+All settings are applied server-side and pushed to clients — individual players cannot override the server's economy. Admins adjust values via the GUI panels or `/px config set <key> <value>` commands.
 
 ---
 

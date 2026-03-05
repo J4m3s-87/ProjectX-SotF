@@ -23,13 +23,13 @@ The installer will auto-detect your game directory via Steam.
 
 PREREQUISITES
 ─────────────
-The installer will check for these and guide you if they're missing:
+The installer automatically handles these for you:
 
-• .NET 6.0 Desktop Runtime
-  https://dotnet.microsoft.com/en-us/download/dotnet/6.0
+• .NET 6.0 Desktop Runtime — downloaded and installed silently if missing
+• Visual C++ 2015-2019 Redistributable (x64) — downloaded and installed silently if missing
 
-• Visual C++ 2015-2019 Redistributable (x64)
-  https://aka.ms/vs/16/release/vc_redist.x64.exe
+If auto-download fails (e.g. no internet), the installer will open
+the download pages in your browser so you can install them manually.
 
 
 MANUAL INSTALL (if the script doesn't work)

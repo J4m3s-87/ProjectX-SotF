@@ -1,13 +1,14 @@
 <#
 .SYNOPSIS
-    Project X Client Installer - Installs RedLoader + Project X Client mod for Sons of the Forest.
+    Project X Client Installer - Full auto-installer for Sons of the Forest modding.
 
 .DESCRIPTION
-    One-click installer that:
-    1. Auto-detects your Sons of the Forest game directory via Steam
-    2. Checks for .NET 6.0 Desktop Runtime and VC++ 2015-2019 x64
-    3. Installs RedLoader (mod loader) via RedModManager
-    4. Deploys the Project X Client build (DLL, manifest, assets)
+    One-click installer that handles everything:
+    1. Auto-detects your Sons of the Forest game directory via Steam registry + VDF parsing
+    2. Downloads and installs .NET 6.0 Desktop Runtime if missing (silent)
+    3. Downloads and installs VC++ 2015-2019 x64 Redistributable if missing (silent)
+    4. Installs RedLoader 0.8.6 (mod loader) via RedModManager
+    5. Deploys the Project X Client build (DLL, manifest, assets)
 
 .NOTES
     Run this script by right-clicking -> "Run with PowerShell"
@@ -217,34 +218,89 @@ function Install-Prerequisites {
     if (-not $NeedDotNet -and -not $NeedVC) { return $true }
     
     Write-Host ""
-    Write-Host "  --- Missing Prerequisites ---" -ForegroundColor Yellow
+    Write-Host "  --- Installing Missing Prerequisites ---" -ForegroundColor Cyan
     Write-Host ""
     
-    if ($NeedDotNet) {
-        Write-Host "  * .NET 6.0 Desktop Runtime" -ForegroundColor White
-        Write-Host "    Download: https://dotnet.microsoft.com/en-us/download/dotnet/6.0" -ForegroundColor Gray
-        Write-Host "    (Select '.NET Desktop Runtime 6.0.x' -> Windows x64)" -ForegroundColor Gray
-        Write-Host ""
+    # Create temp directory for downloads
+    $tempDir = Join-Path $env:TEMP "ProjectX_Install"
+    if (-not (Test-Path $tempDir)) {
+        New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
     }
     
+    $allOk = $true
+    
+    # --- VC++ 2015-2019 Redistributable ---
     if ($NeedVC) {
-        Write-Host "  * Visual C++ 2015-2019 Redistributable (x64)" -ForegroundColor White
-        Write-Host "    Download: https://aka.ms/vs/16/release/vc_redist.x64.exe" -ForegroundColor Gray
-        Write-Host ""
+        $vcUrl = "https://aka.ms/vs/16/release/vc_redist.x64.exe"
+        $vcPath = Join-Path $tempDir "vc_redist.x64.exe"
+        
+        Write-Step "Downloading Visual C++ 2015-2019 Redistributable (x64)..."
+        try {
+            Invoke-WebRequest -Uri $vcUrl -OutFile $vcPath -UseBasicParsing
+            Write-Success "Downloaded VC++ Redistributable"
+            
+            Write-Step "Installing VC++ Redistributable (this may take a moment)..."
+            $proc = Start-Process -FilePath $vcPath -ArgumentList "/quiet /norestart" -Wait -PassThru
+            if ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010) {
+                Write-Success "VC++ Redistributable installed successfully."
+            }
+            else {
+                Write-Warn "VC++ installer exited with code: $($proc.ExitCode)"
+                Write-Warn "You may need to install it manually: $vcUrl"
+                $allOk = $false
+            }
+        }
+        catch {
+            Write-Fail "Failed to download VC++ Redistributable: $_"
+            Write-Warn "Opening download page in browser instead..."
+            Start-Process "https://aka.ms/vs/16/release/vc_redist.x64.exe"
+            Write-Host "  Please install VC++ manually, then run this installer again." -ForegroundColor Yellow
+            $allOk = $false
+        }
     }
     
-    Write-Host "  Please install the above prerequisites, then run this installer again." -ForegroundColor Yellow
-    Write-Host "  Press any key to open the download page(s)..." -ForegroundColor Gray
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    
+    # --- .NET 6.0 Desktop Runtime ---
     if ($NeedDotNet) {
-        Start-Process "https://dotnet.microsoft.com/en-us/download/dotnet/6.0"
-    }
-    if ($NeedVC) {
-        Start-Process "https://aka.ms/vs/16/release/vc_redist.x64.exe"
+        $dotnetUrl = "https://aka.ms/dotnet/6.0/windowsdesktop-runtime-win-x64.exe"
+        $dotnetPath = Join-Path $tempDir "windowsdesktop-runtime-6.0-win-x64.exe"
+        
+        Write-Step "Downloading .NET 6.0 Desktop Runtime..."
+        try {
+            Invoke-WebRequest -Uri $dotnetUrl -OutFile $dotnetPath -UseBasicParsing
+            Write-Success "Downloaded .NET 6.0 Desktop Runtime"
+            
+            Write-Step "Installing .NET 6.0 Desktop Runtime (this may take a moment)..."
+            $proc = Start-Process -FilePath $dotnetPath -ArgumentList "/quiet /norestart" -Wait -PassThru
+            if ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010) {
+                Write-Success ".NET 6.0 Desktop Runtime installed successfully."
+            }
+            else {
+                Write-Warn ".NET installer exited with code: $($proc.ExitCode)"
+                Write-Warn "You may need to install it manually."
+                $allOk = $false
+            }
+        }
+        catch {
+            Write-Fail "Failed to download .NET 6.0 Desktop Runtime: $_"
+            Write-Warn "Opening download page in browser instead..."
+            Start-Process "https://dotnet.microsoft.com/en-us/download/dotnet/6.0"
+            Write-Host "  Please install .NET 6.0 Desktop Runtime manually, then run this installer again." -ForegroundColor Yellow
+            $allOk = $false
+        }
     }
     
-    return $false
+    # Cleanup temp files
+    try { Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue } catch { }
+    
+    if (-not $allOk) {
+        Write-Host ""
+        Write-Warn "Some prerequisites could not be installed automatically."
+        Write-Host "  Press any key to exit..." -ForegroundColor Gray
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        return $false
+    }
+    
+    return $true
 }
 
 # --- Step 3: Install RedLoader ---

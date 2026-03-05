@@ -12,7 +12,7 @@
 
 Project X combines the functionality of 20+ standalone mods into a single, unified package. Instead of installing and maintaining 15–20 separate DLLs — each with its own update cycle, each registering its own Harmony patches, and each a potential source of conflicts or crashes — everything runs from one assembly with shared infrastructure.
 
-The key difference is **dedicated server support**. Most existing mods are built on the `SonsMod` base class, which depends on a visible game window with a player camera and `OnGUI()` callbacks. A headless dedicated server (`SonsOfTheForestDS.exe`) has no renderer and no UI — so mods that rely on `SonsMod` lifecycle callbacks, IMGUI rendering, or camera-dependent logic simply won't load. Simpler mods (like Hotbar or AmmoUi) that don't depend on these systems may work fine, but the more complex feature mods — raid customisation, loot respawn, admin tools — typically don't.
+A key difference is **dedicated server support**. Most existing mods are built on the `SonsMod` base class, which depends on a visible game window with a player camera and `OnGUI()` callbacks. A headless dedicated server (`SonsOfTheForestDS.exe`) has no renderer and no UI — so mods that rely on `SonsMod` lifecycle callbacks, IMGUI rendering, or camera-dependent logic simply won't load. Simpler mods (like Hotbar or AmmoUi) that don't depend on these systems may work fine, but the more complex feature mods — raid customisation, loot respawn, admin tools — typically don't.
 
 Project X was designed from the start to work across all environments: solo, co-op host, dedicated server, and client.
 
@@ -148,10 +148,13 @@ An **83KB IMGUI menu system** built entirely on Unity's built-in GUI system — 
 
 1. Download the `Installer/` folder
 2. Double-click **`INSTALL.bat`**
-3. Follow the prompts — the installer auto-detects your game via Steam
+3. Follow the prompts — the installer handles everything:
+   - Auto-detects your game directory via Steam registry and VDF parsing
+   - Downloads and installs .NET 6.0 Desktop Runtime if missing
+   - Downloads and installs VC++ 2015-2019 Redistributable if missing
+   - Installs RedLoader 0.8.6 via RedModManager
+   - Deploys Project X Client (DLL, manifest, assets)
 4. Launch Sons of the Forest and join the server
-
-> **Requires:** [RedLoader 0.8.6](https://sotf-mods.com/redloader), .NET 6.0 Desktop Runtime, VC++ 2015-2019 x64
 
 See [`Installer/payload/README.txt`](Installer/payload/README.txt) for manual install instructions and troubleshooting.
 

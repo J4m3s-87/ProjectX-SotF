@@ -128,6 +128,9 @@ namespace ProjectX.Master.Modules.LootRespawn
             if (ThrowableIds.Contains(itemId))      return TrackThrowables;
             if (ExpendableIds.Contains(itemId))     return TrackExpendables;
 
+            // Breakable containers use a pseudo-ID
+            if (itemId == BreakableId) return TrackBreakables;
+
             // Unknown category — track it
             return true;
         }

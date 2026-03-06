@@ -571,6 +571,52 @@ namespace ProjectX.Master
         [SettingsUiInclude]
 #endif
         public static ConfigEntry<int> LootRespawnDays { get; private set; }
+
+        // ======================== LOOT CATEGORIES ========================
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackMelee { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackRanged { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackWeaponMods { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackMaterials { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackFood { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackMeds { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackPlants { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackAmmo { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackThrowables { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackExpendables { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackBreakables { get; private set; }
         
         // ======================== DISCORD BRIDGE ========================
 #if !CLIENT
@@ -1111,6 +1157,53 @@ namespace ProjectX.Master
                 Modules.LootRespawn.RespawnConfig.RespawnDays = newVal;
             });
             Modules.LootRespawn.RespawnConfig.RespawnDays = LootRespawnDays.Value;
+
+            // ===== CATEGORY: LOOT CATEGORIES =====
+            LootCategoriesCategory = ConfigSystem.CreateFileCategory("ProjectX - Loot Categories", "ProjectX - Loot Categories", configFile);
+
+            LR_TrackMelee = LootCategoriesCategory.CreateEntry<bool>("LR_TrackMelee", true, "Track Melee Weapons", "Track melee weapons for respawn (Modern Axe, Katana, etc.)");
+            LR_TrackMelee.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackMelee = v; });
+            Modules.LootRespawn.RespawnConfig.TrackMelee = LR_TrackMelee.Value;
+
+            LR_TrackRanged = LootCategoriesCategory.CreateEntry<bool>("LR_TrackRanged", true, "Track Ranged Weapons", "Track ranged weapons for respawn (Pistol, Shotgun, etc.)");
+            LR_TrackRanged.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackRanged = v; });
+            Modules.LootRespawn.RespawnConfig.TrackRanged = LR_TrackRanged.Value;
+
+            LR_TrackWeaponMods = LootCategoriesCategory.CreateEntry<bool>("LR_TrackWeaponMods", true, "Track Weapon Mods", "Track weapon mods for respawn (Silencer, Laser Sight, etc.)");
+            LR_TrackWeaponMods.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackWeaponMods = v; });
+            Modules.LootRespawn.RespawnConfig.TrackWeaponMods = LR_TrackWeaponMods.Value;
+
+            LR_TrackMaterials = LootCategoriesCategory.CreateEntry<bool>("LR_TrackMaterials", true, "Track Materials", "Track crafting materials for respawn (Rope, Duct Tape, Coins, etc.)");
+            LR_TrackMaterials.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackMaterials = v; });
+            Modules.LootRespawn.RespawnConfig.TrackMaterials = LR_TrackMaterials.Value;
+
+            LR_TrackFood = LootCategoriesCategory.CreateEntry<bool>("LR_TrackFood", true, "Track Food", "Track food items for respawn (MREs, Canned Food, etc.)");
+            LR_TrackFood.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackFood = v; });
+            Modules.LootRespawn.RespawnConfig.TrackFood = LR_TrackFood.Value;
+
+            LR_TrackMeds = LootCategoriesCategory.CreateEntry<bool>("LR_TrackMeds", true, "Track Medicine & Energy", "Track meds and energy drinks for respawn");
+            LR_TrackMeds.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackMeds = v; });
+            Modules.LootRespawn.RespawnConfig.TrackMeds = LR_TrackMeds.Value;
+
+            LR_TrackPlants = LootCategoriesCategory.CreateEntry<bool>("LR_TrackPlants", true, "Track Plants", "Track plants for respawn (Aloe Vera, Mushrooms, etc.)");
+            LR_TrackPlants.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackPlants = v; });
+            Modules.LootRespawn.RespawnConfig.TrackPlants = LR_TrackPlants.Value;
+
+            LR_TrackAmmo = LootCategoriesCategory.CreateEntry<bool>("LR_TrackAmmo", true, "Track Ammunition", "Track ammo for respawn (Bullets, Arrows, Bolts, etc.)");
+            LR_TrackAmmo.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackAmmo = v; });
+            Modules.LootRespawn.RespawnConfig.TrackAmmo = LR_TrackAmmo.Value;
+
+            LR_TrackThrowables = LootCategoriesCategory.CreateEntry<bool>("LR_TrackThrowables", true, "Track Throwables", "Track throwables for respawn (Grenades, Sticky Bombs, etc.)");
+            LR_TrackThrowables.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackThrowables = v; });
+            Modules.LootRespawn.RespawnConfig.TrackThrowables = LR_TrackThrowables.Value;
+
+            LR_TrackExpendables = LootCategoriesCategory.CreateEntry<bool>("LR_TrackExpendables", true, "Track Expendables", "Track expendables for respawn (Printer Resin, Air Tanks, etc.)");
+            LR_TrackExpendables.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackExpendables = v; });
+            Modules.LootRespawn.RespawnConfig.TrackExpendables = LR_TrackExpendables.Value;
+
+            LR_TrackBreakables = LootCategoriesCategory.CreateEntry<bool>("LR_TrackBreakables", true, "Track Breakable Containers", "Track breakable containers for respawn (Wooden Crates, Coffins)");
+            LR_TrackBreakables.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackBreakables = v; });
+            Modules.LootRespawn.RespawnConfig.TrackBreakables = LR_TrackBreakables.Value;
             
             // Crafting Speed — entries on all builds for ConfigSync, module wiring client-only
             FasterCraftingEnabled = ModulesCategory.CreateEntry<bool>("FasterCraftingEnabled", true, "Faster Crafting", "Speed up backpack crafting");

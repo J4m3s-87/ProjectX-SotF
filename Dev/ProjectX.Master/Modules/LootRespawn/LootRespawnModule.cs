@@ -705,6 +705,7 @@ namespace ProjectX.Master.Modules.LootRespawn
             if (!open) return; // Only track opening, not closing
             if (controller == null || !RespawnConfig.Enabled) return;
             if (IsMultiplayerClient()) return;
+            if (!RespawnConfig.TrackOpenables) return;
 
             try
             {
@@ -719,7 +720,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 }
 
                 long timestamp = GetGameTimestamp();
-                _collected[hash] = new LootData(hash, timestamp, RespawnConfig.BreakableId);
+                _collected[hash] = new LootData(hash, timestamp, RespawnConfig.OpenableId);
                 _dirty = true;
 
                 RLog.Msg($"[LootRespawn] GrabBag opened: {controller.name} (containerId={containerId}, ts={timestamp}, tracked={_collected.Count})");

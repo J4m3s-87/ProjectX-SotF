@@ -47,6 +47,7 @@ namespace ProjectX.Master.Modules.LootRespawn
         public static bool TrackThrowables = true;
         public static bool TrackExpendables = true;
         public static bool TrackBreakables = true;
+        public static bool TrackOpenables = true;
 
         // ── Item ID lists (from GlaDOS's LootRespawnControl v2) ─────
 
@@ -104,6 +105,9 @@ namespace ProjectX.Master.Modules.LootRespawn
         /// <summary>Special pseudo-ID for breakable containers</summary>
         public const int BreakableId = 9999;
 
+        /// <summary>Special pseudo-ID for openable containers (GrabBags, pelican cases)</summary>
+        public const int OpenableId = 9998;
+
         /// <summary>Items that should NOT be tracked when inside breakable containers</summary>
         public static readonly HashSet<int> BreakableBlacklist = new() { 392 };
 
@@ -130,6 +134,9 @@ namespace ProjectX.Master.Modules.LootRespawn
 
             // Breakable containers use a pseudo-ID
             if (itemId == BreakableId) return TrackBreakables;
+
+            // Openable containers use a pseudo-ID
+            if (itemId == OpenableId) return TrackOpenables;
 
             // Unknown category — track it
             return true;

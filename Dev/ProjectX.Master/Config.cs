@@ -620,6 +620,10 @@ namespace ProjectX.Master
         [SettingsUiInclude]
 #endif
         public static ConfigEntry<bool> LR_TrackBreakables { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<bool> LR_TrackOpenables { get; private set; }
         
         // ======================== DISCORD BRIDGE ========================
 #if !CLIENT
@@ -1207,6 +1211,10 @@ namespace ProjectX.Master
             LR_TrackBreakables = LootCategoriesCategory.CreateEntry<bool>("LR_TrackBreakables", true, "Track Breakable Containers", "Track breakable containers for respawn (Wooden Crates, Coffins)");
             LR_TrackBreakables.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackBreakables = v; });
             Modules.LootRespawn.RespawnConfig.TrackBreakables = LR_TrackBreakables.Value;
+
+            LR_TrackOpenables = LootCategoriesCategory.CreateEntry<bool>("LR_TrackOpenables", true, "Track Openable Containers", "Track openable containers for respawn (Ammo Cases, Pelican Cases, Suitcases)");
+            LR_TrackOpenables.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackOpenables = v; });
+            Modules.LootRespawn.RespawnConfig.TrackOpenables = LR_TrackOpenables.Value;
             
             // Crafting Speed — entries on all builds for ConfigSync, module wiring client-only
             FasterCraftingEnabled = ModulesCategory.CreateEntry<bool>("FasterCraftingEnabled", true, "Faster Crafting", "Speed up backpack crafting");

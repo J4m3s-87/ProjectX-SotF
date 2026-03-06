@@ -713,6 +713,7 @@ tracked for respawn — they will always be present in the world.
 - LR_TrackThrowables: Throwables (Grenades, Sticky Bombs, Golf Balls)
 - LR_TrackExpendables: Expendables (Printer Resin, Air Tanks, Hide Bags)
 - LR_TrackBreakables: Breakable Containers (Wooden Crates, Coffins)
+- LR_TrackOpenables: Openable Containers (Ammo Cases, Pelican Cases, Suitcases)
 
 INTERNAL MECHANICS:
 

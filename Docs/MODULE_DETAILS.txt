@@ -59,7 +59,7 @@ Provides player quality-of-life features including teleportation of companions.
 │    • No Fall Damage - Survive any height                                    │
 │    • Infinite Logs - Carry unlimited logs                                   │
 │    • Infinite Stones - Carry unlimited stones                               │
-│    • Force Rain - Triggers heavy rain instantly                             │
+│    • No World Gravity - Disable world gravity (uses debug console)         │
 │                                                                              │
 │ UNSTUCK COMPANIONS:                                                          │
 │ If Kelvin or Virginia gets stuck somewhere:                                  │
@@ -570,14 +570,23 @@ ORIGINAL CONFIG OPTIONS (for reference):
 PURPOSE:
 Comprehensive raid and enemy customization module. Controls raid scheduling,
 enemy spawn counts, stat multipliers for all enemy types, and multiplayer
-scaling. Also adjusts follower (Kelvin/Virginia) health with persistent
-HP multipliers that survive first-aid revival.
+scaling. Includes raid announcement system with on-screen messages. Also
+adjusts follower (Kelvin/Virginia) health with persistent HP multipliers
+that survive first-aid revival.
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ HOW TO USE                                                                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ All settings are in Settings → Mods → ProjectX - X Raids.                   │
 │ Changes take effect on the next raid cycle.                                  │
+│                                                                              │
+│ RAID ANNOUNCEMENTS:                                                          │
+│ • XR_AnnounceIncomingSearchParties: Toggle on-screen raid announcements      │
+│   When enabled, incoming raids display a message showing raid name,          │
+│   type (SearchParty/Creepy), and enemy count (e.g. 7-10 enemies)            │
+│ • XR_PlaySoundWhenAnnounced: Toggle announcement sound (WIP)                │
+│ • Announcements are triggered via Harmony Postfix on VailWorldEvents.Run... │
+│   Event when a SearchPartyEvent is successfully dispatched                   │
 │                                                                              │
 │ RAID SCHEDULING:                                                             │
 │ • XR_RaidsPerDay: How many raids per in-game day                            │
@@ -629,6 +638,10 @@ HP multipliers that survive first-aid revival.
 INTERNAL MECHANICS:
 - Uses Harmony Postfix on VailActor.OnEnable() for enemy stat application
 - Uses Harmony Postfix on VailActor.Revive() for follower HP persistence
+- Uses Harmony Postfix on VailWorldEvents.RunEvent() for raid announcements
+  Postfix signature: (VailWorldEventData.EventBase __0, bool __result)
+  Only announces SearchPartyEvent when __result==true and player not in caves
+- EventAnnouncer.cs handles on-screen messages via SonsTools.ShowMessage
 - Follower HP: identifies HealthStat via _baseValue matching (not _max)
   VailActor has 13 stats — stat[12] is HealthStat, stat[0] is behavioral
 - Writes three stat fields: _currentValue (0x10), _baseValue (0x14), _max (0x24)
@@ -1005,10 +1018,13 @@ Uses Unity IMGUI (not SUI) for IL2CPP stability.
 │                                                                              │
 │ TABS (6 total):                                                              │
 │ 1. Player      - Cheats, movement, companion unstuck                        │
-│ 2. Environment  - Time, weather, AI, world settings                         │
+│ 2. Environment  - Terrain, seasons, time, environment controls,             │
+│                   waterfall volume, force rain, no world gravity,            │
+│                   loot respawn settings                                      │
 │ 3. Teleport     - Quick teleport, coordinate input, location buttons        │
 │ 4. Misc         - Module toggles (Relocator, Durability, etc.)              │
-│ 5. Raids        - X Raids scheduling, enemy types, stat multipliers         │
+│ 5. Raids        - X Raids scheduling, enemy types, stat multipliers,        │
+│                   raid announcements                                         │
 │ 6. Discord      - Discord bridge toggle, test buttons, in-game chat         │
 │                                                                              │
 │ NAVIGATION:                                                                  │

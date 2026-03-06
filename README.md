@@ -67,12 +67,14 @@ No other Sons of the Forest mod uses multi-tier conditional compilation. The ori
 
 ### World & Environment
 
-- **Raid Customiser** — Full control over enemy raid scheduling, frequency, and composition. Configure time-of-day windows (morning/day/evening/night), spawn factors, enemy limits, enable/disable specific enemy types, and control boss spawn counts. Quick-action buttons for triggering, clearing, or requeuing raids on demand. _Server-authoritative — the server controls all raid scheduling, with multiplayer player-count scaling that adjusts difficulty based on how many players are connected_
+- **Raid Customiser** — Full control over enemy raid scheduling, frequency, and composition. Configure time-of-day windows (morning/day/evening/night), spawn factors, enemy limits, enable/disable specific enemy types, and control boss spawn counts. **Raid announcements** display on-screen messages showing raid type and enemy count when incoming. Quick-action buttons for triggering, clearing, or requeuing raids on demand. _Server-authoritative — the server controls all raid scheduling, with multiplayer player-count scaling that adjusts difficulty based on how many players are connected_
 - **Loot Respawn** — Configurable respawn timer based on in-game days. _Replaced MD5 hashing with integer hash (name + quantized position) after profiling showed 600+ `PickUp.Awake()` calls during world load made `MD5.Create()` + `ComputeHash()` a performance bottleneck_
 - **Zipline Extender** — Extended zipline and rope bridge ranges up to 15,000 units (vanilla ~40m). _Uses a polling pattern instead of Harmony attributes for IL2CPP compatibility_
 - **Water Collector Heat Radius** — Keep rain catchers unfrozen in winter when near fire. _5.1× larger than the original — `Physics.OverlapSphere()` is stripped by IL2CPP, so we built a Harmony `OnEnable` tracking system for heat sources with `Vector3.Distance` checks and state-cached `SetFrozen()` calls_
 - **Crafting Speed** — Multiplier for crafting animation speed
-- **Waterfall Sound Control** — Audio volume slider via polling system
+- **Waterfall Sound Control** — Audio volume slider via FMOD emitter tracking
+- **Force Rain** — Toggle heavy rain on/off instantly
+- **No World Gravity** — Toggle world gravity via debug console (`gravity 0` / `gravity -9.81`)
 
 ### Unique Features — No Other Mod Has These
 
@@ -137,7 +139,7 @@ All settings are applied server-side and pushed to clients — individual player
 
 An **83KB IMGUI menu system** built entirely on Unity's built-in GUI system — not the SUI framework used by other mods (which crashes on dedicated servers). Activated with the Insert key:
 
-- **6 tabbed panels**: Player, Weather, World, System, Structures, Raids
+- **6 tabbed panels**: Player, Environment, Teleport, Misc, Raids, Discord
 - **Full slider and checkbox controls** with real-time feedback
 - **Permission-aware rendering** — panels show/hide based on RBAC role
 - **Red and black branded theme** with resolution-independent layout

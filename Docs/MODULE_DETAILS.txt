@@ -7,7 +7,7 @@ This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
-Last Updated: March 03, 2026
+Last Updated: March 06, 2026
 
 ================================================================================
                                 TABLE OF CONTENTS
@@ -21,7 +21,7 @@ Last Updated: March 03, 2026
  6.  Water Collectors Module
  7.  Meat Dryer Module
  8.  Scary Cross Module
- 9.  Faster Crafting Module  *** SUSPENDED - vtable crashes ***
+ 9.  Faster Crafting Module
  10. RaidCustomizer Module
  11. Loot Respawn Module
  12. Dedicated Superuser Module
@@ -30,12 +30,12 @@ Last Updated: March 03, 2026
  15. Builder Stacks Module  *** NEW ***
  16. Discord Bridge Module
  17. GUI Layout & Menu System
+ 18. Audio Control Module  *** NEW ***
 
 Removed Modules (no longer in build):
  - Open Sesame (HarmonyPatchAll vtable corruption)
  - Prefab Repair (HarmonyPatchAll vtable corruption)
  - Stone Gate (ClassInjector + inventory crash)
- - Faster Crafting (CraftingCog Harmony patches corrupt IL2CPP vtable)
 
 ================================================================================
                               1. PLAYER MODULE
@@ -1062,6 +1062,52 @@ STYLING (ProjectXStyles.cs):
 │ 2     │ Autumn │ Moderate drying boost (15x)                 │
 │ 3     │ Winter │ Water collectors freeze, poor drying (5x)   │
 └───────────────────────────────────────────────────────────────┘
+
+================================================================================
+                        18. AUDIO CONTROL MODULE  *** NEW ***
+================================================================================
+
+PURPOSE:
+Controls the volume of waterfall sounds using FMOD event emitters.
+Based on WaterfallSoundControl 1.0.0 by Toni Macaroni, rewritten for IL2CPP.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 1. Open Project X menu → Environment tab → Waterfall Volume slider          │
+│ 2. OR go to Settings → Mods → Project X → Features → Waterfall Volume       │
+│ 3. Adjust slider: 0.0 = mute, 1.0 = default, 3.0 = 3x volume              │
+│ 4. Changes apply instantly — no restart needed                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+HOW IT WORKS:
+
+The original mod uses Scene.GetRootGameObjects() + GetComponentsInChildren
+to find waterfall emitters — both are stripped by IL2CPP.
+
+Project X uses Harmony Postfix on SonsFMODEventEmitter.Awake to track FMOD
+event emitters as the scene loads. Each emitter is checked: if its root
+transform parent is named "WaterfallSounds" (in the Site02StreamsAndLakes
+scene), it is added to the tracking list.
+
+Volume is applied via SetVolume() + Stop/Play restart cycle, which forces
+FMOD to pick up the new volume value immediately.
+
+CONFIGURATION:
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Setting              │ Default │ Range     │ Description               │
+├─────────────────────────────────────────────────────────────────────────┤
+│ WaterfallVolume       │ 1.0     │ 0.0 - 3.0 │ Volume multiplier         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+FILES:
+ - Modules/Audio/AudioControl.cs  (FMOD Harmony tracking + volume control)
+
+IL2CPP NOTES:
+ - Scene.GetRootGameObjects() → stripped. Replaced with Harmony Awake tracking.
+ - GetComponentsInChildren<SonsFMODEventEmitter>() → stripped (generic plural).
+   Replaced with per-emitter Awake tracking + root parent name filtering.
+ - _baseVolume field → private in DummyDll. Use SetVolume() public method.
 
 ================================================================================
                     REMOVED MODULES (Historical Reference)

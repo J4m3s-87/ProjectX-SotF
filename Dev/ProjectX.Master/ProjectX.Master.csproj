@@ -57,6 +57,12 @@
     <Reference Include="Sons.Input">
       <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Input.dll</HintPath>
     </Reference>
+    <Reference Include="Sons.FMOD">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.FMOD.dll</HintPath>
+    </Reference>
+    <Reference Include="FMOD.Unity">
+      <HintPath>..\..\Tools\Il2CppDumper\DummyDll\FMOD.Unity.dll</HintPath>
+    </Reference>
     <Reference Include="Sons.Electricity">
       <HintPath>..\..\Tools\Il2CppDumper\DummyDll\Sons.Electricity.dll</HintPath>
     </Reference>

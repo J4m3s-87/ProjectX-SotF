@@ -43,6 +43,7 @@ namespace ProjectX.Master.Modules.UI
         private string _speedInput = "1";
         private string _stackInput = "999";
         private bool _forceRainActive = false;
+        private bool _noWorldGravity = false;
         
         // Teleport locations (matches Axel's)
         private static readonly Dictionary<string, Vector3> TeleportLocations = new Dictionary<string, Vector3>
@@ -264,10 +265,10 @@ namespace ProjectX.Master.Modules.UI
             if (newNoFall != Config.IsNoFallDamage.Value) PlayerActions.ToggleNoFallDamage(newNoFall);
             GUILayout.EndHorizontal();
             
-            // Row 4: Infinite Ammo | Infinite Stacks
+            // Row 4: No Gravity | Infinite Stacks
             GUILayout.BeginHorizontal();
-            bool newInfAmmo = GUILayout.Toggle(Config.IsInfiniteAmmo.Value, "  Infinite Ammo (NYI)", ProjectXStyles.Toggle, GUILayout.Width(colW));
-            if (newInfAmmo != Config.IsInfiniteAmmo.Value) PlayerActions.ToggleInfAmmo(newInfAmmo);
+            bool newNoGravity = GUILayout.Toggle(Config.IsNoGravity.Value, "  No Gravity", ProjectXStyles.Toggle, GUILayout.Width(colW));
+            if (newNoGravity != Config.IsNoGravity.Value) PlayerActions.ToggleNoGravity(newNoGravity);
             bool prevInfinite = Config.InfiniteInventory.Value;
             Config.InfiniteInventory.Value = GUILayout.Toggle(Config.InfiniteInventory.Value, "  Infinite Stacks", ProjectXStyles.Toggle, GUILayout.Width(colW));
             if (Config.InfiniteInventory.Value != prevInfinite)
@@ -407,10 +408,6 @@ namespace ProjectX.Master.Modules.UI
         {
             DrawDivider("TERRAIN");
             
-            // Gravity toggle
-            bool newNoGravity = DrawCheckbox("No Gravity", Config.IsNoGravity.Value);
-            if (newNoGravity != Config.IsNoGravity.Value) PlayerActions.ToggleNoGravity(newNoGravity);
-            
             // Grass/Forest buttons (toggles, no state tracking)
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Toggle Grass", ProjectXStyles.Button)) PlayerActions.ToggleNoGrass();
@@ -472,12 +469,36 @@ namespace ProjectX.Master.Modules.UI
                 PlayerActions.SetWindIntensity(newWind);
             }
             
-            // Force Rain (moved from Misc panel)
+            // Waterfall Volume slider
+            float newWaterfallVol = DrawSlider("Waterfall Volume", Config.WaterfallVolume.Value, 0f, 3f);
+            if (Math.Abs(newWaterfallVol - Config.WaterfallVolume.Value) > 0.01f)
+            {
+                Config.WaterfallVolume.Value = newWaterfallVol;
+            }
+            
+            // Force Rain
             bool newRain = DrawCheckbox("Force Rain", _forceRainActive);
             if (newRain != _forceRainActive)
             {
                 _forceRainActive = newRain;
                 PlayerActions.ToggleForceRain(newRain);
+            }
+            
+            // No World Gravity
+            bool newWorldGrav = DrawCheckbox("No World Gravity", _noWorldGravity);
+            if (newWorldGrav != _noWorldGravity)
+            {
+                _noWorldGravity = newWorldGrav;
+                if (_noWorldGravity)
+                {
+                    DebugConsole.Instance.SendCommand("gravity 0");
+                    RLog.Msg("[ProjectXGUI] World gravity disabled (gravity 0)");
+                }
+                else
+                {
+                    DebugConsole.Instance.SendCommand("gravity -9.81");
+                    RLog.Msg("[ProjectXGUI] World gravity restored (gravity -9.81)");
+                }
             }
             
             DrawDivider("LOOT RESPAWN");
@@ -489,17 +510,16 @@ namespace ProjectX.Master.Modules.UI
             // Days slider
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Respawn Days: {Config.LootRespawnDays.Value}", ProjectXStyles.NormalLabel, GUILayout.Width(160));
-            int newDays = (int)GUILayout.HorizontalSlider(Config.LootRespawnDays.Value, 1, 30, GUILayout.Width(200));
+            int newDays = (int)GUILayout.HorizontalSlider(Config.LootRespawnDays.Value, 1, 100, GUILayout.Width(200));
             if (newDays != Config.LootRespawnDays.Value) Config.LootRespawnDays.Value = newDays;
             GUILayout.EndHorizontal();
             
-            // Reset button + debug toggle
+            // Reset + Debug (same pattern as server panel — two buttons, Height 45)
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Reset Loot Tracker", ProjectXStyles.Button, GUILayout.Height(35)))
+            if (GUILayout.Button("Reset Loot Tracker", ProjectXStyles.Button, GUILayout.Height(45)))
                 Modules.LootRespawn.LootRespawnModule.Reset();
-            bool newLogging = DrawCheckbox("Debug Logging", Modules.LootRespawn.RespawnConfig.ConsoleLogging);
-            if (newLogging != Modules.LootRespawn.RespawnConfig.ConsoleLogging)
-                Modules.LootRespawn.RespawnConfig.ConsoleLogging = newLogging;
+            if (GUILayout.Button(Modules.LootRespawn.RespawnConfig.ConsoleLogging ? "Debug: ON" : "Debug: OFF", ProjectXStyles.Button, GUILayout.Height(45)))
+                Modules.LootRespawn.RespawnConfig.ConsoleLogging = !Modules.LootRespawn.RespawnConfig.ConsoleLogging;
             GUILayout.EndHorizontal();
             
             // Status display
@@ -1388,7 +1408,7 @@ namespace ProjectX.Master.Modules.UI
                 // Respawn days slider — null-safe
                 if (Config.LootRespawnDays != null)
                 {
-                    Config.LootRespawnDays.Value = (int)DrawSlider("Respawn Days", Config.LootRespawnDays.Value, 1, 30);
+                    Config.LootRespawnDays.Value = (int)DrawSlider("Respawn Days", Config.LootRespawnDays.Value, 1, 100);
                 }
                 
                 GUILayout.BeginHorizontal();
@@ -1579,8 +1599,8 @@ namespace ProjectX.Master.Modules.UI
         
         private float DrawSlider(string label, float value, float min, float max)
         {
-            float sliderLabelW = PANEL_WIDTH * 0.22f;
-            float sliderBarW = PANEL_WIDTH * 0.55f;
+            float sliderLabelW = PANEL_WIDTH * 0.35f;
+            float sliderBarW = PANEL_WIDTH * 0.42f;
             float sliderValW = PANEL_WIDTH * 0.08f;
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, ProjectXStyles.NormalLabel, GUILayout.Width(sliderLabelW));

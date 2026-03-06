@@ -49,11 +49,13 @@ namespace ProjectX.Master.Modules.RaidCustomizer
                 // (OnActorEnabled doesn't fire when a downed companion is revived)
                 PatchReviveVailActor();
                 
-                // PERMANENTLY DISABLED: RunEvent patch causes IL Compile Error which
-                // corrupts the CLR method table, leading to Tab/backpack crash.
-                // PatchRunEventSimplified();
+                // Patch RunEvent — announce incoming raids to the player
+                // Uses POSTFIX with typed EventBase parameter (matching original mod)
+#if !SERVER
+                PatchRunEvent();
+#endif
                 
-                RLog.Msg("[RaidCustomizer] Patches applied (event queuing + stat multipliers via unsafe offsets)");
+                RLog.Msg("[RaidCustomizer] Patches applied (event queuing + stat multipliers + announcements)");
             }
             catch (Exception ex)
             {
@@ -373,23 +375,24 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         
 #if !SERVER
         /// <summary>
-        /// Simplified RunEvent patch - uses reflection to access event data
-        /// Avoids complex IL2CPP type parameters
+        /// Patch RunEvent — POSTFIX with typed parameters matching original mod.
+        /// Uses VailWorldEventData.EventBase __0 (first param) and bool __result (return value)
+        /// to avoid IL2CPP nested type marshaling issues that caused the old PREFIX crash.
         /// </summary>
-        private static void PatchRunEventSimplified()
+        private static void PatchRunEvent()
         {
             try
             {
                 var original = AccessTools.Method(typeof(VailWorldEvents), "RunEvent");
                 if (original == null)
                 {
-                    RLog.Warning("[RaidCustomizer] RunEvent method not found");
+                    RLog.Warning("[RaidCustomizer] RunEvent method not found — announcements disabled");
                     return;
                 }
                 
-                var prefix = AccessTools.Method(typeof(RaidPatches), nameof(RunEvent_Prefix_Simplified));
-                _harmony.Patch(original, prefix: new HarmonyMethod(prefix));
-                RLog.Msg("[RaidCustomizer] RunEvent patch applied (announcements enabled)");
+                var postfix = AccessTools.Method(typeof(RaidPatches), nameof(RunEvent_Postfix));
+                _harmony.Patch(original, postfix: new HarmonyMethod(postfix));
+                RLog.Msg("[RaidCustomizer] RunEvent patch applied (raid announcements enabled)");
             }
             catch (Exception ex)
             {
@@ -398,27 +401,19 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         }
         
         /// <summary>
-        /// Simplified prefix - uses object parameter to avoid IL2CPP nested type issues
+        /// Postfix on RunEvent — fires announcement when a raid event actually runs.
+        /// Matches original mod signature: EventBase __0, bool __result.
         /// </summary>
-        private static void RunEvent_Prefix_Simplified(VailWorldEvents __instance, object queuedEvent)
+        private static void RunEvent_Postfix(VailWorldEventData.EventBase __0, bool __result)
         {
             try
             {
-                if (queuedEvent == null || _eventField == null) return;
+                if (!__result) return;
+                if (__0 == null) return;
+                if (!EventTools.IsActualSearchParty(__0)) return;
+                if (TheForest.Utils.LocalPlayer.IsInCaves) return;
                 
-                // Get the _event field via reflection
-                var eventObj = _eventField.GetValue(queuedEvent);
-                if (eventObj == null) return;
-                
-                // Cast to VailWorldEventData.EventBase and check if it's a search party
-                if (eventObj is VailWorldEventData.EventBase eventBase)
-                {
-                    if (EventTools.IsActualSearchParty(eventBase))
-                    {
-                        var searchParty = eventBase.Cast<VailWorldEventData.SearchPartyEvent>();
-                        EventAnnouncer.Announce(searchParty);
-                    }
-                }
+                EventAnnouncer.Announce(__0.Cast<VailWorldEventData.SearchPartyEvent>());
             }
             catch { }
         }

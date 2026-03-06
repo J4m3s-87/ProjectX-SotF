@@ -3,23 +3,17 @@ using Sons.Characters;
 using SonsSdk;
 using UnityEngine;
 using System;
-using System.Reflection;
 
 namespace ProjectX.Master.Modules.RaidCustomizer
 {
     /// <summary>
-    /// Announces incoming raids to the player
+    /// Announces incoming raids to the player via on-screen message and optional sound.
+    /// Matches original RaidCustomizer mod by ToniMacaroni/codengine.
     /// </summary>
     public static class EventAnnouncer
     {
         private const float SoundCooldown = 5f;
         private static float _lastSoundPlayedTime = -1f;
-        
-        // Cached reflection for FMODCommon
-        private static Type _fmodCommonType;
-        private static MethodInfo _playOneshotMethod;
-        private static bool _reflectionCached = false;
-        private static bool _soundEnabled = true;
         
         /// <summary>
         /// Announce an incoming raid with on-screen message
@@ -67,7 +61,7 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         
         private static void PlayAnnouncementSound()
         {
-            if (!RaidConfig.PlaySoundWhenAnnounced.Value || !_soundEnabled)
+            if (!RaidConfig.PlaySoundWhenAnnounced.Value)
                 return;
             
             if (SoundHasCooldown())
@@ -75,74 +69,22 @@ namespace ProjectX.Master.Modules.RaidCustomizer
             
             _lastSoundPlayedTime = Time.time;
             
+#if !SERVER
             try
             {
-                CacheReflection();
-                
-                if (_playOneshotMethod == null)
-                {
-                    _soundEnabled = false;
-                    RLog.Warning("[RaidCustomizer] FMODCommon.PlayOneshot not available - sounds disabled");
-                    return;
-                }
-                
-                // Get player position for 3D sound
-#if !SERVER
                 var playerPos = TheForest.Utils.LocalPlayer.Transform != null 
                     ? TheForest.Utils.LocalPlayer.Transform.position 
                     : Vector3.zero;
-#else
-                var playerPos = Vector3.zero;
-#endif
                 
-                // Call FMODCommon.PlayOneshot(string path, Vector3 position, object[] parameterValues)
-                // The original mod used "event:/music/ambush"
-                _playOneshotMethod.Invoke(null, new object[] { "event:/music/ambush", playerPos, null });
+                // Use FMODCommon.PlayOneshot — same as original RaidCustomizer mod
+                FMODCommon.PlayOneshot("event:/music/ambush", playerPos, 2, null);
+                RLog.Msg($"[RaidCustomizer] Ambush sound fired at {playerPos}");
             }
             catch (Exception ex)
             {
                 RLog.Warning($"[RaidCustomizer] Sound playback failed: {ex.Message}");
-                _soundEnabled = false; // Don't keep trying if it fails
             }
-        }
-        
-        private static void CacheReflection()
-        {
-            if (_reflectionCached) return;
-            _reflectionCached = true;
-            
-            try
-            {
-                // FMODCommon is in the global namespace in Sons.FMOD assembly
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    if (asm.GetName().Name.Contains("FMOD") || asm.GetName().Name.Contains("Sons"))
-                    {
-                        _fmodCommonType = asm.GetType("FMODCommon");
-                        if (_fmodCommonType != null)
-                        {
-                            // Find the PlayOneshot(string, Vector3, object[]) overload
-                            _playOneshotMethod = _fmodCommonType.GetMethod("PlayOneshot", 
-                                BindingFlags.Public | BindingFlags.Static,
-                                null,
-                                new Type[] { typeof(string), typeof(Vector3), typeof(object[]) },
-                                null);
-                            
-                            if (_playOneshotMethod != null)
-                            {
-                                RLog.Msg("[RaidCustomizer] FMODCommon sound system initialized!");
-                                return;
-                            }
-                        }
-                    }
-                }
-                
-                RLog.Warning("[RaidCustomizer] FMODCommon type not found in loaded assemblies");
-            }
-            catch (Exception ex)
-            {
-                RLog.Warning($"[RaidCustomizer] Failed to cache FMODCommon reflection: {ex.Message}");
-            }
+#endif
         }
         
         private static bool SoundHasCooldown()
@@ -151,3 +93,4 @@ namespace ProjectX.Master.Modules.RaidCustomizer
         }
     }
 }
+

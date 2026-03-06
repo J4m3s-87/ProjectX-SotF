@@ -49,8 +49,14 @@ $errorCount = 0
 $warnCount = 0
 $violations = @()
 
-# Scan all .cs files
-$csFiles = Get-ChildItem -Path $sourceDir -Filter "*.cs" -Recurse
+# Directories excluded from compilation in .csproj (decompiled 3rd-party code)
+$excludedDirs = @("StoneGate", "OpenSesame", "PrefabRepair")
+
+# Scan all .cs files (excluding modules removed from build)
+$csFiles = Get-ChildItem -Path $sourceDir -Filter "*.cs" -Recurse | Where-Object {
+    $rel = $_.FullName.Replace($sourceDir, "").TrimStart("\", "/")
+    -not ($excludedDirs | Where-Object { $rel.StartsWith("Modules\$_\") })
+}
 
 foreach ($file in $csFiles) {
     $lines = Get-Content $file.FullName

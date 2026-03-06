@@ -20,7 +20,7 @@ No code was copied — all implementations were independently written.
 | Meat Dryer                                | RealisticMeatDryer               | DarkAvatar7             | Unknown  | [sotf-mods](https://sotf-mods.com/mods/DarkAvatar7/)                 |
 | Broadcast Message                         | BroadcastMessage                 | SmokyAce & ThirtyTwelve | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
 | Log/Item Carry (BuilderStacks, Inventory) | LogCarryAmount / ItemCarryAmount | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
-| Waterfall Audio                           | WaterfallSoundControl            | Toni Macaroni           | Unknown  | [sotf-mods](https://sotf-mods.com/mods/ToniMacaroni/)                |
+| Waterfall Audio (FMOD volume control)     | WaterfallSoundControl            | Toni Macaroni           | Unknown  | [sotf-mods](https://sotf-mods.com/mods/ToniMacaroni/)                |
 | Ammo UI                                   | AmmoUi                           | ImAxel0                 | Unknown  | [GitHub](https://github.com/ImAxel0)                                 |
 | Open Sesame (Doors)                       | OpenSesame                       | tempbito                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/tempbito/)                    |
 | Hotbar                                    | SonsHotbar                       | AEDEV                   | Unknown  | [sotf-mods](https://sotf-mods.com/mods/AEDEV/)                       |

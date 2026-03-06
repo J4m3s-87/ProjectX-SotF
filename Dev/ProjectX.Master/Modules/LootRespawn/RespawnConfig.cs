@@ -19,7 +19,7 @@ namespace ProjectX.Master.Modules.LootRespawn
         public static int RespawnDays
         {
             get => _respawnDays;
-            set => _respawnDays = System.Math.Clamp(value, 1, 30);
+            set => _respawnDays = System.Math.Clamp(value, 1, 100);
         }
 
         public static bool Enabled

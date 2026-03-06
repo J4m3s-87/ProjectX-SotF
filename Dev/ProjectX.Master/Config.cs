@@ -1154,8 +1154,8 @@ namespace ProjectX.Master
                 Modules.LootRespawn.LootRespawnModule.Enabled = newVal;
             });
             Modules.LootRespawn.LootRespawnModule.Enabled = LootRespawnEnabled.Value;
-            LootRespawnDays = ModulesCategory.CreateEntry<int>("LootRespawnDays", 3, "Loot Respawn Days", "Days until items respawn (1-30)");
-            LootRespawnDays.SetRange(1, 30);
+            LootRespawnDays = ModulesCategory.CreateEntry<int>("LootRespawnDays", 3, "Loot Respawn Days", "Days until items respawn (1-100)");
+            LootRespawnDays.SetRange(1, 100);
             LootRespawnDays.OnValueChanged.Subscribe((_, newVal) => {
                 Modules.LootRespawn.RespawnConfig.RespawnDays = newVal;
             });

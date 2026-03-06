@@ -697,7 +697,7 @@ CONFIG OPTIONS:
 - LootRespawnEnabled (bool): Enable/disable loot respawn tracking
   Default: true
 - LootRespawnDays (int): In-game days until items respawn
-  Default: 3, Range: 1-30
+  Default: 3, Range: 1-100
 
 PER-CATEGORY TOGGLES (Settings → ProjectX - Loot Categories):
 All default to true. Disabling a category means those items will NOT be

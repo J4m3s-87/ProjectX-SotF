@@ -278,6 +278,14 @@ namespace ProjectX.Master.Modules.LootRespawn
 
                     if (_collected.TryGetValue(hash, out var data))
                     {
+                        // Category disabled — release item
+                        if (!RespawnConfig.ShouldTrackItem(data.ItemId))
+                        {
+                            _collected.Remove(hash);
+                            _dirty = true;
+                            continue;
+                        }
+
                         if (HasEnoughTimePassed(data.Timestamp))
                         {
                             // DO NOT remove from _collected — PREFIX needs entry for future loads
@@ -394,6 +402,14 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // Immediate check (items that Awake after save data is loaded)
                 if (_collected.TryGetValue(hash, out var data))
                 {
+                    // Category disabled — release item immediately
+                    if (!RespawnConfig.ShouldTrackItem(data.ItemId))
+                    {
+                        _collected.Remove(hash);
+                        _dirty = true;
+                        return;
+                    }
+
                     if (HasEnoughTimePassed(data.Timestamp))
                     {
                         _collected.Remove(hash);

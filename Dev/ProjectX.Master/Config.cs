@@ -43,6 +43,9 @@ namespace ProjectX.Master
         private static ConfigCategory WeaponDmgMeleeCategory { get; set; }
         private static ConfigCategory WeaponDmgFeaturesCategory { get; set; }
         
+        // Loot Categories
+        private static ConfigCategory LootCategoriesCategory { get; set; }
+        
         // ======================== PLAYER CHEATS ========================
 #if !CLIENT
         [SettingsUiInclude]

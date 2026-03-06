@@ -164,7 +164,9 @@ namespace ProjectX.Master
             IntegrityEvent.Register();
             
             // 17. LootRespawn (server-safe: Harmony + tracking)
-            Modules.LootRespawn.LootRespawnModule.Init();
+            // TEMP DISABLED for crash isolation
+            try { Modules.LootRespawn.LootRespawnModule.Init(); }
+            catch (Exception ex) { LoggerInstance.Error($"[LootRespawn] Init CRASHED: {ex}"); }
             
             // 18. WeaponDamage (client/owner: damage multipliers, inspect, solafite)
 #if !SERVER
@@ -175,6 +177,13 @@ namespace ProjectX.Master
 #if SERVER || OWNER
             ConfigSyncPayload.EnableBroadcast();
 #endif
+        }
+
+        protected override void OnSonsSceneInitialized(SonsSdk.ESonsScene sonsScene)
+        {
+            // Reset LootRespawn deferred check state BEFORE PickUp.Awake fires during scene load
+            try { Modules.LootRespawn.LootRespawnModule.OnSceneInit(); }
+            catch (Exception ex) { LoggerInstance.Error($"[LootRespawn] OnSceneInit FAILED: {ex}"); }
         }
 
         protected override void OnGameStart()
@@ -188,6 +197,9 @@ namespace ProjectX.Master
             // WeaponDamage: apply all damage settings on game start
             Modules.WeaponDamage.WeaponDamageModule.ApplyAllDamageSettings();
 #endif
+            // LootRespawn: process deferred items now that save data is loaded
+            try { Modules.LootRespawn.LootRespawnModule.OnGameStarted(); }
+            catch (Exception ex) { LoggerInstance.Error($"[LootRespawn] OnGameStarted FAILED: {ex}"); }
 
 #if CLIENT
             // Defer config/permission requests — Bolt isn't connected yet at OnGameStart.

@@ -1257,10 +1257,10 @@ namespace ProjectX.Master
             
 
             BuilderStacksMaxLogCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxLogCapacity", 2, "Max Log Capacity", "Maximum logs you can carry at once (vanilla: 2)");
-            BuilderStacksMaxLogCapacity.SetRange(2, 50);
             BuilderStacksMaxLogCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER
                 Modules.BuilderStacks.BuilderStacksModule.MaxLogCapacity = newVal;
+                RedLoader.RLog.Msg($"[BuilderStacks] Config changed: MaxLogCapacity = {newVal}");
 #endif
             });
 #if !SERVER
@@ -1268,10 +1268,10 @@ namespace ProjectX.Master
 #endif
             
             BuilderStacksMaxPlankCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxPlankCapacity", 4, "Max Plank Capacity", "Maximum planks you can carry at once (vanilla: 4)");
-            BuilderStacksMaxPlankCapacity.SetRange(2, 50);
             BuilderStacksMaxPlankCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER
                 Modules.BuilderStacks.BuilderStacksModule.MaxPlankCapacity = newVal;
+                RedLoader.RLog.Msg($"[BuilderStacks] Config changed: MaxPlankCapacity = {newVal}");
 #endif
             });
 #if !SERVER
@@ -1279,10 +1279,10 @@ namespace ProjectX.Master
 #endif
             
             BuilderStacksMaxStoneCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxStoneCapacity", 4, "Max Stone Capacity", "Maximum stones you can carry at once (vanilla: 4)");
-            BuilderStacksMaxStoneCapacity.SetRange(2, 50);
             BuilderStacksMaxStoneCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER
                 Modules.BuilderStacks.BuilderStacksModule.MaxStoneCapacity = newVal;
+                RedLoader.RLog.Msg($"[BuilderStacks] Config changed: MaxStoneCapacity = {newVal}");
 #endif
             });
 #if !SERVER

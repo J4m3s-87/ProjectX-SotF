@@ -762,7 +762,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 if (spawnItems) return true; // let content-spawn calls through
                 if (!RespawnConfig.Enabled) return true;
                 if (IsMultiplayerClient()) return true;
-                if (!RespawnConfig.TrackOpenables) return true; // category disabled — let through
+                if (!RespawnConfig.TrackOpenables) return false; // category disabled — block replay so container respawns (vanilla behavior)
 
                 string objName = "unknown";
                 if (__instance is UnityEngine.Component comp)

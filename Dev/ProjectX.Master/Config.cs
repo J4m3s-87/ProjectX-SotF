@@ -924,15 +924,15 @@ namespace ProjectX.Master
 #if !CLIENT
         [SettingsUiInclude]
 #endif
-        public static ConfigEntry<int> BuilderStacksMaxLogCapacity { get; private set; }
+        public static ConfigEntry<string> BuilderStacksMaxLogCapacity { get; private set; }
 #if !CLIENT
         [SettingsUiInclude]
 #endif
-        public static ConfigEntry<int> BuilderStacksMaxPlankCapacity { get; private set; }
+        public static ConfigEntry<string> BuilderStacksMaxPlankCapacity { get; private set; }
 #if !CLIENT
         [SettingsUiInclude]
 #endif
-        public static ConfigEntry<int> BuilderStacksMaxStoneCapacity { get; private set; }
+        public static ConfigEntry<string> BuilderStacksMaxStoneCapacity { get; private set; }
 #if !CLIENT
         [SettingsUiInclude]
 #endif
@@ -1256,37 +1256,46 @@ namespace ProjectX.Master
 #endif
             
 
-            BuilderStacksMaxLogCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxLogCapacity", 2, "Max Log Capacity", "Maximum logs you can carry at once (vanilla: 2)");
+            BuilderStacksMaxLogCapacity = BuilderStacksCategory.CreateEntry<string>("BuilderStacksMaxLogCapacity", "2", "Max Log Capacity", "Maximum logs you can carry at once (vanilla: 2)");
             BuilderStacksMaxLogCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER
-                Modules.BuilderStacks.BuilderStacksModule.MaxLogCapacity = newVal;
-                RedLoader.RLog.Msg($"[BuilderStacks] Config changed: MaxLogCapacity = {newVal}");
+                if (int.TryParse(newVal, out int v) && v >= 1) {
+                    Modules.BuilderStacks.BuilderStacksModule.MaxLogCapacity = v;
+                    RedLoader.RLog.Msg($"[BuilderStacks] Config changed: MaxLogCapacity = {v}");
+                }
 #endif
             });
 #if !SERVER
-            Modules.BuilderStacks.BuilderStacksModule.MaxLogCapacity = BuilderStacksMaxLogCapacity.Value;
+            if (int.TryParse(BuilderStacksMaxLogCapacity.Value, out int logCap) && logCap >= 1)
+                Modules.BuilderStacks.BuilderStacksModule.MaxLogCapacity = logCap;
 #endif
             
-            BuilderStacksMaxPlankCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxPlankCapacity", 4, "Max Plank Capacity", "Maximum planks you can carry at once (vanilla: 4)");
+            BuilderStacksMaxPlankCapacity = BuilderStacksCategory.CreateEntry<string>("BuilderStacksMaxPlankCapacity", "4", "Max Plank Capacity", "Maximum planks you can carry at once (vanilla: 4)");
             BuilderStacksMaxPlankCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER
-                Modules.BuilderStacks.BuilderStacksModule.MaxPlankCapacity = newVal;
-                RedLoader.RLog.Msg($"[BuilderStacks] Config changed: MaxPlankCapacity = {newVal}");
+                if (int.TryParse(newVal, out int v) && v >= 1) {
+                    Modules.BuilderStacks.BuilderStacksModule.MaxPlankCapacity = v;
+                    RedLoader.RLog.Msg($"[BuilderStacks] Config changed: MaxPlankCapacity = {v}");
+                }
 #endif
             });
 #if !SERVER
-            Modules.BuilderStacks.BuilderStacksModule.MaxPlankCapacity = BuilderStacksMaxPlankCapacity.Value;
+            if (int.TryParse(BuilderStacksMaxPlankCapacity.Value, out int plankCap) && plankCap >= 1)
+                Modules.BuilderStacks.BuilderStacksModule.MaxPlankCapacity = plankCap;
 #endif
             
-            BuilderStacksMaxStoneCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxStoneCapacity", 4, "Max Stone Capacity", "Maximum stones you can carry at once (vanilla: 4)");
+            BuilderStacksMaxStoneCapacity = BuilderStacksCategory.CreateEntry<string>("BuilderStacksMaxStoneCapacity", "4", "Max Stone Capacity", "Maximum stones you can carry at once (vanilla: 4)");
             BuilderStacksMaxStoneCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER
-                Modules.BuilderStacks.BuilderStacksModule.MaxStoneCapacity = newVal;
-                RedLoader.RLog.Msg($"[BuilderStacks] Config changed: MaxStoneCapacity = {newVal}");
+                if (int.TryParse(newVal, out int v) && v >= 1) {
+                    Modules.BuilderStacks.BuilderStacksModule.MaxStoneCapacity = v;
+                    RedLoader.RLog.Msg($"[BuilderStacks] Config changed: MaxStoneCapacity = {v}");
+                }
 #endif
             });
 #if !SERVER
-            Modules.BuilderStacks.BuilderStacksModule.MaxStoneCapacity = BuilderStacksMaxStoneCapacity.Value;
+            if (int.TryParse(BuilderStacksMaxStoneCapacity.Value, out int stoneCap) && stoneCap >= 1)
+                Modules.BuilderStacks.BuilderStacksModule.MaxStoneCapacity = stoneCap;
 #endif
             
             BuilderStacksEnableMaxLimit = BuilderStacksCategory.CreateEntry<bool>("BuilderStacksEnableMaxLimit", true, "Enable Max Limit", "If off, carry unlimited materials");

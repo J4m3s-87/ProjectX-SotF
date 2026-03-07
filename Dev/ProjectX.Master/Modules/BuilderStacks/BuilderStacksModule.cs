@@ -68,37 +68,34 @@ namespace ProjectX.Master.Modules.BuilderStacks
         {
             try
             {
+                // Panel — dark semi-transparent background, horizontal layout
                 _panel = SUI.SUI.RegisterNewPanel("BuilderStacks", false, default(KeyCode?))
                     .Pivot(0f, 0f)
                     .Anchor(AnchorType.BottomLeft)
-                    .Background(Color.clear, EBackground.None, default(UnityEngine.UI.Image.Type?))
-                    .Size(200f, 50f)
+                    .Background(SUI.SUI.SpriteBackground400ppu, new Color?(new Color(0f, 0f, 0f, 0.6f)), UnityEngine.UI.Image.Type.Sliced)
+                    .Size(160f, 50f)
                     .Position(10f, 65f)
-                    .Horizontal(4f, "CE")
+                    .Horizontal(0f, "EE")
                     .BindVisibility(_showPanel);
 
-                // Icon — same pattern as AmmoUI: SImage.Bind(Observable<Sprite>)
+                // Icon — exact AmmoUI pattern: SImage.Bind + Add directly to panel
                 _icon = SUI.SUI.SImage.Bind(_matIcon).Dock(EDockType.Fill);
                 try { _icon.ImageObject.color = new Color(1f, 1f, 1f, 0.9f); } catch { }
-
-                // Create icon container with fixed size
-                var iconContainer = SUI.SUI.SDiv.Size(40f, 40f);
-                iconContainer.Add(_icon);
 
                 // Text label — bound to Observable<string>
                 _carryAmount = SUI.SUI.SLabel.Bind(_matText)
                     .FontColor(new Color(1f, 1f, 1f, 0.85f))
-                    .FontSize(18)
+                    .FontSize(22)
                     .Dock(EDockType.Fill)
                     .Alignment(TMPro.TextAlignmentOptions.Left);
 
-                _panel.Add(iconContainer);
+                _panel.Add(_icon);
                 _panel.Add(_carryAmount);
 
                 _showPanel.Set(false);
                 _uiLoaded = true;
 
-                RLog.Msg("[BuilderStacks] HUD initialized (icon + text)");
+                RLog.Msg("[BuilderStacks] HUD initialized (icon + text, dark panel)");
             }
             catch (Exception ex)
             {
@@ -228,12 +225,12 @@ namespace ProjectX.Master.Modules.BuilderStacks
 
                     _matText.Set(text);
 
-                    // Set icon sprite from item database
+                    // Set icon from held item data (same as AmmoUI)
                     try
                     {
-                        var itemData = ItemDatabaseManager.ItemById(_heldItemId);
-                        if (itemData?.UiData?._icon != null)
-                            _matIcon.Set(itemData.UiData._icon);
+                        var icon = heldController.HeldItem?.Data?.UiData?._icon;
+                        if (icon != null)
+                            _matIcon.Set(icon);
                     }
                     catch { }
 

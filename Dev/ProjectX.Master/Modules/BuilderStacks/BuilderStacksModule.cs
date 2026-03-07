@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using HarmonyLib;
 using RedLoader;
 using SonsSdk;
+using Sons.Items.Core;
 using SUI;
 using TheForest;
 using TheForest.Utils;
@@ -57,8 +58,11 @@ namespace ProjectX.Master.Modules.BuilderStacks
         // ── UI (Observable binding like AmmoUI) ──
         private static SUiElement<SContainerOptions> _panel;
         private static SUiElement<SLabelOptions> _carryAmount;
+        private static SImageOptions _icon;
         private static bool _uiLoaded;
         private static readonly Observable<bool> _showPanel = new(false);
+        private static readonly Observable<Texture> _matIcon = new(null);
+        private static readonly Observable<string> _matText = new("");
 
         public static void Init()
         {
@@ -68,21 +72,33 @@ namespace ProjectX.Master.Modules.BuilderStacks
                     .Pivot(0f, 0f)
                     .Anchor(AnchorType.BottomLeft)
                     .Background(Color.clear, EBackground.None, default(UnityEngine.UI.Image.Type?))
-                    .Size(250f, 40f)
+                    .Size(200f, 50f)
                     .Position(10f, 65f)
+                    .Horizontal(4f, "CE")
                     .BindVisibility(_showPanel);
 
-                _carryAmount = SUI.SUI.SLabel.RichText("0 Items")
+                // Icon — same pattern as AmmoUI: SImage.Bind(Observable<Sprite>)
+                _icon = SUI.SUI.SImage.Bind(_matIcon).Dock(EDockType.Fill);
+                try { _icon.ImageObject.color = new Color(1f, 1f, 1f, 0.9f); } catch { }
+
+                // Create icon container with fixed size
+                var iconContainer = SUI.SUI.SDiv.Size(40f, 40f);
+                iconContainer.Add(_icon);
+
+                // Text label — bound to Observable<string>
+                _carryAmount = SUI.SUI.SLabel.Bind(_matText)
                     .FontColor(new Color(1f, 1f, 1f, 0.85f))
-                    .FontSize(16)
+                    .FontSize(18)
                     .Dock(EDockType.Fill)
                     .Alignment(TMPro.TextAlignmentOptions.Left);
 
-                _carryAmount.SetParent(_panel);
+                _panel.Add(iconContainer);
+                _panel.Add(_carryAmount);
+
                 _showPanel.Set(false);
                 _uiLoaded = true;
 
-                RLog.Msg("[BuilderStacks] HUD initialized (Observable binding)");
+                RLog.Msg("[BuilderStacks] HUD initialized (icon + text)");
             }
             catch (Exception ex)
             {
@@ -204,17 +220,22 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 if (total >= 1 && IsBuildingMaterial(_heldItemId))
                 {
                     string text = total.ToString();
-                    string mat = GetMaterialName(_heldItemId);
                     if (EnableMaxLimit)
                     {
                         int maxCap = GetMaxCapacity(_heldItemId);
                         text = $"{total}/{maxCap}";
                     }
 
-                    if (_carryAmount != null)
+                    _matText.Set(text);
+
+                    // Set icon sprite from item database
+                    try
                     {
-                        _carryAmount.RichText($"{text} {mat}");
+                        var itemData = ItemDatabaseManager.ItemById(_heldItemId);
+                        if (itemData?.UiData?._icon != null)
+                            _matIcon.Set(itemData.UiData._icon);
                     }
+                    catch { }
 
                     if (!_showPanel.Value)
                     {

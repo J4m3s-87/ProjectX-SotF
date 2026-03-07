@@ -839,6 +839,28 @@ namespace ProjectX.Master.Modules.UI
             // Raids per day
             RaidCustomizer.RaidConfig.RaidsPerDay.Value = (int)DrawSlider("Raids/Day (-1=Def)", RaidCustomizer.RaidConfig.RaidsPerDay.Value, -1, 24);
             
+            // Raid Distribution (cycle button: Evenly / Randomly / Stacked)
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Distribution:", ProjectXStyles.NormalLabel, GUILayout.Width(120));
+            string currentDist = RaidCustomizer.RaidConfig.RaidDistribution.Value;
+            if (GUILayout.Button(currentDist, ProjectXStyles.Button, GUILayout.Width(200)))
+            {
+                // Cycle through options
+                string next = currentDist switch
+                {
+                    "Evenly" => "Randomly",
+                    "Randomly" => "Stacked",
+                    _ => "Evenly"
+                };
+                RaidCustomizer.RaidConfig.RaidDistribution.Value = next;
+            }
+            GUILayout.EndHorizontal();
+            
+            // Consider Current Time
+            bool considerTime = DrawCheckbox("Consider Current Time", RaidCustomizer.RaidConfig.ConsiderCurrentTime.Value);
+            if (considerTime != RaidCustomizer.RaidConfig.ConsiderCurrentTime.Value)
+                RaidCustomizer.RaidConfig.ConsiderCurrentTime.Value = considerTime;
+            
             DrawDivider("ENEMY TYPES");
             
             GUILayout.BeginHorizontal();
@@ -954,6 +976,7 @@ namespace ProjectX.Master.Modules.UI
                 ServerCmd($"config set XR_IncludeForest {RaidCustomizer.RaidConfig.AlwaysIncludeForestOnlyRaids.Value}");
                 ServerCmd($"config set XR_RaidsPerDay {RaidCustomizer.RaidConfig.RaidsPerDay.Value}");
                 ServerCmd($"config set XR_ConsiderTime {RaidCustomizer.RaidConfig.ConsiderCurrentTime.Value}");
+                ServerCmd($"config set XR_Distribution {RaidCustomizer.RaidConfig.RaidDistribution.Value}");
                 
                 // Time ranges
                 ServerCmd($"config set XR_RaidAtMorning {RaidCustomizer.RaidConfig.SearchPartiesAtMorning.Value}");
@@ -1552,6 +1575,27 @@ namespace ProjectX.Master.Modules.UI
                 
                 // Raids per day — local only
                 RaidCustomizer.RaidConfig.RaidsPerDay.Value = (int)DrawSlider("Raids/Day (-1=Def)", RaidCustomizer.RaidConfig.RaidsPerDay.Value, -1, 24);
+                
+                // Raid Distribution (cycle button: Evenly / Randomly / Stacked)
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Distribution:", ProjectXStyles.NormalLabel, GUILayout.Width(120));
+                string srvDist = RaidCustomizer.RaidConfig.RaidDistribution.Value;
+                if (GUILayout.Button(srvDist, ProjectXStyles.Button, GUILayout.Width(200)))
+                {
+                    string next = srvDist switch
+                    {
+                        "Evenly" => "Randomly",
+                        "Randomly" => "Stacked",
+                        _ => "Evenly"
+                    };
+                    RaidCustomizer.RaidConfig.RaidDistribution.Value = next;
+                }
+                GUILayout.EndHorizontal();
+                
+                // Consider Current Time
+                bool srvConsiderTime = DrawCheckbox("Consider Current Time", RaidCustomizer.RaidConfig.ConsiderCurrentTime.Value);
+                if (srvConsiderTime != RaidCustomizer.RaidConfig.ConsiderCurrentTime.Value)
+                    RaidCustomizer.RaidConfig.ConsiderCurrentTime.Value = srvConsiderTime;
                 
                 DrawDivider("ENEMY TYPES");
                 

@@ -61,11 +61,24 @@ Provides player quality-of-life features including teleportation of companions.
 │    • Infinite Stones - Carry unlimited stones                               │
 │    • No World Gravity - Disable world gravity (uses debug console)         │
 │                                                                              │
-│ UNSTUCK COMPANIONS:                                                          │
-│ If Kelvin or Virginia gets stuck somewhere:                                  │
-│ 1. Open the Project X menu                                                  │
-│ 2. Click "Unstuck Kelvin" or "Unstuck Virginia"                            │
-│ 3. They will teleport 2 meters in front of you                             │
+│ COMPANIONS (Teleport tab → "COMPANIONS" section):                            │
+│ • Unstuck Kelvin / Unstuck Virginia — teleport 2m in front of you           │
+│ • Revive Kelvin / Revive Virginia — revive via debug console                │
+│   (removedead + addcharacter robby/virginia)                                │
+│ • Virginia Visit — trigger Virginia to visit you (Virginiavisit)            │
+│ • Happy Virginia — set Virginia sentiment to max (virginiasentiment 100)    │
+│ • Enable Stat Overrides — master toggle for HP/damage multipliers          │
+│ • Kelvin HP Multi — HP multiplier slider (1x–200x)                         │
+│ • Virginia HP Multi — HP multiplier slider (1x–200x)                       │
+│                                                                              │
+│ HP multipliers apply:                                                        │
+│  - On first-aid revival (VailActor.Revive postfix, 1s delayed)              │
+│  - On actor spawn/load (VailActor.OnActorEnabled postfix)                   │
+│  - Sliders auto-enable Stat Overrides when moved above 1.0                 │
+│                                                                              │
+│ MOVEMENT:                                                                    │
+│ • Walk Speed, Run Speed, Swim Speed, Jump Multiplier sliders               │
+│ • Reset Movement button — resets all to vanilla defaults (1.0)             │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 CONFIG OPTIONS (Settings → Mods → ProjectX - Cheats):
@@ -1017,11 +1030,13 @@ Uses Unity IMGUI (not SUI) for IL2CPP stability.
 │ Press the Insert key (configurable in Settings → Mods → ProjectX - Keys)    │
 │                                                                              │
 │ TABS (6 total):                                                              │
-│ 1. Player      - Cheats, movement, companion unstuck                        │
+│ 1. Player      - Cheats, movement (with reset), enemy actions               │
 │ 2. Environment  - Terrain, seasons, time, environment controls,             │
 │                   waterfall volume, force rain, no world gravity,            │
 │                   loot respawn settings                                      │
-│ 3. Teleport     - Quick teleport, coordinate input, location buttons        │
+│ 3. Teleport     - Quick teleport, coordinate input, location buttons,       │
+│                   COMPANIONS: unstuck, revive, virginia visit/happy,        │
+│                   HP multiplier sliders, stat override toggle               │
 │ 4. Misc         - Module toggles (Relocator, Durability, etc.)              │
 │ 5. Raids        - X Raids scheduling, enemy types, stat multipliers,        │
 │                   raid announcements                                         │

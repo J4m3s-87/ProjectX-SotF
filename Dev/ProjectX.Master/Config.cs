@@ -1528,7 +1528,7 @@ namespace ProjectX.Master
             // ===== CATEGORY: X RAIDS - ENEMY STATS =====
             XRaidsEnemyStatsCategory = ConfigSystem.CreateFileCategory("X Raids - Enemy Stats", "X Raids - Enemy Stats", configFile);
             
-            XR_StatMultiplierEnabled = XRaidsEnemyStatsCategory.CreateEntry<bool>("XR_EnableStats", false, "Enable Stat Overrides");
+            XR_StatMultiplierEnabled = XRaidsEnemyStatsCategory.CreateEntry<bool>("XR_EnableStats", true, "Enable Stat Overrides");
             XR_OverrideHealthOnLoad = XRaidsEnemyStatsCategory.CreateEntry<bool>("XR_OverrideOnLoad", true, "Override Health on Save Load");
             XR_CannibalHealth = XRaidsEnemyStatsCategory.CreateEntry<float>("XR_CannibalHealth", 1.0f, "Cannibal Health Multiplier");
             XR_CannibalHealth.SetRange(0.1f, 10f);

@@ -350,6 +350,18 @@ namespace ProjectX.Master.Modules.UI
                 PlayerActions.SetJumpMultiplier(jumpMult);
             }
             
+            if (GUILayout.Button("Reset Movement", ProjectXStyles.Button))
+            {
+                Config.WalkSpeed.Value = 1f;
+                Config.RunSpeed.Value = 1f;
+                Config.SwimSpeed.Value = 1f;
+                Config.JumpMultiplier.Value = 1f;
+                PlayerActions.SetWalkSpeed(1f);
+                PlayerActions.SetRunSpeed(1f);
+                PlayerActions.SetSwimSpeed(1f);
+                PlayerActions.SetJumpMultiplier(1f);
+            }
+            
             // Enemy Actions section (moved from Misc panel)
             DrawDivider("ENEMY ACTIONS");
             
@@ -582,6 +594,62 @@ namespace ProjectX.Master.Modules.UI
                 PlayerModule.UnstuckVirginia();
             }
             GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Revive Kelvin", ProjectXStyles.Button))
+            {
+                try
+                {
+                    DebugConsole.Instance.SendCommand("removedead");
+                    DebugConsole.Instance.SendCommand("addcharacter robby");
+                }
+                catch {}
+            }
+            if (GUILayout.Button("Revive Virginia", ProjectXStyles.Button))
+            {
+                try
+                {
+                    DebugConsole.Instance.SendCommand("removedead");
+                    DebugConsole.Instance.SendCommand("addcharacter virginia");
+                }
+                catch {}
+            }
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Virginia Visit", ProjectXStyles.Button))
+            {
+                try { DebugConsole.Instance.SendCommand("Virginiavisit"); }
+                catch {}
+            }
+            if (GUILayout.Button("Happy Virginia", ProjectXStyles.Button))
+            {
+                try { DebugConsole.Instance.SendCommand("virginiasentiment 100"); }
+                catch {}
+            }
+            GUILayout.EndHorizontal();
+            
+            bool statsEnabled = DrawCheckbox("Enable Stat Overrides", RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value);
+            if (statsEnabled != RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value)
+                RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value = statsEnabled;
+            
+            float kelvinOld = RaidCustomizer.RaidConfig.KelvinHealthMultiplier.Value;
+            float kelvinNew = DrawSlider("Kelvin HP Multi", kelvinOld, 1f, 200f);
+            if (Math.Abs(kelvinNew - kelvinOld) > 0.05f)
+            {
+                RaidCustomizer.RaidConfig.KelvinHealthMultiplier.Value = kelvinNew;
+                if (kelvinNew > 1.05f && !RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value)
+                    RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value = true;
+            }
+            
+            float virginiaOld = RaidCustomizer.RaidConfig.VirginiaHealthMultiplier.Value;
+            float virginiaNew = DrawSlider("Virginia HP Multi", virginiaOld, 1f, 200f);
+            if (Math.Abs(virginiaNew - virginiaOld) > 0.05f)
+            {
+                RaidCustomizer.RaidConfig.VirginiaHealthMultiplier.Value = virginiaNew;
+                if (virginiaNew > 1.05f && !RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value)
+                    RaidCustomizer.RaidConfig.StatMultiplierModificationEnabled.Value = true;
+            }
         }
         
         private void DrawMiscPanel()

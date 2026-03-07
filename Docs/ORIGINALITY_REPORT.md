@@ -37,19 +37,19 @@ Every mod for Sons of the Forest targets the **same game APIs** — there is onl
 
 These modules exist only in Project X — there was nothing to study or reference:
 
-| Module                                                                 | Size       | Files | What It Does                                                                |
-| ---------------------------------------------------------------------- | ---------- | ----- | --------------------------------------------------------------------------- |
-| **Integrity / Anti-Cheat** (IntegrityEvent + IntegrityConfig)          | **40.6KB** | 2     | Server-side cheat detection and validation                                  |
-| **Permission System** (PermissionEvent + PermissionSync + RoleManager) | **15.5KB** | 3     | Role-based access control (Owner / Admin / Player) synced via Bolt          |
-| **Config Sync** (ConfigSyncEvent + ConfigSyncPayload)                  | **14.9KB** | 2     | Real-time server-to-client config broadcast — live economy control          |
-| **Admin Command Bridge** (AdminCommandEvent + CommandBridge)           | **20.3KB** | 2     | Remote `/px` commands via hybrid Bolt/ChatBox protocol                      |
-| **Building Enhancements** (BuilderEnhancements)                        | **26.9KB** | 1     | Custom building tools with correct API discovery and server-side support    |
-| **Player Module** (PlayerModule + Actions)                             | **5.2KB**  | 1     | Custom player controls and companion management                             |
-| **Custom GUI** (ProjectXGUI + Styles)                                  | **144KB**  | 4     | Permission-aware IMGUI with 6 tabbed panels — not based on any existing mod |
-| **One-Click Installer**                                                | **16.5KB** | 2     | Auto-detects game via Steam, downloads prerequisites, deploys mod           |
-| **In-Game Welcome System**                                             | —          | —     | Multi-line orientation chat for players joining the server                  |
+| Module                                                                 | Size        | Files | What It Does                                                                           |
+| ---------------------------------------------------------------------- | ----------- | ----- | -------------------------------------------------------------------------------------- |
+| **Integrity / Anti-Cheat** (IntegrityEvent + IntegrityConfig)          | **40.6KB**  | 2     | Server-side cheat detection and validation                                             |
+| **Permission System** (PermissionEvent + PermissionSync + RoleManager) | **15.5KB**  | 3     | Role-based access control (Owner / Admin / Player) synced via Bolt                     |
+| **Config Sync** (ConfigSyncEvent + ConfigSyncPayload)                  | **14.9KB**  | 2     | Real-time server-to-client config broadcast — live economy control                     |
+| **Admin Command Bridge** (AdminCommandEvent + CommandBridge)           | **20.3KB**  | 2     | Remote `/px` commands via hybrid Bolt/ChatBox protocol                                 |
+| **Building Enhancements** (BuilderEnhancements)                        | **26.9KB**  | 1     | Custom building tools with correct API discovery and server-side support               |
+| **Player Module** (PlayerModule + Actions)                             | **5.2KB**   | 1     | Player controls, companion management (unstuck, revive, HP sliders, Virginia commands) |
+| **Custom GUI** (ProjectXGUI + Styles)                                  | **148.8KB** | 4     | Permission-aware IMGUI with 6 tabbed panels — not based on any existing mod            |
+| **One-Click Installer**                                                | **16.5KB**  | 2     | Auto-detects game via Steam, downloads prerequisites, deploys mod                      |
+| **In-Game Welcome System**                                             | —           | —     | Multi-line orientation chat for players joining the server                             |
 
-**Total unique code with no original equivalent: ~283KB+**
+**Total unique code with no original equivalent: ~288KB+**
 
 ## Modules With an Original Counterpart
 
@@ -57,7 +57,7 @@ Each module below was _studied_ from an existing mod to understand the concept a
 
 | Module                  | Project X          | Original                                                                        | Size Difference  | Key Architectural Difference                                                                                                                                             |
 | ----------------------- | ------------------ | ------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | 144KB (4 files)    | 113.4KB (17 files)                                                              | +27%             | Studied AxelModMenu for concepts. Completely different IMGUI rendering approach, permission-aware panels                                                                 |
+| **UI**                  | 148.8KB (4 files)  | 113.4KB (17 files)                                                              | +31%             | Studied AxelModMenu for concepts. Completely different IMGUI rendering approach, permission-aware panels                                                                 |
 | **RaidCustomizer**      | 99.6KB (11 files)  | 76KB (16 files)                                                                 | +31%             | Most closely based on original. Retained core event logic, added 58KB of new code (RaidActions, RaidPatches, RaidConfig). Rewrote for manual Harmony and server support  |
 | **DedicatedSuperuser**  | 102.6KB (11 files) | 33KB                                                                            | **3.1× larger**  | Admin roles, permissions, networking, remote command bridge — massively extended                                                                                         |
 | **ScaryCross**          | 70.4KB (3 files)   | 16KB                                                                            | **4.4× larger**  | Custom DemonDetector MonoBehaviour, progressive heat/fire state machine, direct `VailActor.IgniteSelf()` bypass                                                          |

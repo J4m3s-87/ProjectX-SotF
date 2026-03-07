@@ -142,25 +142,33 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 }
 
                 // ── Amount >= 2: player picked up extra items ──
-                // Only absorb (set _heldCount=1) when UNDER capacity.
-                // At capacity: do NOTHING — leave amount=2 so game blocks further pickups.
-                // Writing _heldCount=1 at capacity causes infinite pickup loop!
+                // ALWAYS set _heldCount=1 and absorb (amount-1) into buffer.
+                // Planks/stones natively hold 4, so we must absorb ALL excess.
+                // At capacity: still force held=1 but clamp buffer additions.
                 if (amount >= 2 && IsBuildingMaterial(_heldItemId))
                 {
                     int currentBuffer = GetBuffer(_heldItemId);
                     int maxCap = GetMaxCapacity(_heldItemId);
+                    int excess = amount - 1; // how many above "holding 1"
 
-                    if (!EnableMaxLimit || currentBuffer + 2 <= maxCap)
+                    // Clamp: only absorb what fits in the buffer
+                    // Buffer can hold up to (maxCap - 1) since 1 is always in hand
+                    int spaceLeft = EnableMaxLimit ? System.Math.Max(0, maxCap - 1 - currentBuffer) : excess;
+                    int toAbsorb = System.Math.Min(excess, spaceLeft);
+
+                    // ALWAYS force held back to 1 — prevents game from stacking
+                    if (SetHeldCount(heldController, 1))
                     {
-                        // Under capacity → absorb: set held to 1, add to buffer
-                        if (SetHeldCount(heldController, 1))
+                        if (toAbsorb > 0)
                         {
-                            AddToBuffer(_heldItemId, 1);
-                            RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
+                            AddToBuffer(_heldItemId, toAbsorb);
+                            RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} x{toAbsorb} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
+                        }
+                        else
+                        {
+                            RLog.Msg($"[BuilderStacks] At capacity {GetMaterialName(_heldItemId)} ({currentBuffer + 1}/{maxCap}) — excess rejected");
                         }
                     }
-                    // else: AT CAPACITY — do nothing. Leave amount=2.
-                    // Game sees player holding 2 → blocks further pickups.
                 }
 
                 // ── Amount < 1: player placed/used item → give one back from buffer ──

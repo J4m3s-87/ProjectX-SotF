@@ -163,29 +163,23 @@ namespace ProjectX.Master.Modules.BuilderStacks
                     // Game sees player holding 2 → blocks further pickups.
                 }
 
-                // ── Amount == 0: player placed/used last item ──
-                // Give one back from buffer after a delay
+                // ── Amount < 1: player placed/used item → give one back from buffer ──
+                // Give back ONE at a time. Must wait for full delay between each give.
                 if (amount < 1 && GetBuffer(_heldItemId) > 0 && IsBuildingMaterial(_heldItemId))
                 {
-                    _shouldGiveBack = true;
-                }
-
-                // ── Delayed give-back from buffer ──
-                if (_shouldGiveBack)
-                {
                     _giveTimer += Time.deltaTime;
-                    if (_giveTimer >= GiveDelay || _forceGive)
+                    float minDelay = System.Math.Max(GiveDelay, 0.5f); // enforce minimum 0.5s
+                    if (_giveTimer >= minDelay)
                     {
                         GiveFromBuffer();
                         _giveTimer = 0f;
-                        _shouldGiveBack = false;
-                        _forceGive = false;
                     }
-                    else if (AreHandsEmpty())
-                    {
-                        // Hands are ready — force give on next frame
-                        _forceGive = true;
-                    }
+                }
+                else
+                {
+                    // Reset timer when player is holding something (amount >= 1)
+                    // or no buffer to give back
+                    _giveTimer = 0f;
                 }
 
                 // ── UI ──

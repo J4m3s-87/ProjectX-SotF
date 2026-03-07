@@ -143,17 +143,20 @@ namespace ProjectX.Master.Modules.BuilderStacks
 
                 // ── Amount >= 2: player picked up extra items ──
                 // Absorb (amount-1) into buffer when under capacity.
-                // At capacity: do nothing for ALL materials.
-                //   Game stops pickups at native limit (2 logs, 4 planks/stones).
-                //   LootRespawn is excluded from tracking building materials.
+                // At capacity: do nothing — game enforces native hold limit.
+                // Buffer is sized so that buffer + nativeLimit = maxCap.
                 if (amount >= 2 && IsBuildingMaterial(_heldItemId))
                 {
                     int currentBuffer = GetBuffer(_heldItemId);
                     int maxCap = GetMaxCapacity(_heldItemId);
+                    int nativeLimit = GetNativeHoldLimit(_heldItemId);
                     int excess = amount - 1;
 
+                    // Buffer cap: maxCap - nativeLimit (leaves room for native hold at capacity)
+                    // Logs (native=2): maxCap=4 → buffer max = 2, total = 2+2 = 4
+                    // Stones (native=4): maxCap=8 → buffer max = 4, total = 4+4 = 8
                     int spaceLeft = EnableMaxLimit
-                        ? System.Math.Max(0, maxCap - 1 - currentBuffer)
+                        ? System.Math.Max(0, maxCap - nativeLimit - currentBuffer)
                         : excess;
                     int toAbsorb = System.Math.Min(excess, spaceLeft);
 

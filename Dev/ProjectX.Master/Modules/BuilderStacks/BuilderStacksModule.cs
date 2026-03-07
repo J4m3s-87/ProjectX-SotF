@@ -1,6 +1,7 @@
 #if !SERVER
 using System;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using HarmonyLib;
 using RedLoader;
 using SonsSdk;
@@ -43,9 +44,10 @@ namespace ProjectX.Master.Modules.BuilderStacks
         private static float _giveTimer;
         private static bool _forceGive;
 
-        // ── Cached reflection for _heldCount ──
-        private static FieldInfo _heldCountField;
-        private static bool _heldCountResolved;
+        // ── Memory access for _heldCount ──
+        private static PropertyInfo _pointerProp;
+        private static bool _pointerResolved;
+        private const int HELD_COUNT_OFFSET = 0x5C;
 
         // ── Hack state (transition guards) ──
         private static bool _logHackOn;
@@ -99,6 +101,22 @@ namespace ProjectX.Master.Modules.BuilderStacks
 
                 int amount = heldController.Amount;
 
+                // Resolve IL2CPP Pointer property once
+                if (!_pointerResolved)
+                {
+                    _pointerResolved = true;
+                    try
+                    {
+                        _pointerProp = heldController.GetType().GetProperty("Pointer",
+                            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
+                        RLog.Msg($"[BuilderStacks] Pointer property {(_pointerProp != null ? "resolved" : "NOT found")} for _heldCount at offset 0x{HELD_COUNT_OFFSET:X}");
+                    }
+                    catch (Exception ex)
+                    {
+                        RLog.Warning($"[BuilderStacks] Pointer resolve failed: {ex.Message}");
+                    }
+                }
+
                 // ═══════════════════════════════════════════════
                 // MODULE DISABLED = infinite carry
                 // ═══════════════════════════════════════════════
@@ -135,9 +153,12 @@ namespace ProjectX.Master.Modules.BuilderStacks
                     if (!EnableMaxLimit || currentBuffer + amount < maxCap)
                     {
                         // Under capacity → absorb: set _heldCount = 1, increment buffer
-                        SetHeldCount(heldController, 1);
-                        AddToBuffer(_heldItemId, 1);
-                        RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
+                        // ONLY add to buffer if the write succeeds
+                        if (SetHeldCount(heldController, 1))
+                        {
+                            AddToBuffer(_heldItemId, 1);
+                            RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
+                        }
                     }
                     // else: AT CAPACITY — do nothing. Game keeps amount=2 naturally.
                     // Player cannot pick up more. No item loss.
@@ -283,30 +304,23 @@ namespace ProjectX.Master.Modules.BuilderStacks
         }
 
         /// <summary>
-        /// Set _heldCount via AccessTools reflection (Cast pattern doesn't work in our interop DLLs).
+        /// Set _heldCount via direct IL2CPP pointer + offset (proven pattern).
+        /// Returns true if write succeeded, false if pointer unavailable.
         /// </summary>
-        private static void SetHeldCount(object heldController, int value)
+        private static bool SetHeldCount(object heldController, int value)
         {
             try
             {
-                if (!_heldCountResolved)
-                {
-                    _heldCountResolved = true;
-                    _heldCountField = AccessTools.Field(heldController.GetType(), "_heldCount");
-                    if (_heldCountField != null)
-                        RLog.Msg($"[BuilderStacks] _heldCount field resolved via AccessTools");
-                    else
-                        RLog.Warning("[BuilderStacks] _heldCount field NOT found — buffer absorb unavailable");
-                }
-
-                if (_heldCountField != null)
-                {
-                    _heldCountField.SetValue(heldController, value);
-                }
+                if (_pointerProp == null) return false;
+                IntPtr ptr = (IntPtr)_pointerProp.GetValue(heldController);
+                if (ptr == IntPtr.Zero) return false;
+                Marshal.WriteInt32(ptr + HELD_COUNT_OFFSET, value);
+                return true;
             }
             catch (Exception ex)
             {
                 RLog.Warning($"[BuilderStacks] SetHeldCount failed: {ex.Message}");
+                return false;
             }
         }
 

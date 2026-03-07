@@ -44,6 +44,9 @@ namespace ProjectX.Master.Modules.UI
         private string _stackInput = "999";
         private bool _forceRainActive = false;
         private bool _noWorldGravity = false;
+        private bool _noGrassActive = false;
+        private bool _noForestActive = false;
+        private string _activeSeason = "";
         
         // Teleport locations (matches Axel's)
         private static readonly Dictionary<string, Vector3> TeleportLocations = new Dictionary<string, Vector3>
@@ -367,7 +370,8 @@ namespace ProjectX.Master.Modules.UI
                 PlayerActions.SetJumpMultiplier(jumpMult);
             }
             
-            if (GUILayout.Button("Reset Movement", ProjectXStyles.Button))
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Toggle(false, "  Reset Movement", ProjectXStyles.Toggle, GUILayout.Width(colW)))
             {
                 Config.WalkSpeed.Value = 1f;
                 Config.RunSpeed.Value = 1f;
@@ -378,6 +382,7 @@ namespace ProjectX.Master.Modules.UI
                 PlayerActions.SetSwimSpeed(1f);
                 PlayerActions.SetJumpMultiplier(1f);
             }
+            GUILayout.EndHorizontal();
             
             // Enemy Actions section (moved from Misc panel)
             DrawDivider("ENEMY ACTIONS");
@@ -435,24 +440,43 @@ namespace ProjectX.Master.Modules.UI
         
         private void DrawEnvironmentPanel()
         {
+            float colW = (PANEL_WIDTH - 60f) / 2f;
             DrawDivider("TERRAIN");
             
-            // Grass/Forest buttons (toggles, no state tracking)
+            // Grass/Forest toggles
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Toggle Grass", ProjectXStyles.Button)) PlayerActions.ToggleNoGrass();
-            if (GUILayout.Button("Toggle Forest", ProjectXStyles.Button)) PlayerActions.ToggleNoForest();
+            bool newNoGrass = GUILayout.Toggle(_noGrassActive, "  No Grass", ProjectXStyles.Toggle, GUILayout.Width(colW));
+            if (newNoGrass != _noGrassActive)
+            {
+                _noGrassActive = newNoGrass;
+                PlayerActions.ToggleNoGrass();
+            }
+            bool newNoForest = GUILayout.Toggle(_noForestActive, "  No Forest", ProjectXStyles.Toggle, GUILayout.Width(colW));
+            if (newNoForest != _noForestActive)
+            {
+                _noForestActive = newNoForest;
+                PlayerActions.ToggleNoForest();
+            }
             GUILayout.EndHorizontal();
             
             DrawDivider("SEASONS");
             
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Spring", ProjectXStyles.Button)) PlayerActions.SetSeason("Spring");
-            if (GUILayout.Button("Summer", ProjectXStyles.Button)) PlayerActions.SetSeason("Summer");
+            bool springActive = _activeSeason == "Spring";
+            if (GUILayout.Toggle(springActive, "  Spring", ProjectXStyles.Toggle, GUILayout.Width(colW)) && !springActive)
+            { _activeSeason = "Spring"; PlayerActions.SetSeason("Spring"); }
+            bool summerActive = _activeSeason == "Summer";
+            if (GUILayout.Toggle(summerActive, "  Summer", ProjectXStyles.Toggle, GUILayout.Width(colW)) && !summerActive)
+            { _activeSeason = "Summer"; PlayerActions.SetSeason("Summer"); }
             GUILayout.EndHorizontal();
             
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Autumn", ProjectXStyles.Button)) PlayerActions.SetSeason("Autumn");
-            if (GUILayout.Button("Winter", ProjectXStyles.Button)) PlayerActions.SetSeason("Winter");
+            bool autumnActive = _activeSeason == "Autumn";
+            if (GUILayout.Toggle(autumnActive, "  Autumn", ProjectXStyles.Toggle, GUILayout.Width(colW)) && !autumnActive)
+            { _activeSeason = "Autumn"; PlayerActions.SetSeason("Autumn"); }
+            bool winterActive = _activeSeason == "Winter";
+            if (GUILayout.Toggle(winterActive, "  Winter", ProjectXStyles.Toggle, GUILayout.Width(colW)) && !winterActive)
+            { _activeSeason = "Winter"; PlayerActions.SetSeason("Winter"); }
             GUILayout.EndHorizontal();
             
             DrawDivider("TIME");

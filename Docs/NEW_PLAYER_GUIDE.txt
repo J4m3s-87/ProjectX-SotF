@@ -1,0 +1,186 @@
+# 🎮 Welcome to the Project X Server
+
+Welcome to my Sons of the Forest dedicated server! I run a custom mod pack called **Project X** that overhauls the survival experience with new mechanics, enhanced building, realistic environmental systems, and quality-of-life improvements.
+
+To get the full experience, install the **Client Build** (link pinned in this channel).
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 🌧️ Realistic Water Collection
+
+Rain catchers now respond to the environment realistically:
+
+- **Winter freezing** — water in your catchers will freeze during winter, just like you'd expect
+- **Fire thawing** — place a lit fire (campfire, standing fire) **within 10 meters** of a rain catcher to keep the water liquid through winter
+- If the fire goes out, the water eventually freezes again
+
+> **Tip:** Always keep a fire burning near your water supply when winter hits.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 🥩 Seasonal Meat Drying
+
+Drying racks are supercharged with a seasonal system:
+
+- 🌸 **Spring** — **30x** faster drying · Nearby fire helps
+- ☀️ **Summer** — **25x** faster drying · Minimal heat needed
+- 🍂 **Autumn** — **15x** faster drying · Nearby fire recommended
+- ❄️ **Winter** — **5x** faster drying · Fire required (high heat threshold)
+
+Place a fire source near your drying rack to activate the temperature boost. **Summer is the best season for drying meat.**
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 🪢 Extended Ziplines & Rope Bridges
+
+The rope gun has been massively upgraded:
+
+- **Max zipline length:** ~200m (vanilla is ~40m)
+- **Max rope bridge length:** ~200m
+- **Shooting distance:** ~200m
+
+Build ziplines and rope bridges across entire valleys, cliffsides, and canyons that were impossible in vanilla. The placement indicator stays active at much greater distances.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 🏗️ Building & Construction
+
+**Increased Carrying Capacity**
+You can carry **more logs, planks, and stones** than in vanilla, with separate configurable limits for each material type (default: 10 each). A small HUD panel shows your current carry count (e.g., "4/10 Logs"). Configurable in Settings → Mods → ProjectX - Builder Stacks.
+
+**Structure Relocator**
+Move any built object **without destroying it** — look at a structure (traps, furniture, shelters, decorations), hold the relocation key to pick it up, carry it to a new spot and place it down. Works even on objects vanilla would force you to destroy first.
+
+**Structure Durability**
+Server-managed durability multipliers keep your base walls tougher (or more fragile, depending on server settings). This is synced for all players.
+
+**Instant Build**
+When enabled by the server admin, structures complete instantly — no waiting for the building animation. Works automatically on the dedicated server for all players.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## ⚔️ Raid System
+
+Enemy raids are fully customizable on this server:
+
+- **Raid frequency** is controlled by the server (can be multiple per day)
+- **Enemy health & damage** may be scaled differently from vanilla
+- **Raid announcements** — you'll see an alert when a raid is incoming so you can prepare
+- **Kelvin & Virginia** have massively boosted health (up to 200x multiplier) — their HP persists even after being revived with first aid, so your companions can tank hits during raids without going down permanently
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 🤝 Companion Management (Owner Build)
+
+The Owner build has a full **Companions** section in the mod menu:
+
+- **Unstuck Kelvin / Virginia** — teleport them to you if they get stuck
+- **Revive Kelvin / Virginia** — bring them back from the dead locally
+- **Virginia Visit** — triggers Virginia to come find you
+- **Happy Virginia** — max out Virginia's sentiment so she stays friendly
+- **HP Multiplier Sliders** — boost Kelvin or Virginia's health up to 200x (applies on spawn, save load, and after first-aid revival)
+- **Enable Stat Overrides** — master toggle for HP/damage multipliers (auto-enabled when sliders are used)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## ✝️ Scary Cross (Powered Defense)
+
+Turn the buildable Cross into an active defense system:
+
+1. **Build** a Cross structure
+2. **Connect** it to power (solar panels / batteries)
+3. When enemies approach, the Cross **glows** — intensity increases with enemy proximity
+4. At max intensity, the Cross **catches fire** — scaring enemies away and dealing burn damage
+5. **Repair it** regularly with the Repair Tool or it will break from the fire damage
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 📦 Inventory & Stack Sizes
+
+- All item stack sizes are **controlled by the server** and synced to your game
+- Categories include: resources, ammo, food, drinks, meds, throwables, and crafting materials
+- Your local config is overridden by the server's settings so everyone plays with the same limits
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 🎯 HUD Enhancements (Client Build Only)
+
+These features require the **Client Build** installed:
+
+- **Hotbar Display** — shows icons for your assigned hotkey items (keys 1–0) on screen at all times, so you always know what's in each slot
+- **Ammo Counter** — displays your current ammo count and weapon icon when holding a ranged weapon
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 🔊 Waterfall Volume Control
+
+If the waterfalls are deafening your base:
+
+- Go to **Settings → Mods → Project X → Environment**
+- Adjust the **Waterfall Volume** slider (0.0 = mute, 3.0 = 3x volume)
+- Changes apply instantly
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 📦 Loot Respawn
+
+- Items you pick up **respawn after a set number of in-game days**
+- This includes **ground pickups** (ammo, meds, food, materials), **openable containers** (ammo cases, storage crates), and **breakable containers** (wooden crates, coffins)
+- Containers re-appear **closed or intact** and can be opened/broken again for fresh loot
+- Timers are configured by the server (e.g., common items every 1 day, rare items every 7 days)
+- The world won't feel permanently looted — exploration stays rewarding
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 🪵 Builder Stacks (Carry More Materials)
+
+Carry more logs, planks, and stones than the vanilla game allows:
+
+- **Logs** — vanilla limit is 2, set yours higher (e.g. 4, 8, 12)
+- **Planks** — vanilla limit is 4, set yours higher (e.g. 8, 16)
+- **Stones** — vanilla limit is 4, set yours higher (e.g. 8, 16)
+
+How it works:
+- Pick up materials normally — the first few stack visually on your shoulder just like in vanilla
+- Once your hands are full, extra items are stored in an invisible buffer
+- When you place a material, the next one is automatically given back from the buffer
+- A HUD counter shows your total carry count (e.g. "8 Stones")
+
+To configure:
+- Go to **Settings → Mods → Project X → Builder Stacks**
+- Type exact numbers in the **Max Log/Plank/Stone Capacity** fields
+- **Enable Max Limit** must be ON for the cap to apply (OFF = unlimited)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 💾 Saving Your Progress
+
+> ⚠️ **IMPORTANT:** The server **autosaves the world** (bases, structures, terrain) periodically. However, your **personal inventory is NOT auto-saved**. You must **manually save** in-game to keep your items between sessions.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## �️ Server Admin Commands
+
+The server admin can control the game remotely using chat commands:
+
+- Change **time of day**, **season**, and **weather** 
+- Toggle **AI freeze** to pause all enemies
+- **Revive** Kelvin or Virginia if they die
+- Start, clear, or requeue **raids** on demand
+- Adjust any **config setting** live without restarting the server
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## ❓ FAQ
+
+**Q: Do I need the mod to play on this server?**
+A: You can join without it, but you'll miss the HUD features (hotbar icons, ammo counter). All other features work server-side for everyone.
+
+**Q: Can I cheat?**
+A: No. The Client build has all cheats disabled and the mod menu is locked. Only the server admin can authorize access.
+
+**Q: Will this break my game?**
+A: No. The mod only loads when joining modded servers. Remove the DLL from your Mods folder to play vanilla anytime.
+
+**Q: Why are my stack sizes different from what I set locally?**
+A: The server overrides local config values so all players have the same experience.

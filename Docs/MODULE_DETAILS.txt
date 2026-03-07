@@ -1115,6 +1115,80 @@ STYLING (ProjectXStyles.cs):
 └───────────────────────────────────────────────────────────────┘
 
 ================================================================================
+                    15. BUILDER STACKS MODULE  *** NEW ***
+================================================================================
+
+PURPOSE:
+Carry more logs, planks, and stones beyond vanilla limits using a virtual buffer.
+Based on ItemCarryAmount 1.0.0 by mΔ, rewritten for IL2CPP with per-material
+capacity, native visual stacking, and configurable limits.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 1. Go to Settings → Mods → Project X → Builder Stacks                       │
+│ 2. Enable Builder Stacks (toggle on)                                        │
+│ 3. Set Max Log Capacity, Max Plank Capacity, Max Stone Capacity             │
+│    (type exact numbers — e.g. "4", "8", "12")                               │
+│ 4. Enable Max Limit must be ON for the cap to take effect                   │
+│ 5. Pick up materials normally — the mod buffers excess items invisibly      │
+│ 6. When you place one, the next item is given back from the buffer          │
+│ 7. A HUD counter shows your total carried amount (e.g. "8 Stones")         │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+HOW IT WORKS:
+
+When ENABLED with max limit ON:
+  - Player picks up materials normally. Game shows vanilla visual stacking
+    (logs stack to 2 on shoulder, planks/stones stack to 4)
+  - When hands reach the native hold limit, excess items are absorbed into
+    an invisible buffer and _heldCount is reset
+  - Total carry = buffer + native hold limit = configured max capacity
+  - When the player places an item and hands become empty, the mod waits
+    a short delay then gives one back from the buffer via TryEquip
+  - At capacity: mod does nothing, game enforces native hold limit
+
+When ENABLED with max limit OFF:
+  - No cap — carry unlimited materials
+
+When DISABLED:
+  - Reverts to vanilla carry limits (2 logs, 4 planks, 4 stones)
+
+NATIVE HOLD LIMITS (vanilla game):
+┌───────────────────────────────────────────────────────────────┐
+│ Material │ Native Hold │ Visual Stack │ Notes                 │
+├───────────────────────────────────────────────────────────────┤
+│ Logs     │ 2           │ 2 on shoulder│ IDs: 78, 406, 408, 409│
+│ Planks   │ 4           │ 4 on shoulder│ IDs: 395, 576-578     │
+│ Stones   │ 4           │ 4 on shoulder│ ID: 640               │
+└───────────────────────────────────────────────────────────────┘
+
+CONFIGURATION:
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Setting              │ Default │ Type   │ Description                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Enable Builder Stacks│ true    │ bool   │ Master toggle for the module  │
+│ Max Log Capacity     │ "2"     │ string │ Max logs (vanilla: 2)         │
+│ Max Plank Capacity   │ "4"     │ string │ Max planks (vanilla: 4)       │
+│ Max Stone Capacity   │ "4"     │ string │ Max stones (vanilla: 4)       │
+│ Enable Max Limit     │ true    │ bool   │ Enforce carry cap             │
+│ Re-Equip Delay       │ 0.20    │ float  │ Seconds between give-backs    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Note: Capacity settings use text entry fields (not sliders) for exact values.
+There is no upper limit — set any integer value you want.
+
+FILES:
+ - Modules/BuilderStacks/BuilderStacksModule.cs  (buffer logic, _heldCount write)
+ - Config.cs  (string entries with int.TryParse, OnValueChanged subscriptions)
+
+IL2CPP NOTES:
+ - Cast<HeldOnlyItemController>()._heldCount → stripped. Replaced with direct
+   memory write via Pointer + offset 0x5C (Marshal.WriteInt32).
+ - Separate buffers per material type (log, plank, stone).
+ - Building materials excluded from LootRespawn tracking to prevent interference.
+
+================================================================================
                         18. AUDIO CONTROL MODULE  *** NEW ***
 ================================================================================
 

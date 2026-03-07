@@ -139,6 +139,13 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 if (amount == 1)
                 {
                     try { _heldItemId = heldController.HeldItem._itemID; } catch { }
+
+                    // Sync _heldCount to 1 when buffer is empty — clears stale values
+                    // from previous absorption cycle (prevents ghost visual stacking)
+                    if (IsBuildingMaterial(_heldItemId) && GetBuffer(_heldItemId) == 0)
+                    {
+                        SetHeldCount(heldController, 1);
+                    }
                 }
 
                 // ── Amount >= nativeLimit: absorb excess into buffer ──

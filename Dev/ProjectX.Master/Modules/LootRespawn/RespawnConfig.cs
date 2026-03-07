@@ -111,6 +111,17 @@ namespace ProjectX.Master.Modules.LootRespawn
         /// <summary>Items that should NOT be tracked when inside breakable containers</summary>
         public static readonly HashSet<int> BreakableBlacklist = new() { 392 };
 
+        /// <summary>
+        /// Building materials (logs, planks, stones) — NEVER tracked.
+        /// These are renewable resources handled by BuilderStacks.
+        /// </summary>
+        public static readonly HashSet<int> BuildingMaterialIds = new()
+        {
+            78, 406, 408, 409,       // Logs
+            395, 576, 577, 578,       // Planks
+            640                        // Stones
+        };
+
         // ── Filtering logic ──────────────────────────────────────────
 
         /// <summary>
@@ -120,7 +131,9 @@ namespace ProjectX.Master.Modules.LootRespawn
         /// </summary>
         public static bool ShouldTrackItem(int itemId)
         {
-            // Check each category: if the item is in a category whose toggle is OFF, don't track
+            // Building materials — never tracked (handled by BuilderStacks)
+            if (BuildingMaterialIds.Contains(itemId)) return false;
+
             if (MeleeWeaponIds.Contains(itemId))   return TrackMelee;
             if (RangedWeaponIds.Contains(itemId))   return TrackRanged;
             if (WeaponModIds.Contains(itemId))      return TrackWeaponMods;

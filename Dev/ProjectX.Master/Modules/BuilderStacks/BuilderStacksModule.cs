@@ -168,7 +168,7 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 if (amount < 1 && GetBuffer(_heldItemId) > 0 && IsBuildingMaterial(_heldItemId))
                 {
                     _giveTimer += Time.deltaTime;
-                    float minDelay = System.Math.Max(GiveDelay, 0.5f); // enforce minimum 0.5s
+                    float minDelay = System.Math.Max(GiveDelay, 0.3f); // enforce minimum 0.3s
                     if (_giveTimer >= minDelay)
                     {
                         GiveFromBuffer();

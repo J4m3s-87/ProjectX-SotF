@@ -7,7 +7,7 @@ This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
-Last Updated: March 06, 2026
+Last Updated: March 07, 2026
 
 ================================================================================
                                 TABLE OF CONTENTS
@@ -59,6 +59,9 @@ Provides player quality-of-life features including teleportation of companions.
 │    • No Fall Damage - Survive any height                                    │
 │    • Infinite Logs - Carry unlimited logs                                   │
 │    • Infinite Stones - Carry unlimited stones                               │
+│    • AI Ghost Player - AI ignores you                                       │
+│    • Fill Inventory - Fill all items to max                                 │
+│    • Max Strength - Sets player strength to max level (toggle)              │
 │    • No World Gravity - Disable world gravity (uses debug console)         │
 │                                                                              │
 │ COMPANIONS (Teleport tab → "COMPANIONS" section):                            │
@@ -78,7 +81,7 @@ Provides player quality-of-life features including teleportation of companions.
 │                                                                              │
 │ MOVEMENT:                                                                    │
 │ • Walk Speed, Run Speed, Swim Speed, Jump Multiplier sliders               │
-│ • Reset Movement button — resets all to vanilla defaults (1.0)             │
+│ • Reset Movement toggle — resets all to vanilla defaults (1.0)             │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 CONFIG OPTIONS (Settings → Mods → ProjectX - Cheats):
@@ -935,8 +938,9 @@ INTERNAL MECHANICS:
 ================================================================================
 
 PURPOSE:
-Allows configurable carrying capacity for builder items (logs, stones) using
-direct memory access. Replaces the problematic InfiniteHack property approach.
+Allows configurable per-material carrying capacity for logs, planks, and stones
+using direct IL2CPP memory access. Each material type has its own independent
+buffer and capacity setting.
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ HOW TO USE                                                                   │
@@ -945,34 +949,47 @@ direct memory access. Replaces the problematic InfiniteHack property approach.
 │ Go to Settings → Mods → ProjectX - Builder Stacks:                          │
 │                                                                              │
 │ • Builder Stacks Enabled (bool): Master toggle                              │
-│ • Max Capacity (int, 1-999): How many logs/stones you can carry             │
-│   Default: 10 (vanilla is ~5 for logs, ~3 for stones)                      │
-│ • Give Delay (float, 0.1-2.0): Seconds between auto-fills                  │
-│   Default: 0.5 seconds                                                      │
-│ • Enable Max Limit (bool): Cap at Max Capacity vs truly infinite            │
+│ • Max Log Capacity (int, 2-50): How many logs you can carry                │
+│   Default: 10 (vanilla is 1)                                                │
+│ • Max Plank Capacity (int, 2-50): How many planks you can carry            │
+│   Default: 10 (vanilla is 1)                                                │
+│ • Max Stone Capacity (int, 2-50): How many stones you can carry            │
+│   Default: 10 (vanilla is 1)                                                │
+│ • Re-Equip Delay (float): Seconds between auto-fills                       │
+│   Default: 0.8 seconds                                                      │
+│ • Enable Max Limit (bool): Cap at capacity vs truly infinite               │
 │   Default: true                                                             │
 │                                                                              │
-│ INFINITE MODE:                                                               │
-│ • Disable "Enable Max Limit" → carry unlimited logs/stones                 │
+│ MATERIAL ITEM IDs:                                                           │
+│ • Logs:   78, 406, 408, 409                                                 │
+│ • Planks: 395, 576, 577, 578                                                │
+│ • Stones: 640                                                                │
+│                                                                              │
+│ INFINITE MODE (Enable Max Limit = OFF):                                     │
+│ • Carry unlimited logs/planks/stones                                        │
 │ • Uses DebugConsole._loghack() and ._stonehack() silently                  │
 │                                                                              │
 │ BUFFER MODE (Enable Max Limit = ON):                                        │
-│ • Carry up to Max Capacity items                                            │
+│ • Each material has its own buffer (switching materials won't interfere)    │
 │ • Uses direct IL2CPP memory write to _heldCount (offset 0x5C)              │
-│ • Auto-fills when picking up items via TryEquip() polling                  │
+│ • Auto-fills when placing items via TryEquip() polling                     │
+│ • HUD shows current count and capacity (e.g., "4/10 Logs")                │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 CONFIG OPTIONS (Settings → Mods → ProjectX - Builder Stacks):
-- BuilderStacksEnabled (bool): Enable/disable module. Default: false
-- BuilderStacksMaxCapacity (int, 1-999): Max items to carry. Default: 10
-- BuilderStacksGiveDelay (float, 0.1-2.0): Delay between fills. Default: 0.5
+- BuilderStacksEnabled (bool): Enable/disable module. Default: true
+- BuilderStacksMaxLogCapacity (int, 2-50): Max logs to carry. Default: 10
+- BuilderStacksMaxPlankCapacity (int, 2-50): Max planks to carry. Default: 10
+- BuilderStacksMaxStoneCapacity (int, 2-50): Max stones to carry. Default: 10
+- BuilderStacksGiveDelay (float, 0.1-2.0): Delay between fills. Default: 0.8
 - BuilderStacksEnableMaxLimit (bool): Cap vs infinite. Default: true
 
 INTERNAL MECHANICS:
+- Per-material buffers: _logBuffer, _plankBuffer, _stoneBuffer (independent)
 - Buffer Approach: Writes _heldCount via Marshal.WriteInt32 at offset 0x5C
 - Infinite Mode: Direct calls to DebugConsole.Instance._loghack()/_stonehack()
-  (avoids SendCommand spam — Pattern #14)
 - Uses LocalPlayer.Inventory.TryEquip() for item acquisition
+- HUD panel (SUI): bottom-left, shows "4/10 Logs" with capacity when limited
 - No Harmony patches — pure polling in OnUpdate()
 
 ================================================================================
@@ -1029,18 +1046,21 @@ Uses Unity IMGUI (not SUI) for IL2CPP stability.
 │ OPENING THE MENU:                                                            │
 │ Press the Insert key (configurable in Settings → Mods → ProjectX - Keys)    │
 │                                                                              │
-│ TABS (6 total):                                                              │
-│ 1. Player      - Cheats, movement (with reset), enemy actions               │
-│ 2. Environment  - Terrain, seasons, time, environment controls,             │
-│                   waterfall volume, force rain, no world gravity,            │
-│                   loot respawn settings                                      │
+│ TABS (7 total):                                                              │
+│ 1. Player      - Cheats (god mode, inf stamina, max strength, etc.),        │
+│                   movement sliders (with reset toggle), enemy actions        │
+│ 2. Environment  - Terrain toggles (No Grass, No Forest),                    │
+│                   seasons (Spring/Summer/Autumn/Winter toggles),             │
+│                   time of day, daytime speed, tree/wind/waterfall sliders,  │
+│                   force rain, no world gravity, loot respawn settings       │
 │ 3. Teleport     - Quick teleport, coordinate input, location buttons,       │
 │                   COMPANIONS: unstuck, revive, virginia visit/happy,        │
 │                   HP multiplier sliders, stat override toggle               │
-│ 4. Misc         - Module toggles (Relocator, Durability, etc.)              │
+│ 4. Building+    - Module toggles (Relocator, Durability, etc.)              │
 │ 5. Raids        - X Raids scheduling, enemy types, stat multipliers,        │
 │                   raid announcements                                         │
-│ 6. Discord      - Discord bridge toggle, test buttons, in-game chat         │
+│ 6. Server Admin - Admin commands for dedicated server control               │
+│ 7. Server Raids - Server-side raid configuration                            │
 │                                                                              │
 │ NAVIGATION:                                                                  │
 │ Use the ← → arrow buttons at the top to switch between tabs.               │

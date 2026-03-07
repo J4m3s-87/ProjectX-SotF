@@ -118,12 +118,10 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 }
 
                 // ═══════════════════════════════════════════════
-                // MODULE DISABLED = infinite carry
+                // MODULE DISABLED = vanilla carry (do nothing)
                 // ═══════════════════════════════════════════════
                 if (!Enabled)
                 {
-                    SetLogHack(true);
-                    SetStoneHack(true);
                     _logBuffer = 0;
                     _plankBuffer = 0;
                     _stoneBuffer = 0;

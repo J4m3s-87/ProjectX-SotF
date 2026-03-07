@@ -148,7 +148,10 @@ namespace ProjectX.Master.Modules.BuilderStacks
                     int currentBuffer = GetBuffer(_heldItemId);
                     int maxCap = GetMaxCapacity(_heldItemId);
 
-                    if (!EnableMaxLimit || currentBuffer + amount < maxCap)
+                    // After absorb: buffer becomes currentBuffer+1, held stays 1
+                    // Total = (currentBuffer+1) + 1 = currentBuffer + 2
+                    // We want total <= maxCap, so: currentBuffer + 2 <= maxCap
+                    if (!EnableMaxLimit || currentBuffer + 2 <= maxCap)
                     {
                         // Under capacity → absorb: set _heldCount = 1, increment buffer
                         // ONLY add to buffer if the write succeeds

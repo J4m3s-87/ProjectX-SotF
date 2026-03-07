@@ -1256,7 +1256,7 @@ namespace ProjectX.Master
 #endif
             
 
-            BuilderStacksMaxLogCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxLogCapacity", 10, "Max Log Capacity", "Maximum logs you can carry at once");
+            BuilderStacksMaxLogCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxLogCapacity", 2, "Max Log Capacity", "Maximum logs you can carry at once (vanilla: 2)");
             BuilderStacksMaxLogCapacity.SetRange(2, 50);
             BuilderStacksMaxLogCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER
@@ -1267,7 +1267,7 @@ namespace ProjectX.Master
             Modules.BuilderStacks.BuilderStacksModule.MaxLogCapacity = BuilderStacksMaxLogCapacity.Value;
 #endif
             
-            BuilderStacksMaxPlankCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxPlankCapacity", 10, "Max Plank Capacity", "Maximum planks you can carry at once");
+            BuilderStacksMaxPlankCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxPlankCapacity", 4, "Max Plank Capacity", "Maximum planks you can carry at once (vanilla: 4)");
             BuilderStacksMaxPlankCapacity.SetRange(2, 50);
             BuilderStacksMaxPlankCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER
@@ -1278,7 +1278,7 @@ namespace ProjectX.Master
             Modules.BuilderStacks.BuilderStacksModule.MaxPlankCapacity = BuilderStacksMaxPlankCapacity.Value;
 #endif
             
-            BuilderStacksMaxStoneCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxStoneCapacity", 10, "Max Stone Capacity", "Maximum stones you can carry at once");
+            BuilderStacksMaxStoneCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxStoneCapacity", 4, "Max Stone Capacity", "Maximum stones you can carry at once (vanilla: 4)");
             BuilderStacksMaxStoneCapacity.SetRange(2, 50);
             BuilderStacksMaxStoneCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER

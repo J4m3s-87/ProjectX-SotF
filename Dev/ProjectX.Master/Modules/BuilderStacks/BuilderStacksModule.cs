@@ -28,9 +28,9 @@ namespace ProjectX.Master.Modules.BuilderStacks
     {
         // ── Config (set by Config.cs via OnValueChanged) ──
         public static int MaxCapacity = 10;        // Global fallback
-        public static int MaxLogCapacity = 10;
-        public static int MaxPlankCapacity = 10;
-        public static int MaxStoneCapacity = 10;
+        public static int MaxLogCapacity = 2;      // Vanilla default
+        public static int MaxPlankCapacity = 4;    // Vanilla default
+        public static int MaxStoneCapacity = 4;    // Vanilla default
         public static float GiveDelay = 0.8f;
         public static bool EnableMaxLimit = true;
         public static bool Enabled = true;

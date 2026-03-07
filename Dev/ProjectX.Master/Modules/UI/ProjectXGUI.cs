@@ -894,15 +894,6 @@ namespace ProjectX.Master.Modules.UI
                 RaidCustomizer.RaidConfig.BossDamageMultiplier.Value = DrawSlider("Boss DMG", RaidCustomizer.RaidConfig.BossDamageMultiplier.Value, 0.1f, 10f);
             }
             
-            DrawDivider("ANNOUNCEMENTS");
-            
-            bool announce = DrawCheckbox("Announce Raids", RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value);
-            if (announce != RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value)
-            {
-                RaidCustomizer.RaidConfig.AnnounceIncomingSearchParties.Value = announce;
-                RLog.Msg($"[RaidCustomizer] Announce Raids: {(announce ? "ENABLED" : "DISABLED")}");
-            }
-            
             DrawDivider("QUICK ACTIONS");
             
             // Row 1: Main actions

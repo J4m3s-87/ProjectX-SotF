@@ -813,6 +813,7 @@ namespace ProjectX.Master.Modules.LootRespawn
 
                 if (!RespawnConfig.Enabled) return;
                 if (IsMultiplayerClient()) return;
+                if (!RespawnConfig.TrackOpenables) return; // category disabled
                 if (spawnItems) return; // only track the initial open call
 
                 string hash = $"name:{objName}";
@@ -842,7 +843,7 @@ namespace ProjectX.Master.Modules.LootRespawn
 
                 // NEW OPEN — record it
                 long timestamp = GetGameTimestamp();
-                _collected[hash] = new LootData(hash, timestamp, RespawnConfig.BreakableId);
+                _collected[hash] = new LootData(hash, timestamp, RespawnConfig.OpenableId);
                 _dirty = true;
 
                 RLog.Msg($"[LootRespawn] Container opened: {objName} (key={hash}, ts={timestamp}, tracked={_collected.Count})");

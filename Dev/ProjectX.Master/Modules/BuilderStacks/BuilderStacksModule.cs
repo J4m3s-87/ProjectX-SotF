@@ -73,8 +73,8 @@ namespace ProjectX.Master.Modules.BuilderStacks
                     .Pivot(0f, 0f)
                     .Anchor(AnchorType.BottomLeft)
                     .Background(SUI.SUI.SpriteBackground400ppu, new Color?(new Color(0f, 0f, 0f, 0.6f)), UnityEngine.UI.Image.Type.Sliced)
-                    .Size(160f, 50f)
-                    .Position(10f, 65f)
+                    .Size(200f, 60f)
+                    .Position(10f, 15f)
                     .Horizontal(0f, "EE")
                     .BindVisibility(_showPanel);
 
@@ -85,7 +85,7 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 // Text label — bound to Observable<string>
                 _carryAmount = SUI.SUI.SLabel.Bind(_matText)
                     .FontColor(new Color(1f, 1f, 1f, 0.85f))
-                    .FontSize(22)
+                    .FontSize(26)
                     .Dock(EDockType.Fill)
                     .Alignment(TMPro.TextAlignmentOptions.Left);
 

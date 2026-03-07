@@ -1,7 +1,7 @@
 #if !SERVER
 using System;
 using System.Reflection;
-using System.Runtime.InteropServices;
+using HarmonyLib;
 using RedLoader;
 using SonsSdk;
 using SUI;
@@ -14,13 +14,11 @@ namespace ProjectX.Master.Modules.BuilderStacks
     /// <summary>
     /// Builder Stacks — carry extra logs, planks, and stones beyond vanilla limits.
     ///
-    /// DISABLED = infinite carry (_loghack on, _stonehack on).
-    /// ENABLED  = configurable max carry limit using a virtual buffer.
+    /// Based on ItemCarryAmount (LogCarryAmount) by SmokyAce.
     ///
-    /// Buffer approach (same as original ItemCarryAmount mod):
-    ///   When player picks up a 2nd item → absorb it into our buffer (_heldCount = 1).
-    ///   When player places last item → give one back from buffer (TryEquip).
-    ///   _heldCount is set via direct IL2CPP memory access at offset 0x5C.
+    /// When player picks up a 2nd item → absorb it into our buffer (_heldCount = 1).
+    /// When player places/uses last item → give one back from buffer after a delay.
+    /// When at capacity → don't absorb, game keeps amount=2 naturally (no item loss).
     ///
     /// Per-material buffers: logs, planks, and stones each have their own buffer
     /// and configurable max capacity.
@@ -43,46 +41,46 @@ namespace ProjectX.Master.Modules.BuilderStacks
         private static int _heldItemId;
         private static bool _shouldGiveBack;
         private static float _giveTimer;
+        private static bool _forceGive;
 
-        // ── Memory access for _heldCount ──
-        private static PropertyInfo _pointerProp;
-        private static bool _pointerResolved;
-        private const int HELD_COUNT_OFFSET = 0x5C;
+        // ── Cached reflection for _heldCount ──
+        private static FieldInfo _heldCountField;
+        private static bool _heldCountResolved;
 
         // ── Hack state (transition guards) ──
         private static bool _logHackOn;
         private static bool _stoneHackOn;
         private static bool _hackStateInitialized;
 
-        // ── UI (Observable binding — same pattern as AmmoUI) ──
-        private static SContainerOptions _panel;
-        private static SLabelOptions _label;
-        private static readonly Observable<bool> _showPanel = new Observable<bool>(false);
-        private static readonly Observable<string> _labelText = new Observable<string>("");
+        // ── UI ──
+        private static SUiElement<SContainerOptions> _panel;
+        private static SUiElement<SLabelOptions> _carryAmount;
+        private static bool _uiLoaded;
+        private static bool _uiOpen;
 
         public static void Init()
         {
             try
             {
-                // Panel at bottom-left, positioned above the AmmoUI area
+                // Match original LogCarryAmountUi.Create() pattern exactly
                 _panel = SUI.SUI.RegisterNewPanel("BuilderStacks", false, default(KeyCode?))
-                    .Pivot(0f, 0f)
+                    .Pivot(new float?(0f), default(float?))
                     .Anchor(AnchorType.BottomLeft)
-                    .Size(250f, 50f)
-                    .Position(10f, 130f)
-                    .Background(new Color(0f, 0f, 0f, 0.7f), EBackground.None, default(UnityEngine.UI.Image.Type?))
-                    .BindVisibility(_showPanel);
+                    .Size(new float?(250f), new float?(60f))
+                    .Position(new float?(-450f), new float?(105f))
+                    .Background(SUI.SUI.SpriteBackground400ppu, new Color?(new Color(0f, 0f, 0f, 0.8f)), UnityEngine.UI.Image.Type.Sliced);
 
-                _label = SUI.SUI.SLabel.Bind(_labelText)
-                    .FontColor(new Color(1f, 1f, 1f, 0.9f))
-                    .FontSize(20)
+                _carryAmount = SUI.SUI.SLabel.RichText("1 Log")
+                    .FontColor(CommonExtensions.WithAlpha(Color.white, 0.3f))
+                    .FontSize(18)
                     .Dock(EDockType.Fill)
                     .Alignment(TMPro.TextAlignmentOptions.Center);
 
-                _panel.Add(_label);
-                _showPanel.Set(false);
+                _carryAmount.SetParent(_panel);
+                CloseUI();
+                _uiLoaded = true;
 
-                RLog.Msg("[BuilderStacks] HUD initialized (Observable binding)");
+                RLog.Msg("[BuilderStacks] HUD initialized (original SUI pattern)");
             }
             catch (Exception ex)
             {
@@ -92,19 +90,12 @@ namespace ProjectX.Master.Modules.BuilderStacks
 
         public static void OnUpdate()
         {
-            if (!LocalPlayer.IsInWorld) return;
+            if (!LocalPlayer.IsInWorld || !_uiLoaded) return;
 
             try
             {
                 var heldController = LocalPlayer.Inventory?.HeldOnlyItemController;
                 if (heldController == null) return;
-
-                // Resolve Pointer property once for direct memory access
-                if (!_pointerResolved)
-                {
-                    ResolvePointer(heldController);
-                    _pointerResolved = true;
-                }
 
                 int amount = heldController.Amount;
 
@@ -118,67 +109,41 @@ namespace ProjectX.Master.Modules.BuilderStacks
                     _logBuffer = 0;
                     _plankBuffer = 0;
                     _stoneBuffer = 0;
-                    _showPanel.Set(false);
+                    CloseUI();
                     return;
                 }
 
                 // ═══════════════════════════════════════════════
                 // MODULE ENABLED = buffer-based carry limit
-                // No _loghack — vanilla placement consumes items
                 // ═══════════════════════════════════════════════
                 SetLogHack(false);
                 SetStoneHack(false);
 
-                // Always update held item ID from what's actually in hand
-                if (amount >= 1)
+                // ── Amount == 1: record what we're holding ──
+                if (amount == 1)
                 {
                     try { _heldItemId = heldController.HeldItem._itemID; } catch { }
                 }
 
-                // ── Absorb excess into buffer ──
-                // The game always holds 1 in hand. When amount >= 2, the player picked up more.
-                // We absorb all excess (amount - 1) into the per-material buffer.
-                if (amount >= 2 && IsBuildingMaterial(_heldItemId))
+                // ── Amount == 2: player picked up a 2nd item ──
+                // Absorb into buffer ONLY if under capacity. If at capacity, do nothing.
+                if (amount == 2 && IsBuildingMaterial(_heldItemId))
                 {
-                    int excess = amount - 1;  // Items beyond the 1 we keep in hand
                     int currentBuffer = GetBuffer(_heldItemId);
                     int maxCap = GetMaxCapacity(_heldItemId);
 
-                    if (EnableMaxLimit)
+                    if (!EnableMaxLimit || currentBuffer + amount < maxCap)
                     {
-                        // Only absorb up to capacity: total = buffer + 1 (in hand) + excess
-                        int spaceLeft = maxCap - currentBuffer - 1; // -1 for the one in hand
-                        if (spaceLeft < 0) spaceLeft = 0;
-                        int toAbsorb = Math.Min(excess, spaceLeft);
-                        
-                        if (toAbsorb > 0)
-                        {
-                            WriteHeldCount(heldController, 1);
-                            AddToBuffer(_heldItemId, toAbsorb);
-                            RLog.Msg($"[BuilderStacks] Absorbed {toAbsorb} {GetMaterialName(_heldItemId)} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
-                        }
-                        else
-                        {
-                            // At capacity — absorb but drop excess (write held to 1, buffer stays)
-                            WriteHeldCount(heldController, 1);
-                            RLog.Msg($"[BuilderStacks] At capacity {GetMaterialName(_heldItemId)} ({currentBuffer + 1}/{maxCap}) — excess dropped");
-                        }
+                        // Under capacity → absorb: set _heldCount = 1, increment buffer
+                        SetHeldCount(heldController, 1);
+                        AddToBuffer(_heldItemId, 1);
+                        RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
                     }
-                    else
-                    {
-                        // Unlimited mode: absorb everything
-                        WriteHeldCount(heldController, 1);
-                        AddToBuffer(_heldItemId, excess);
-                    }
+                    // else: AT CAPACITY — do nothing. Game keeps amount=2 naturally.
+                    // Player cannot pick up more. No item loss.
                 }
 
-                // Clamp buffers to max (safety net)
-                if (EnableMaxLimit)
-                {
-                    ClampBuffers();
-                }
-
-                // ── Amount == 0: player placed/dropped last item ──
+                // ── Amount == 0: player placed/used last item ──
                 // Give one back from buffer after a delay
                 if (amount < 1 && GetBuffer(_heldItemId) > 0 && IsBuildingMaterial(_heldItemId))
                 {
@@ -189,11 +154,17 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 if (_shouldGiveBack)
                 {
                     _giveTimer += Time.deltaTime;
-                    if (_giveTimer >= GiveDelay)
+                    if (_giveTimer >= GiveDelay || _forceGive)
                     {
                         GiveFromBuffer();
                         _giveTimer = 0f;
                         _shouldGiveBack = false;
+                        _forceGive = false;
+                    }
+                    else if (AreHandsEmpty())
+                    {
+                        // Hands are ready — force give on next frame
+                        _forceGive = true;
                     }
                 }
 
@@ -201,14 +172,30 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 int total = GetBuffer(_heldItemId) + amount;
                 if (total >= 1 && IsBuildingMaterial(_heldItemId))
                 {
-                    int maxForDisplay = GetMaxCapacity(_heldItemId);
-                    string limitText = EnableMaxLimit ? $"/{maxForDisplay}" : "";
-                    _labelText.Set($"{total}{limitText} {GetMaterialName(_heldItemId)}");
-                    _showPanel.Set(true);
+                    string text = total.ToString();
+                    string mat = GetMaterialName(_heldItemId);
+                    if (EnableMaxLimit)
+                    {
+                        int maxCap = GetMaxCapacity(_heldItemId);
+                        text = $"{total}/{maxCap}";
+                    }
+
+                    if (_carryAmount != null)
+                    {
+                        _carryAmount.RichText($"{text} {mat}");
+                    }
+
+                    if (!_uiOpen)
+                    {
+                        OpenUI();
+                    }
                 }
                 else
                 {
-                    _showPanel.Set(false);
+                    if (_uiOpen)
+                    {
+                        CloseUI();
+                    }
                 }
             }
             catch (Exception ex)
@@ -250,17 +237,6 @@ namespace ProjectX.Master.Modules.BuilderStacks
             }
         }
 
-        private static void ClampBuffers()
-        {
-            // Safety net: ensure no buffer exceeds max - 1 (max minus the 1 in hand)
-            int logMax = Math.Max(MaxLogCapacity - 1, 0);
-            int plankMax = Math.Max(MaxPlankCapacity - 1, 0);
-            int stoneMax = Math.Max(MaxStoneCapacity - 1, 0);
-            if (_logBuffer > logMax) _logBuffer = logMax;
-            if (_plankBuffer > plankMax) _plankBuffer = plankMax;
-            if (_stoneBuffer > stoneMax) _stoneBuffer = stoneMax;
-        }
-
         private static int GetMaxCapacity(int itemId)
         {
             switch (GetMaterialType(itemId))
@@ -272,41 +248,7 @@ namespace ProjectX.Master.Modules.BuilderStacks
             }
         }
 
-        // ── Direct memory access for _heldCount (offset 0x5C) ──
-
-        private static void ResolvePointer(object heldController)
-        {
-            try
-            {
-                // IL2CPP runtime objects have a Pointer property from Il2CppObjectBase
-                _pointerProp = heldController.GetType().GetProperty("Pointer",
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
-
-                if (_pointerProp != null)
-                    RLog.Msg($"[BuilderStacks] Pointer resolved for direct _heldCount access (offset 0x{HELD_COUNT_OFFSET:X})");
-                else
-                    RLog.Warning("[BuilderStacks] Pointer NOT found — buffer approach unavailable");
-            }
-            catch (Exception ex)
-            {
-                RLog.Error($"[BuilderStacks] ResolvePointer failed: {ex.Message}");
-            }
-        }
-
-        private static void WriteHeldCount(object heldController, int value)
-        {
-            try
-            {
-                if (_pointerProp == null) return;
-                IntPtr ptr = (IntPtr)_pointerProp.GetValue(heldController);
-                if (ptr == IntPtr.Zero) return;
-                Marshal.WriteInt32(ptr + HELD_COUNT_OFFSET, value);
-            }
-            catch (Exception ex)
-            {
-                RLog.Warning($"[BuilderStacks] WriteHeldCount failed: {ex.Message}");
-            }
-        }
+        // ── Give-back logic (matches original GiveLog + AreEmpty pattern) ──
 
         private static void GiveFromBuffer()
         {
@@ -320,6 +262,51 @@ namespace ProjectX.Master.Modules.BuilderStacks
             catch (Exception ex)
             {
                 RLog.Warning($"[BuilderStacks] GiveFromBuffer failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Safety check before giving items back — matches original AreEmpty() pattern.
+        /// Only give back when hands are free and player is in a safe state.
+        /// </summary>
+        private static bool AreHandsEmpty()
+        {
+            try
+            {
+                return LocalPlayer.Inventory.IsRightHandEmpty()
+                    && LocalPlayer.Inventory.IsLeftHandEmpty()
+                    && LocalPlayer.Inventory.HasRoomFor(_heldItemId, 2)
+                    && !LocalPlayer.Inventory.IsInventoryToggleBlocked()
+                    && !LocalPlayer.IsUnderwater;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// Set _heldCount via AccessTools reflection (Cast pattern doesn't work in our interop DLLs).
+        /// </summary>
+        private static void SetHeldCount(object heldController, int value)
+        {
+            try
+            {
+                if (!_heldCountResolved)
+                {
+                    _heldCountResolved = true;
+                    _heldCountField = AccessTools.Field(heldController.GetType(), "_heldCount");
+                    if (_heldCountField != null)
+                        RLog.Msg($"[BuilderStacks] _heldCount field resolved via AccessTools");
+                    else
+                        RLog.Warning("[BuilderStacks] _heldCount field NOT found — buffer absorb unavailable");
+                }
+
+                if (_heldCountField != null)
+                {
+                    _heldCountField.SetValue(heldController, value);
+                }
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[BuilderStacks] SetHeldCount failed: {ex.Message}");
             }
         }
 
@@ -342,9 +329,18 @@ namespace ProjectX.Master.Modules.BuilderStacks
             catch { }
         }
 
-        private static void HideUI()
+        // ── UI (matches original LogCarryAmountUi pattern) ──
+
+        private static void OpenUI()
         {
-            _showPanel.Set(false);
+            SUI.SUI.TogglePanel("BuilderStacks", true);
+            _uiOpen = true;
+        }
+
+        private static void CloseUI()
+        {
+            SUI.SUI.TogglePanel("BuilderStacks", false);
+            _uiOpen = false;
         }
 
         // ── Helpers ──

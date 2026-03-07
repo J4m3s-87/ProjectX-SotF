@@ -142,15 +142,14 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 }
 
                 // ── Amount >= 2: player picked up extra items ──
-                // Absorb (amount-1) into buffer. At capacity, behaviour depends
-                // on native hold limit:
-                //   Logs (native=2): do nothing → amount stays 2 → game blocks
-                //   Planks/Stones (native=4): set _heldCount=native → "hands full"
+                // Absorb (amount-1) into buffer when under capacity.
+                // At capacity: do nothing for ALL materials.
+                //   Game stops pickups at native limit (2 logs, 4 planks/stones).
+                //   LootRespawn is excluded from tracking building materials.
                 if (amount >= 2 && IsBuildingMaterial(_heldItemId))
                 {
                     int currentBuffer = GetBuffer(_heldItemId);
                     int maxCap = GetMaxCapacity(_heldItemId);
-                    int nativeLimit = GetNativeHoldLimit(_heldItemId);
                     int excess = amount - 1;
 
                     int spaceLeft = EnableMaxLimit
@@ -167,13 +166,7 @@ namespace ProjectX.Master.Modules.BuilderStacks
                             RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} x{toAbsorb} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
                         }
                     }
-                    else if (nativeLimit > 2)
-                    {
-                        // AT CAPACITY for multi-hold materials (planks/stones):
-                        // Set held to native max → game says "hands full" → blocks
-                        SetHeldCount(heldController, nativeLimit);
-                    }
-                    // For logs (nativeLimit==2): do nothing → amount stays 2 → game blocks
+                    // At capacity: do nothing. Game enforces native hold limit.
                 }
 
                 // ── Amount < 1: player placed/used item → give one back from buffer ──

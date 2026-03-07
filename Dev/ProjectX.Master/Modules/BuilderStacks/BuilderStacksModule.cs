@@ -106,7 +106,7 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 int amount = heldController.Amount;
 
                 // ═══════════════════════════════════════════════
-                // DISABLED = infinite carry
+                // MODULE DISABLED = infinite carry
                 // ═══════════════════════════════════════════════
                 if (!Enabled)
                 {
@@ -120,33 +120,59 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 }
 
                 // ═══════════════════════════════════════════════
-                // ENABLED = buffer-based carry limit
+                // MODULE ENABLED = buffer-based carry limit
                 // No _loghack — vanilla placement consumes items
                 // ═══════════════════════════════════════════════
                 SetLogHack(false);
                 SetStoneHack(false);
 
-                // Track what the player is holding
+                // Always update held item ID from what's actually in hand
                 if (amount >= 1)
                 {
                     try { _heldItemId = heldController.HeldItem._itemID; } catch { }
                 }
 
-                // ── Amount == 2: player picked up a 2nd item ──
-                // Absorb it into the per-material buffer by resetting _heldCount to 1
-                if (amount == 2 && IsBuildingMaterial(_heldItemId))
+                // ── Absorb excess into buffer ──
+                // The game always holds 1 in hand. When amount >= 2, the player picked up more.
+                // We absorb all excess (amount - 1) into the per-material buffer.
+                if (amount >= 2 && IsBuildingMaterial(_heldItemId))
                 {
+                    int excess = amount - 1;  // Items beyond the 1 we keep in hand
                     int currentBuffer = GetBuffer(_heldItemId);
                     int maxCap = GetMaxCapacity(_heldItemId);
-                    
-                    if (!EnableMaxLimit || currentBuffer + amount < maxCap)
+
+                    if (EnableMaxLimit)
                     {
-                        // Absorb: write _heldCount = 1, increment buffer
-                        WriteHeldCount(heldController, 1);
-                        AddToBuffer(_heldItemId, 1);
-                        RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
+                        // Only absorb up to capacity: total = buffer + 1 (in hand) + excess
+                        int spaceLeft = maxCap - currentBuffer - 1; // -1 for the one in hand
+                        if (spaceLeft < 0) spaceLeft = 0;
+                        int toAbsorb = Math.Min(excess, spaceLeft);
+                        
+                        if (toAbsorb > 0)
+                        {
+                            WriteHeldCount(heldController, 1);
+                            AddToBuffer(_heldItemId, toAbsorb);
+                            RLog.Msg($"[BuilderStacks] Absorbed {toAbsorb} {GetMaterialName(_heldItemId)} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
+                        }
+                        else
+                        {
+                            // At capacity — absorb but drop excess (write held to 1, buffer stays)
+                            WriteHeldCount(heldController, 1);
+                            RLog.Msg($"[BuilderStacks] At capacity {GetMaterialName(_heldItemId)} ({currentBuffer + 1}/{maxCap}) — excess dropped");
+                        }
                     }
-                    // else: at capacity, don't absorb → game enforces vanilla limit (stays at 2)
+                    else
+                    {
+                        // Unlimited mode: absorb everything
+                        WriteHeldCount(heldController, 1);
+                        AddToBuffer(_heldItemId, excess);
+                    }
+                }
+
+                // Clamp buffers to max (safety net)
+                if (EnableMaxLimit)
+                {
+                    ClampBuffers();
                 }
 
                 // ── Amount == 0: player placed/dropped last item ──
@@ -224,6 +250,17 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 case MaterialType.Plank: if (_plankBuffer > 0) _plankBuffer--; break;
                 case MaterialType.Stone: if (_stoneBuffer > 0) _stoneBuffer--; break;
             }
+        }
+
+        private static void ClampBuffers()
+        {
+            // Safety net: ensure no buffer exceeds max - 1 (max minus the 1 in hand)
+            int logMax = Math.Max(MaxLogCapacity - 1, 0);
+            int plankMax = Math.Max(MaxPlankCapacity - 1, 0);
+            int stoneMax = Math.Max(MaxStoneCapacity - 1, 0);
+            if (_logBuffer > logMax) _logBuffer = logMax;
+            if (_plankBuffer > plankMax) _plankBuffer = plankMax;
+            if (_stoneBuffer > stoneMax) _stoneBuffer = stoneMax;
         }
 
         private static int GetMaxCapacity(int itemId)

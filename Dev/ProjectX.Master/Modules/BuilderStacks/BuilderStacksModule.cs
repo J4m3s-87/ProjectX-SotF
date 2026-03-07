@@ -54,32 +54,35 @@ namespace ProjectX.Master.Modules.BuilderStacks
         private static bool _stoneHackOn;
         private static bool _hackStateInitialized;
 
-        // ── UI ──
+        // ── UI (Observable binding — same pattern as AmmoUI) ──
         private static SContainerOptions _panel;
         private static SLabelOptions _label;
-        private static bool _uiOpen;
+        private static readonly Observable<bool> _showPanel = new Observable<bool>(false);
+        private static readonly Observable<string> _labelText = new Observable<string>("");
 
         public static void Init()
         {
             try
             {
+                // Panel at bottom-left, positioned above the AmmoUI area
                 _panel = SUI.SUI.RegisterNewPanel("BuilderStacks", false, default(KeyCode?))
-                    .Pivot(new float?(0f), default(float?))
+                    .Pivot(0f, 0f)
                     .Anchor(AnchorType.BottomLeft)
-                    .Size(new float?(250f), new float?(60f))
-                    .Position(new float?(-450f), new float?(105f))
-                    .Background(new Color(0f, 0f, 0f, 0.8f), EBackground.None, default(UnityEngine.UI.Image.Type?));
+                    .Size(250f, 50f)
+                    .Position(10f, 130f)
+                    .Background(new Color(0f, 0f, 0f, 0.7f), EBackground.None, default(UnityEngine.UI.Image.Type?))
+                    .BindVisibility(_showPanel);
 
-                _label = SUI.SUI.SLabel.RichText("1 Log")
-                    .FontColor(CommonExtensions.WithAlpha(Color.white, 0.3f))
-                    .FontSize(18)
+                _label = SUI.SUI.SLabel.Bind(_labelText)
+                    .FontColor(new Color(1f, 1f, 1f, 0.9f))
+                    .FontSize(20)
                     .Dock(EDockType.Fill)
                     .Alignment(TMPro.TextAlignmentOptions.Center);
 
-                _label.SetParent(_panel);
-                SUI.SUI.TogglePanel("BuilderStacks", false);
+                _panel.Add(_label);
+                _showPanel.Set(false);
 
-                RLog.Msg("[BuilderStacks] Initialized");
+                RLog.Msg("[BuilderStacks] HUD initialized (Observable binding)");
             }
             catch (Exception ex)
             {
@@ -115,7 +118,7 @@ namespace ProjectX.Master.Modules.BuilderStacks
                     _logBuffer = 0;
                     _plankBuffer = 0;
                     _stoneBuffer = 0;
-                    HideUI();
+                    _showPanel.Set(false);
                     return;
                 }
 
@@ -200,17 +203,12 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 {
                     int maxForDisplay = GetMaxCapacity(_heldItemId);
                     string limitText = EnableMaxLimit ? $"/{maxForDisplay}" : "";
-                    if (_label != null)
-                        _label.RichText($"{total}{limitText} {GetMaterialName(_heldItemId)}");
-                    if (!_uiOpen)
-                    {
-                        SUI.SUI.TogglePanel("BuilderStacks", true);
-                        _uiOpen = true;
-                    }
+                    _labelText.Set($"{total}{limitText} {GetMaterialName(_heldItemId)}");
+                    _showPanel.Set(true);
                 }
                 else
                 {
-                    HideUI();
+                    _showPanel.Set(false);
                 }
             }
             catch (Exception ex)
@@ -346,11 +344,7 @@ namespace ProjectX.Master.Modules.BuilderStacks
 
         private static void HideUI()
         {
-            if (_uiOpen)
-            {
-                SUI.SUI.TogglePanel("BuilderStacks", false);
-                _uiOpen = false;
-            }
+            _showPanel.Set(false);
         }
 
         // ── Helpers ──

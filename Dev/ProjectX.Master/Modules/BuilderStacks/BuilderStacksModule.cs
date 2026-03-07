@@ -141,35 +141,36 @@ namespace ProjectX.Master.Modules.BuilderStacks
                     try { _heldItemId = heldController.HeldItem._itemID; } catch { }
                 }
 
-                // ── Amount >= 2: player picked up extra items ──
-                // Absorb (amount-1) into buffer when under capacity.
-                // At capacity: do nothing — game enforces native hold limit.
+                // ── Amount >= nativeLimit: absorb excess into buffer ──
+                // Only triggers at the native hold limit (2 for logs, 4 for planks/stones).
+                // This preserves vanilla visual stacking (1→2→3→4 on shoulder).
                 // Buffer is sized so that buffer + nativeLimit = maxCap.
-                if (amount >= 2 && IsBuildingMaterial(_heldItemId))
+                if (IsBuildingMaterial(_heldItemId))
                 {
-                    int currentBuffer = GetBuffer(_heldItemId);
-                    int maxCap = GetMaxCapacity(_heldItemId);
                     int nativeLimit = GetNativeHoldLimit(_heldItemId);
-                    int excess = amount - 1;
 
-                    // Buffer cap: maxCap - nativeLimit (leaves room for native hold at capacity)
-                    // Logs (native=2): maxCap=4 → buffer max = 2, total = 2+2 = 4
-                    // Stones (native=4): maxCap=8 → buffer max = 4, total = 4+4 = 8
-                    int spaceLeft = EnableMaxLimit
-                        ? System.Math.Max(0, maxCap - nativeLimit - currentBuffer)
-                        : excess;
-                    int toAbsorb = System.Math.Min(excess, spaceLeft);
-
-                    if (toAbsorb > 0)
+                    if (amount >= nativeLimit)
                     {
-                        // Under capacity → absorb excess into buffer
-                        if (SetHeldCount(heldController, 1))
+                        int currentBuffer = GetBuffer(_heldItemId);
+                        int maxCap = GetMaxCapacity(_heldItemId);
+                        int excess = amount - 1;
+
+                        int spaceLeft = EnableMaxLimit
+                            ? System.Math.Max(0, maxCap - nativeLimit - currentBuffer)
+                            : excess;
+                        int toAbsorb = System.Math.Min(excess, spaceLeft);
+
+                        if (toAbsorb > 0)
                         {
-                            AddToBuffer(_heldItemId, toAbsorb);
-                            RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} x{toAbsorb} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
+                            int newHeld = amount - toAbsorb;
+                            if (SetHeldCount(heldController, newHeld))
+                            {
+                                AddToBuffer(_heldItemId, toAbsorb);
+                                RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} x{toAbsorb} → buffer={GetBuffer(_heldItemId)}/{maxCap}, held={newHeld}");
+                            }
                         }
+                        // At capacity: do nothing. Game enforces native hold limit.
                     }
-                    // At capacity: do nothing. Game enforces native hold limit.
                 }
 
                 // ── Amount < 1: player placed/used item → give one back from buffer ──

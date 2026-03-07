@@ -928,6 +928,18 @@ namespace ProjectX.Master
 #if !CLIENT
         [SettingsUiInclude]
 #endif
+        public static ConfigEntry<int> BuilderStacksMaxLogCapacity { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<int> BuilderStacksMaxPlankCapacity { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
+        public static ConfigEntry<int> BuilderStacksMaxStoneCapacity { get; private set; }
+#if !CLIENT
+        [SettingsUiInclude]
+#endif
         public static ConfigEntry<float> BuilderStacksGiveDelay { get; private set; }
 #if !CLIENT
         [SettingsUiInclude]
@@ -1247,15 +1259,52 @@ namespace ProjectX.Master
             Modules.BuilderStacks.BuilderStacksModule.Enabled = BuilderStacksEnabled.Value;
 #endif
             
-            BuilderStacksMaxCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxCapacity", 10, "Max Carry Capacity", "Maximum building materials you can carry at once");
+            BuilderStacksMaxCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxCapacity", 10, "Max Carry Capacity", "Default max for all materials (overridden by per-material settings below)");
             BuilderStacksMaxCapacity.SetRange(2, 50);
             BuilderStacksMaxCapacity.OnValueChanged.Subscribe((_, newVal) => {
 #if !SERVER
                 Modules.BuilderStacks.BuilderStacksModule.MaxCapacity = newVal;
+                // Also update per-material if they're still at old default
+                Modules.BuilderStacks.BuilderStacksModule.MaxLogCapacity = newVal;
+                Modules.BuilderStacks.BuilderStacksModule.MaxPlankCapacity = newVal;
+                Modules.BuilderStacks.BuilderStacksModule.MaxStoneCapacity = newVal;
 #endif
             });
 #if !SERVER
             Modules.BuilderStacks.BuilderStacksModule.MaxCapacity = BuilderStacksMaxCapacity.Value;
+#endif
+            
+            BuilderStacksMaxLogCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxLogCapacity", 10, "Max Log Capacity", "Maximum logs you can carry at once");
+            BuilderStacksMaxLogCapacity.SetRange(2, 50);
+            BuilderStacksMaxLogCapacity.OnValueChanged.Subscribe((_, newVal) => {
+#if !SERVER
+                Modules.BuilderStacks.BuilderStacksModule.MaxLogCapacity = newVal;
+#endif
+            });
+#if !SERVER
+            Modules.BuilderStacks.BuilderStacksModule.MaxLogCapacity = BuilderStacksMaxLogCapacity.Value;
+#endif
+            
+            BuilderStacksMaxPlankCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxPlankCapacity", 10, "Max Plank Capacity", "Maximum planks you can carry at once");
+            BuilderStacksMaxPlankCapacity.SetRange(2, 50);
+            BuilderStacksMaxPlankCapacity.OnValueChanged.Subscribe((_, newVal) => {
+#if !SERVER
+                Modules.BuilderStacks.BuilderStacksModule.MaxPlankCapacity = newVal;
+#endif
+            });
+#if !SERVER
+            Modules.BuilderStacks.BuilderStacksModule.MaxPlankCapacity = BuilderStacksMaxPlankCapacity.Value;
+#endif
+            
+            BuilderStacksMaxStoneCapacity = BuilderStacksCategory.CreateEntry<int>("BuilderStacksMaxStoneCapacity", 10, "Max Stone Capacity", "Maximum stones you can carry at once");
+            BuilderStacksMaxStoneCapacity.SetRange(2, 50);
+            BuilderStacksMaxStoneCapacity.OnValueChanged.Subscribe((_, newVal) => {
+#if !SERVER
+                Modules.BuilderStacks.BuilderStacksModule.MaxStoneCapacity = newVal;
+#endif
+            });
+#if !SERVER
+            Modules.BuilderStacks.BuilderStacksModule.MaxStoneCapacity = BuilderStacksMaxStoneCapacity.Value;
 #endif
             
             BuilderStacksEnableMaxLimit = BuilderStacksCategory.CreateEntry<bool>("BuilderStacksEnableMaxLimit", true, "Enable Max Limit", "If off, carry unlimited materials");

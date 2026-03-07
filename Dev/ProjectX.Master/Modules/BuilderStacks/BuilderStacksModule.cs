@@ -21,17 +21,25 @@ namespace ProjectX.Master.Modules.BuilderStacks
     ///   When player picks up a 2nd item → absorb it into our buffer (_heldCount = 1).
     ///   When player places last item → give one back from buffer (TryEquip).
     ///   _heldCount is set via direct IL2CPP memory access at offset 0x5C.
+    ///
+    /// Per-material buffers: logs, planks, and stones each have their own buffer
+    /// and configurable max capacity.
     /// </summary>
     public static class BuilderStacksModule
     {
         // ── Config (set by Config.cs via OnValueChanged) ──
-        public static int MaxCapacity = 10;
+        public static int MaxCapacity = 10;        // Global fallback
+        public static int MaxLogCapacity = 10;
+        public static int MaxPlankCapacity = 10;
+        public static int MaxStoneCapacity = 10;
         public static float GiveDelay = 0.8f;
         public static bool EnableMaxLimit = true;
         public static bool Enabled = true;
 
-        // ── Buffer state ──
-        private static int _buffer;
+        // ── Per-material buffer state ──
+        private static int _logBuffer;
+        private static int _plankBuffer;
+        private static int _stoneBuffer;
         private static int _heldItemId;
         private static bool _shouldGiveBack;
         private static float _giveTimer;
@@ -104,7 +112,9 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 {
                     SetLogHack(true);
                     SetStoneHack(true);
-                    _buffer = 0; // reset buffer when in infinite mode
+                    _logBuffer = 0;
+                    _plankBuffer = 0;
+                    _stoneBuffer = 0;
                     HideUI();
                     return;
                 }
@@ -123,22 +133,25 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 }
 
                 // ── Amount == 2: player picked up a 2nd item ──
-                // Absorb it into our buffer by resetting _heldCount to 1
+                // Absorb it into the per-material buffer by resetting _heldCount to 1
                 if (amount == 2 && IsBuildingMaterial(_heldItemId))
                 {
-                    if (!EnableMaxLimit || _buffer + amount < MaxCapacity)
+                    int currentBuffer = GetBuffer(_heldItemId);
+                    int maxCap = GetMaxCapacity(_heldItemId);
+                    
+                    if (!EnableMaxLimit || currentBuffer + amount < maxCap)
                     {
                         // Absorb: write _heldCount = 1, increment buffer
                         WriteHeldCount(heldController, 1);
-                        _buffer++;
-                        RLog.Msg($"[BuilderStacks] Absorbed → buffer={_buffer}");
+                        AddToBuffer(_heldItemId, 1);
+                        RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
                     }
                     // else: at capacity, don't absorb → game enforces vanilla limit (stays at 2)
                 }
 
                 // ── Amount == 0: player placed/dropped last item ──
                 // Give one back from buffer after a delay
-                if (amount < 1 && _buffer > 0 && IsBuildingMaterial(_heldItemId))
+                if (amount < 1 && GetBuffer(_heldItemId) > 0 && IsBuildingMaterial(_heldItemId))
                 {
                     _shouldGiveBack = true;
                 }
@@ -156,11 +169,13 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 }
 
                 // ── UI ──
-                int total = _buffer + amount;
+                int total = GetBuffer(_heldItemId) + amount;
                 if (total >= 1 && IsBuildingMaterial(_heldItemId))
                 {
+                    int maxForDisplay = GetMaxCapacity(_heldItemId);
+                    string limitText = EnableMaxLimit ? $"/{maxForDisplay}" : "";
                     if (_label != null)
-                        _label.RichText(total + " " + GetMaterialName(_heldItemId));
+                        _label.RichText($"{total}{limitText} {GetMaterialName(_heldItemId)}");
                     if (!_uiOpen)
                     {
                         SUI.SUI.TogglePanel("BuilderStacks", true);
@@ -175,6 +190,50 @@ namespace ProjectX.Master.Modules.BuilderStacks
             catch (Exception ex)
             {
                 RLog.Warning($"[BuilderStacks] OnUpdate error: {ex.Message}");
+            }
+        }
+
+        // ── Per-material buffer access ──
+
+        private static int GetBuffer(int itemId)
+        {
+            switch (GetMaterialType(itemId))
+            {
+                case MaterialType.Log:   return _logBuffer;
+                case MaterialType.Plank: return _plankBuffer;
+                case MaterialType.Stone: return _stoneBuffer;
+                default: return 0;
+            }
+        }
+
+        private static void AddToBuffer(int itemId, int count)
+        {
+            switch (GetMaterialType(itemId))
+            {
+                case MaterialType.Log:   _logBuffer += count; break;
+                case MaterialType.Plank: _plankBuffer += count; break;
+                case MaterialType.Stone: _stoneBuffer += count; break;
+            }
+        }
+
+        private static void DecrementBuffer(int itemId)
+        {
+            switch (GetMaterialType(itemId))
+            {
+                case MaterialType.Log:   if (_logBuffer > 0) _logBuffer--; break;
+                case MaterialType.Plank: if (_plankBuffer > 0) _plankBuffer--; break;
+                case MaterialType.Stone: if (_stoneBuffer > 0) _stoneBuffer--; break;
+            }
+        }
+
+        private static int GetMaxCapacity(int itemId)
+        {
+            switch (GetMaterialType(itemId))
+            {
+                case MaterialType.Log:   return MaxLogCapacity;
+                case MaterialType.Plank: return MaxPlankCapacity;
+                case MaterialType.Stone: return MaxStoneCapacity;
+                default: return MaxCapacity;
             }
         }
 
@@ -216,12 +275,12 @@ namespace ProjectX.Master.Modules.BuilderStacks
 
         private static void GiveFromBuffer()
         {
-            if (_buffer <= 0 || _heldItemId == 0) return;
-            _buffer--;
+            if (GetBuffer(_heldItemId) <= 0 || _heldItemId == 0) return;
+            DecrementBuffer(_heldItemId);
             try
             {
                 LocalPlayer.Inventory.TryEquip(_heldItemId, false, false, false);
-                RLog.Msg($"[BuilderStacks] Gave back from buffer → buffer={_buffer}");
+                RLog.Msg($"[BuilderStacks] Gave back {GetMaterialName(_heldItemId)} from buffer → buffer={GetBuffer(_heldItemId)}");
             }
             catch (Exception ex)
             {
@@ -259,27 +318,32 @@ namespace ProjectX.Master.Modules.BuilderStacks
 
         // ── Helpers ──
 
-        private static bool IsBuildingMaterial(int itemId)
+        private enum MaterialType { None, Log, Plank, Stone }
+
+        private static MaterialType GetMaterialType(int itemId)
         {
             switch (itemId)
             {
-                case 78:  case 406: case 408: case 409:  // Logs
-                case 395: case 576: case 577: case 578:  // Planks
-                case 640:                                 // Stone
-                    return true;
-                default:
-                    return false;
+                case 78:  case 406: case 408: case 409:  return MaterialType.Log;
+                case 395: case 576: case 577: case 578:  return MaterialType.Plank;
+                case 640:                                 return MaterialType.Stone;
+                default:                                  return MaterialType.None;
             }
+        }
+
+        private static bool IsBuildingMaterial(int itemId)
+        {
+            return GetMaterialType(itemId) != MaterialType.None;
         }
 
         private static string GetMaterialName(int itemId)
         {
-            switch (itemId)
+            switch (GetMaterialType(itemId))
             {
-                case 78: case 406: case 408: case 409: return "Logs";
-                case 395: case 576: case 577: case 578: return "Planks";
-                case 640: return "Stones";
-                default: return "Items";
+                case MaterialType.Log:   return "Logs";
+                case MaterialType.Plank: return "Planks";
+                case MaterialType.Stone: return "Stones";
+                default:                 return "Items";
             }
         }
     }

@@ -332,14 +332,23 @@ namespace ProjectX.Master.Modules.LootRespawn
 
             // Process openable containers (tracked via name: prefix by ContainerItemSpawner)
             // These don't have game objects queued — we just check timers in _collected
-            var nameKeysToRemove = new List<string>();
+            var nameKeysToRelease = new List<string>();  // category disabled — remove entirely
+            var nameKeysToRespawn = new List<string>();  // timer expired — add to recentlyRespawned
             foreach (var kvp in _collected)
             {
                 if (kvp.Key.StartsWith("name:"))
                 {
+                    // Category disabled — release entry
+                    if (!RespawnConfig.ShouldTrackItem(kvp.Value.ItemId))
+                    {
+                        nameKeysToRelease.Add(kvp.Key);
+                        _dirty = true;
+                        continue;
+                    }
+
                     if (HasEnoughTimePassed(kvp.Value.Timestamp))
                     {
-                        nameKeysToRemove.Add(kvp.Key);
+                        nameKeysToRespawn.Add(kvp.Key);
                         respawned++;
                     }
                     // If timer hasn't passed, the container stays in _collected
@@ -347,12 +356,20 @@ namespace ProjectX.Master.Modules.LootRespawn
                     // prevent re-recording when the game opens it during load
                 }
             }
-            foreach (var key in nameKeysToRemove)
+            // Category disabled — fully remove from _collected
+            foreach (var key in nameKeysToRelease)
+            {
+                _collected.Remove(key);
+                string containerName = key.Substring(5);
+                RLog.Msg($"[LootRespawn] Released container (category disabled): {containerName}");
+            }
+            // Timer expired — keep in _collected, add to _recentlyRespawned
+            foreach (var key in nameKeysToRespawn)
             {
                 // DO NOT remove from _collected — the PREFIX needs the entry to block
                 // on future loads. Just add to _recentlyRespawned so PREFIX blocks streaming.
                 _recentlyRespawned.Add(key);
-                string containerName = key.Substring(5); // strip "name:" prefix
+                string containerName = key.Substring(5);
                 RLog.Msg($"[LootRespawn] Respawned container: {containerName}");
             }
 
@@ -745,6 +762,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 if (spawnItems) return true; // let content-spawn calls through
                 if (!RespawnConfig.Enabled) return true;
                 if (IsMultiplayerClient()) return true;
+                if (!RespawnConfig.TrackOpenables) return true; // category disabled — let through
 
                 string objName = "unknown";
                 if (__instance is UnityEngine.Component comp)

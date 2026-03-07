@@ -4,7 +4,7 @@
 
 ## Overview
 
-Project X is a unified modding suite for Sons of the Forest, combining the functionality of 20+ standalone mods into a single package with dedicated server support. It is **72 source files totalling over 750KB of custom C# code**, representing over 200 development phases.
+Project X is a unified modding suite for Sons of the Forest, combining the functionality of 20+ standalone mods into a single package with dedicated server support. It is **72 source files totalling over 760KB of custom C# code**, representing over 200 development phases.
 
 This document provides a transparent account of what was built, what was studied, how each module relates to existing mods, and where the implementations diverge.
 
@@ -37,17 +37,17 @@ Every mod for Sons of the Forest targets the **same game APIs** — there is onl
 
 These modules exist only in Project X — there was nothing to study or reference:
 
-| Module                                                                 | Size        | Files | What It Does                                                                           |
-| ---------------------------------------------------------------------- | ----------- | ----- | -------------------------------------------------------------------------------------- |
-| **Integrity / Anti-Cheat** (IntegrityEvent + IntegrityConfig)          | **40.6KB**  | 2     | Server-side cheat detection and validation                                             |
-| **Permission System** (PermissionEvent + PermissionSync + RoleManager) | **15.5KB**  | 3     | Role-based access control (Owner / Admin / Player) synced via Bolt                     |
-| **Config Sync** (ConfigSyncEvent + ConfigSyncPayload)                  | **14.9KB**  | 2     | Real-time server-to-client config broadcast — live economy control                     |
-| **Admin Command Bridge** (AdminCommandEvent + CommandBridge)           | **20.3KB**  | 2     | Remote `/px` commands via hybrid Bolt/ChatBox protocol                                 |
-| **Building Enhancements** (BuilderEnhancements)                        | **26.9KB**  | 1     | Custom building tools with correct API discovery and server-side support               |
-| **Player Module** (PlayerModule + Actions)                             | **5.2KB**   | 1     | Player controls, companion management (unstuck, revive, HP sliders, Virginia commands) |
-| **Custom GUI** (ProjectXGUI + Styles)                                  | **148.8KB** | 4     | Permission-aware IMGUI with 6 tabbed panels — not based on any existing mod            |
-| **One-Click Installer**                                                | **16.5KB**  | 2     | Auto-detects game via Steam, downloads prerequisites, deploys mod                      |
-| **In-Game Welcome System**                                             | —           | —     | Multi-line orientation chat for players joining the server                             |
+| Module                                                                 | Size        | Files | What It Does                                                                          |
+| ---------------------------------------------------------------------- | ----------- | ----- | ------------------------------------------------------------------------------------- |
+| **Integrity / Anti-Cheat** (IntegrityEvent + IntegrityConfig)          | **40.6KB**  | 2     | Server-side cheat detection and validation                                            |
+| **Permission System** (PermissionEvent + PermissionSync + RoleManager) | **15.5KB**  | 3     | Role-based access control (Owner / Admin / Player) synced via Bolt                    |
+| **Config Sync** (ConfigSyncEvent + ConfigSyncPayload)                  | **14.9KB**  | 2     | Real-time server-to-client config broadcast — live economy control                    |
+| **Admin Command Bridge** (AdminCommandEvent + CommandBridge)           | **20.3KB**  | 2     | Remote `/px` commands via hybrid Bolt/ChatBox protocol                                |
+| **Building Enhancements** (BuilderEnhancements)                        | **26.9KB**  | 1     | Custom building tools with correct API discovery and server-side support              |
+| **Player Module** (PlayerModule + Actions)                             | **5.2KB**   | 1     | Player controls (Max Strength, vanilla speed capture for reset), companion management |
+| **Custom GUI** (ProjectXGUI + Styles)                                  | **148.8KB** | 4     | Permission-aware IMGUI with 7 tabbed panels — not based on any existing mod           |
+| **One-Click Installer**                                                | **16.5KB**  | 2     | Auto-detects game via Steam, downloads prerequisites, deploys mod                     |
+| **In-Game Welcome System**                                             | —           | —     | Multi-line orientation chat for players joining the server                            |
 
 **Total unique code with no original equivalent: ~288KB+**
 
@@ -67,7 +67,7 @@ Each module below was _studied_ from an existing mod to understand the concept a
 | **WaterCollectors**     | 15.2KB (2 files)   | ~3KB                                                                            | **5.1× larger**  | `Physics.OverlapSphere()` stripped by IL2CPP — replaced with Harmony `OnEnable` tracking + `Vector3.Distance`                                                            |
 | **Stack**               | 14.9KB (1 file)    | ~4KB                                                                            | **3.7× larger**  | Per-item configs across 14 categories, reset-to-defaults, tier guards                                                                                                    |
 | **StructureDurability** | 11.7KB (1 file)    | ~4KB                                                                            | **2.9× larger**  | Base-health tracking, Harmony postfix on `GetStructureInfo()` — direct field access stripped by IL2CPP                                                                   |
-| **BuilderStacks**       | 10.8KB (1 file)    | 14.4KB (4 files)                                                                | condensed        | Studied ItemCarryAmount — rebuilt as single-file module with category filtering, backup/restore                                                                          |
+| **BuilderStacks**       | 10.8KB (1 file)    | 14.4KB (4 files)                                                                | condensed        | Studied ItemCarryAmount — rebuilt with per-material capacity (logs/planks/stones), independent buffers, HUD display                                                      |
 | **LootRespawn**         | 46KB+ (2 files)    | Full C# on [GitHub](https://github.com/laserman120/SOTF-Mod-LootRespawnControl) | **4.4× larger**  | Integer hash replacing MD5 + full container respawn (openable + breakable) with frame-based PREFIX blocking, event ordering fallbacks, and type-dependent ClearStateSync |
 | **AmmoUI**              | 10.1KB (1 file)    | 58.3KB (6 files)                                                                | **5.8× smaller** | Condensed 6-file mod into 1 file with sprite caching and frame throttling                                                                                                |
 | **Hotbar**              | 8KB (2 files)      | ~3.7KB                                                                          | **2.2× larger**  | Sprite caching, frame throttling, IL2CPP reflection workaround for DummyDll texture casting                                                                              |
@@ -188,5 +188,5 @@ Full attribution is maintained in [`CREDITS.md`](CREDITS.md).
 ---
 
 _Project X — by J4m3s & Claude_
-_72 source files • 750KB+ custom code • 200+ development phases_
+_72 source files • 760KB+ custom code • 200+ development phases_
 _March 2026_

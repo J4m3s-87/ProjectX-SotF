@@ -839,21 +839,15 @@ namespace ProjectX.Master.Modules.UI
             // Raids per day
             RaidCustomizer.RaidConfig.RaidsPerDay.Value = (int)DrawSlider("Raids/Day (-1=Def)", RaidCustomizer.RaidConfig.RaidsPerDay.Value, -1, 24);
             
-            // Raid Distribution (cycle button: Evenly / Randomly / Stacked)
+            // Raid Distribution (radio-style: only one active at a time)
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Distribution:", ProjectXStyles.NormalLabel, GUILayout.Width(120));
-            string currentDist = RaidCustomizer.RaidConfig.RaidDistribution.Value;
-            if (GUILayout.Button(currentDist, ProjectXStyles.Button, GUILayout.Width(200)))
-            {
-                // Cycle through options
-                string next = currentDist switch
-                {
-                    "Evenly" => "Randomly",
-                    "Randomly" => "Stacked",
-                    _ => "Evenly"
-                };
-                RaidCustomizer.RaidConfig.RaidDistribution.Value = next;
-            }
+            string dist = RaidCustomizer.RaidConfig.RaidDistribution.Value;
+            bool isEvenly = DrawCheckbox("Evenly", dist == "Evenly");
+            if (isEvenly && dist != "Evenly") RaidCustomizer.RaidConfig.RaidDistribution.Value = "Evenly";
+            bool isRandomly = DrawCheckbox("Randomly", dist == "Randomly");
+            if (isRandomly && dist != "Randomly") RaidCustomizer.RaidConfig.RaidDistribution.Value = "Randomly";
+            bool isStacked = DrawCheckbox("Stacked", dist == "Stacked");
+            if (isStacked && dist != "Stacked") RaidCustomizer.RaidConfig.RaidDistribution.Value = "Stacked";
             GUILayout.EndHorizontal();
             
             // Consider Current Time
@@ -1576,20 +1570,15 @@ namespace ProjectX.Master.Modules.UI
                 // Raids per day — local only
                 RaidCustomizer.RaidConfig.RaidsPerDay.Value = (int)DrawSlider("Raids/Day (-1=Def)", RaidCustomizer.RaidConfig.RaidsPerDay.Value, -1, 24);
                 
-                // Raid Distribution (cycle button: Evenly / Randomly / Stacked)
+                // Raid Distribution (radio-style: only one active at a time)
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Distribution:", ProjectXStyles.NormalLabel, GUILayout.Width(120));
                 string srvDist = RaidCustomizer.RaidConfig.RaidDistribution.Value;
-                if (GUILayout.Button(srvDist, ProjectXStyles.Button, GUILayout.Width(200)))
-                {
-                    string next = srvDist switch
-                    {
-                        "Evenly" => "Randomly",
-                        "Randomly" => "Stacked",
-                        _ => "Evenly"
-                    };
-                    RaidCustomizer.RaidConfig.RaidDistribution.Value = next;
-                }
+                bool srvEvenly = DrawCheckbox("Evenly", srvDist == "Evenly");
+                if (srvEvenly && srvDist != "Evenly") RaidCustomizer.RaidConfig.RaidDistribution.Value = "Evenly";
+                bool srvRandomly = DrawCheckbox("Randomly", srvDist == "Randomly");
+                if (srvRandomly && srvDist != "Randomly") RaidCustomizer.RaidConfig.RaidDistribution.Value = "Randomly";
+                bool srvStacked = DrawCheckbox("Stacked", srvDist == "Stacked");
+                if (srvStacked && srvDist != "Stacked") RaidCustomizer.RaidConfig.RaidDistribution.Value = "Stacked";
                 GUILayout.EndHorizontal();
                 
                 // Consider Current Time

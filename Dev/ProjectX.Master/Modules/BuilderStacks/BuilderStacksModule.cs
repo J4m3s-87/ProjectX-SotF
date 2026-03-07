@@ -142,33 +142,38 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 }
 
                 // ── Amount >= 2: player picked up extra items ──
-                // ALWAYS set _heldCount=1 and absorb (amount-1) into buffer.
-                // Planks/stones natively hold 4, so we must absorb ALL excess.
-                // At capacity: still force held=1 but clamp buffer additions.
+                // Absorb (amount-1) into buffer. At capacity, behaviour depends
+                // on native hold limit:
+                //   Logs (native=2): do nothing → amount stays 2 → game blocks
+                //   Planks/Stones (native=4): set _heldCount=native → "hands full"
                 if (amount >= 2 && IsBuildingMaterial(_heldItemId))
                 {
                     int currentBuffer = GetBuffer(_heldItemId);
                     int maxCap = GetMaxCapacity(_heldItemId);
-                    int excess = amount - 1; // how many above "holding 1"
+                    int nativeLimit = GetNativeHoldLimit(_heldItemId);
+                    int excess = amount - 1;
 
-                    // Clamp: only absorb what fits in the buffer
-                    // Buffer can hold up to (maxCap - 1) since 1 is always in hand
-                    int spaceLeft = EnableMaxLimit ? System.Math.Max(0, maxCap - 1 - currentBuffer) : excess;
+                    int spaceLeft = EnableMaxLimit
+                        ? System.Math.Max(0, maxCap - 1 - currentBuffer)
+                        : excess;
                     int toAbsorb = System.Math.Min(excess, spaceLeft);
 
-                    // ALWAYS force held back to 1 — prevents game from stacking
-                    if (SetHeldCount(heldController, 1))
+                    if (toAbsorb > 0)
                     {
-                        if (toAbsorb > 0)
+                        // Under capacity → absorb excess into buffer
+                        if (SetHeldCount(heldController, 1))
                         {
                             AddToBuffer(_heldItemId, toAbsorb);
                             RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} x{toAbsorb} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
                         }
-                        else
-                        {
-                            RLog.Msg($"[BuilderStacks] At capacity {GetMaterialName(_heldItemId)} ({currentBuffer + 1}/{maxCap}) — excess rejected");
-                        }
                     }
+                    else if (nativeLimit > 2)
+                    {
+                        // AT CAPACITY for multi-hold materials (planks/stones):
+                        // Set held to native max → game says "hands full" → blocks
+                        SetHeldCount(heldController, nativeLimit);
+                    }
+                    // For logs (nativeLimit==2): do nothing → amount stays 2 → game blocks
                 }
 
                 // ── Amount < 1: player placed/used item → give one back from buffer ──
@@ -267,6 +272,18 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 case MaterialType.Plank: return MaxPlankCapacity;
                 case MaterialType.Stone: return MaxStoneCapacity;
                 default: return MaxCapacity;
+            }
+        }
+
+        /// <summary>Vanilla hold limit per material (how many the game natively allows in hand).</summary>
+        private static int GetNativeHoldLimit(int itemId)
+        {
+            switch (GetMaterialType(itemId))
+            {
+                case MaterialType.Log:   return 2;
+                case MaterialType.Plank: return 4;
+                case MaterialType.Stone: return 4;
+                default:                 return 2;
             }
         }
 

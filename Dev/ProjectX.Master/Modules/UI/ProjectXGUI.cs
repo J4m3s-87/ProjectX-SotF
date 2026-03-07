@@ -311,6 +311,23 @@ namespace ProjectX.Master.Modules.UI
             }
             GUILayout.EndHorizontal();
             
+            // Row 6: Max Strength
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Toggle(false, "  Max Strength", ProjectXStyles.Toggle, GUILayout.Width(colW)))
+            {
+                try
+                {
+                    DebugConsole.Instance.SendCommand("setstrengthlevel 100");
+                    SonsSdk.SonsTools.ShowMessage("Strength set to max!");
+                    RLog.Msg("[ProjectXGUI] Max Strength triggered via setstrengthlevel 100");
+                }
+                catch (System.Exception ex)
+                {
+                    RLog.Warning($"[ProjectXGUI] Max Strength failed: {ex.Message}");
+                }
+            }
+            GUILayout.EndHorizontal();
+            
             // NoClip section
             DrawDivider("NO CLIP");
             

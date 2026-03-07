@@ -142,30 +142,25 @@ namespace ProjectX.Master.Modules.BuilderStacks
                 }
 
                 // ── Amount >= 2: player picked up extra items ──
-                // ALWAYS set _heldCount = 1 to prevent the game from stacking.
-                // Only add to buffer if under capacity.
+                // Only absorb (set _heldCount=1) when UNDER capacity.
+                // At capacity: do NOTHING — leave amount=2 so game blocks further pickups.
+                // Writing _heldCount=1 at capacity causes infinite pickup loop!
                 if (amount >= 2 && IsBuildingMaterial(_heldItemId))
                 {
                     int currentBuffer = GetBuffer(_heldItemId);
                     int maxCap = GetMaxCapacity(_heldItemId);
 
-                    // ALWAYS force held back to 1 — the game does NOT enforce a cap,
-                    // our mod is the enforcement layer
-                    if (SetHeldCount(heldController, 1))
+                    if (!EnableMaxLimit || currentBuffer + 2 <= maxCap)
                     {
-                        if (!EnableMaxLimit || currentBuffer + 2 <= maxCap)
+                        // Under capacity → absorb: set held to 1, add to buffer
+                        if (SetHeldCount(heldController, 1))
                         {
-                            // Under capacity → add excess to buffer
                             AddToBuffer(_heldItemId, 1);
                             RLog.Msg($"[BuilderStacks] Absorbed {GetMaterialName(_heldItemId)} → buffer={GetBuffer(_heldItemId)}/{maxCap}");
                         }
-                        else
-                        {
-                            // AT CAPACITY → item absorbed visually (held reset to 1)
-                            // but NOT added to buffer — effectively rejected
-                            RLog.Msg($"[BuilderStacks] At capacity {GetMaterialName(_heldItemId)} ({currentBuffer + 1}/{maxCap}) — item rejected");
-                        }
                     }
+                    // else: AT CAPACITY — do nothing. Leave amount=2.
+                    // Game sees player holding 2 → blocks further pickups.
                 }
 
                 // ── Amount == 0: player placed/used last item ──

@@ -54,35 +54,35 @@ namespace ProjectX.Master.Modules.BuilderStacks
         private static bool _stoneHackOn;
         private static bool _hackStateInitialized;
 
-        // ── UI ──
+        // ── UI (Observable binding like AmmoUI) ──
         private static SUiElement<SContainerOptions> _panel;
         private static SUiElement<SLabelOptions> _carryAmount;
         private static bool _uiLoaded;
-        private static bool _uiOpen;
+        private static readonly Observable<bool> _showPanel = new(false);
 
         public static void Init()
         {
             try
             {
-                // Match original LogCarryAmountUi.Create() pattern exactly
                 _panel = SUI.SUI.RegisterNewPanel("BuilderStacks", false, default(KeyCode?))
-                    .Pivot(new float?(0f), default(float?))
+                    .Pivot(0f, 0f)
                     .Anchor(AnchorType.BottomLeft)
-                    .Size(new float?(250f), new float?(60f))
-                    .Position(new float?(-450f), new float?(105f))
-                    .Background(SUI.SUI.SpriteBackground400ppu, new Color?(new Color(0f, 0f, 0f, 0.8f)), UnityEngine.UI.Image.Type.Sliced);
+                    .Background(Color.clear, EBackground.None, default(UnityEngine.UI.Image.Type?))
+                    .Size(250f, 40f)
+                    .Position(10f, 65f)
+                    .BindVisibility(_showPanel);
 
-                _carryAmount = SUI.SUI.SLabel.RichText("1 Log")
-                    .FontColor(CommonExtensions.WithAlpha(Color.white, 0.3f))
-                    .FontSize(18)
+                _carryAmount = SUI.SUI.SLabel.RichText("0 Items")
+                    .FontColor(new Color(1f, 1f, 1f, 0.85f))
+                    .FontSize(16)
                     .Dock(EDockType.Fill)
-                    .Alignment(TMPro.TextAlignmentOptions.Center);
+                    .Alignment(TMPro.TextAlignmentOptions.Left);
 
                 _carryAmount.SetParent(_panel);
-                CloseUI();
+                _showPanel.Set(false);
                 _uiLoaded = true;
 
-                RLog.Msg("[BuilderStacks] HUD initialized (original SUI pattern)");
+                RLog.Msg("[BuilderStacks] HUD initialized (Observable binding)");
             }
             catch (Exception ex)
             {
@@ -216,16 +216,16 @@ namespace ProjectX.Master.Modules.BuilderStacks
                         _carryAmount.RichText($"{text} {mat}");
                     }
 
-                    if (!_uiOpen)
+                    if (!_showPanel.Value)
                     {
-                        OpenUI();
+                        _showPanel.Set(true);
                     }
                 }
                 else
                 {
-                    if (_uiOpen)
+                    if (_showPanel.Value)
                     {
-                        CloseUI();
+                        _showPanel.Set(false);
                     }
                 }
             }
@@ -369,14 +369,12 @@ namespace ProjectX.Master.Modules.BuilderStacks
 
         private static void OpenUI()
         {
-            SUI.SUI.TogglePanel("BuilderStacks", true);
-            _uiOpen = true;
+            _showPanel.Set(true);
         }
 
         private static void CloseUI()
         {
-            SUI.SUI.TogglePanel("BuilderStacks", false);
-            _uiOpen = false;
+            _showPanel.Set(false);
         }
 
         // ── Helpers ──

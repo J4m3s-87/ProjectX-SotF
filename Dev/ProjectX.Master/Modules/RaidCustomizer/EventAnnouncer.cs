@@ -3,6 +3,7 @@ using Sons.Characters;
 using SonsSdk;
 using UnityEngine;
 using System;
+using Endnight.Utilities;
 
 namespace ProjectX.Master.Modules.RaidCustomizer
 {
@@ -72,17 +73,17 @@ namespace ProjectX.Master.Modules.RaidCustomizer
 #if !SERVER
             try
             {
-                var playerPos = TheForest.Utils.LocalPlayer.Transform != null 
-                    ? TheForest.Utils.LocalPlayer.Transform.position 
-                    : Vector3.zero;
+                // Match original mod: use PlayerLocation.GetFirst() from Endnight.Utilities
+                int playerCount;
+                Vector3 playerPos = PlayerLocation.GetFirst(out playerCount, true);
                 
-                // Use FMODCommon.PlayOneshot — same as original RaidCustomizer mod
+                RLog.Msg($"[RaidCustomizer] ★ Playing ambush sound at {playerPos} (players={playerCount})");
                 FMODCommon.PlayOneshot("event:/music/ambush", playerPos, 2, null);
-                RLog.Msg($"[RaidCustomizer] Ambush sound fired at {playerPos}");
+                RLog.Msg($"[RaidCustomizer] ★ Ambush sound fired OK");
             }
             catch (Exception ex)
             {
-                RLog.Warning($"[RaidCustomizer] Sound playback failed: {ex.Message}");
+                RLog.Warning($"[RaidCustomizer] Sound playback failed: {ex.Message}\n{ex.StackTrace}");
             }
 #endif
         }

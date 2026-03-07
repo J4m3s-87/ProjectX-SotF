@@ -373,14 +373,20 @@ namespace ProjectX.Master.Modules.UI
             GUILayout.BeginHorizontal();
             if (GUILayout.Toggle(false, "  Reset Movement", ProjectXStyles.Toggle, GUILayout.Width(colW)))
             {
-                Config.WalkSpeed.Value = 1f;
-                Config.RunSpeed.Value = 1f;
-                Config.SwimSpeed.Value = 1f;
-                Config.JumpMultiplier.Value = 1f;
-                PlayerActions.SetWalkSpeed(1f);
-                PlayerActions.SetRunSpeed(1f);
-                PlayerActions.SetSwimSpeed(1f);
-                PlayerActions.SetJumpMultiplier(1f);
+                PlayerActions.CaptureVanillaDefaults();
+                float vw = PlayerActions.VanillaWalkSpeed;
+                float vr = PlayerActions.VanillaRunSpeed;
+                float vs = PlayerActions.VanillaSwimSpeed;
+                float vj = PlayerActions.VanillaJumpMultiplier;
+                Config.WalkSpeed.Value = vw;
+                Config.RunSpeed.Value = vr;
+                Config.SwimSpeed.Value = vs;
+                Config.JumpMultiplier.Value = vj;
+                PlayerActions.SetWalkSpeed(vw);
+                PlayerActions.SetRunSpeed(vr);
+                PlayerActions.SetSwimSpeed(vs);
+                PlayerActions.SetJumpMultiplier(vj);
+                RLog.Msg($"[GUI] Reset Movement to vanilla: walk={vw:F2}, run={vr:F2}, swim={vs:F2}, jump={vj:F2}");
             }
             GUILayout.EndHorizontal();
             

@@ -201,21 +201,54 @@ namespace ProjectX.Master.Modules.UI
             }
         }
         
-        // Movement
+        // Movement — vanilla defaults captured from FpCharacter on first access
+        private static float _vanillaWalkSpeed = -1f;
+        private static float _vanillaRunSpeed = -1f;
+        private static float _vanillaSwimSpeed = -1f;
+        private static float _vanillaJumpMultiplier = 1f;
+        
+        public static float VanillaWalkSpeed => _vanillaWalkSpeed > 0 ? _vanillaWalkSpeed : 4f;
+        public static float VanillaRunSpeed => _vanillaRunSpeed > 0 ? _vanillaRunSpeed : 7f;
+        public static float VanillaSwimSpeed => _vanillaSwimSpeed > 0 ? _vanillaSwimSpeed : 1f;
+        public static float VanillaJumpMultiplier => _vanillaJumpMultiplier > 0 ? _vanillaJumpMultiplier : 1f;
+        
+        /// <summary>Capture the game's original walk/run/swim speeds before we override them.</summary>
+        public static void CaptureVanillaDefaults()
+        {
+            try
+            {
+                var fp = LocalPlayer.FpCharacter;
+                if (fp == null) return;
+                if (_vanillaWalkSpeed > 0) return; // Already captured
+                
+                _vanillaWalkSpeed = fp._walkSpeed;
+                _vanillaRunSpeed = fp._runSpeed;
+                _vanillaSwimSpeed = fp._swimSpeed;
+                RLog.Msg($"[PlayerActions] Captured vanilla speeds: walk={_vanillaWalkSpeed:F2}, run={_vanillaRunSpeed:F2}, swim={_vanillaSwimSpeed:F2}");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[PlayerActions] Failed to capture vanilla speeds: {ex.Message}");
+            }
+        }
+        
         public static void SetWalkSpeed(float value)
         {
+            CaptureVanillaDefaults();
             Config.WalkSpeed.Value = value;
             try { LocalPlayer.FpCharacter?.SetWalkSpeed(value); } catch { }
         }
 
         public static void SetRunSpeed(float value)
         {
+            CaptureVanillaDefaults();
             Config.RunSpeed.Value = value;
             try { LocalPlayer.FpCharacter?.SetRunSpeed(value); } catch { }
         }
 
         public static void SetSwimSpeed(float value)
         {
+            CaptureVanillaDefaults();
             Config.SwimSpeed.Value = value;
             try { LocalPlayer.FpCharacter?.SetSwimSpeed(value); } catch { }
         }

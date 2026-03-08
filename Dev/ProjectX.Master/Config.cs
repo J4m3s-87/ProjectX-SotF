@@ -1369,11 +1369,6 @@ namespace ProjectX.Master
             DiscordChannelId = DiscordCategory.CreateEntry<string>("DiscordChannelId", "", "Discord Channel ID", "Channel ID to broadcast to");
             DiscordWelcomeChannelId = DiscordCategory.CreateEntry<string>("DiscordWelcomeChannelId", "", "Discord Welcome Channel ID", "Channel ID to fetch welcome/rules from on player join");
             
-            // Protect Discord credentials from accidental "Reset to Default" — restore previous value if wiped to empty
-            ProtectFromReset(DiscordBotToken);
-            ProtectFromReset(DiscordChannelId);
-            ProtectFromReset(DiscordWelcomeChannelId);
-            
             // Welcome Messages
             EnableWelcomeMessage = DiscordCategory.CreateEntry<bool>("EnableWelcomeMessage", true, "Enable Welcome Message", "Send welcome to joining players in-game chat");
             WelcomeMessageDelay = DiscordCategory.CreateEntry<float>("WelcomeMessageDelay", 30.0f, "Welcome Message Delay", "Seconds to wait before sending welcome");
@@ -1720,32 +1715,6 @@ namespace ProjectX.Master
             Modules.Network.ConfigSyncPayload.RegisterEntries();
         }
 
-        /// <summary>
-        /// Protects a string config entry from accidental reset-to-default.
-        /// If the entry had a non-empty value and gets wiped to empty, restores the previous value.
-        /// </summary>
-        private static void ProtectFromReset(ConfigEntry<string> entry)
-        {
-            string lastKnownValue = entry.Value;
-            bool restoring = false; // re-entrancy guard — setting Value fires OnValueChanged again
-            entry.OnValueChanged.Subscribe((oldVal, newVal) =>
-            {
-                if (restoring) return;
-                
-                // Track the latest non-empty value
-                if (!string.IsNullOrEmpty(oldVal))
-                    lastKnownValue = oldVal;
-                    
-                // If it was non-empty and just got wiped → restore
-                if (!string.IsNullOrEmpty(lastKnownValue) && string.IsNullOrEmpty(newVal))
-                {
-                    RLog.Warning($"[Config] {entry.Identifier} reset to empty — restoring previous value");
-                    restoring = true;
-                    entry.Value = lastKnownValue;
-                    restoring = false;
-                }
-            });
-        }
 
         public static void Save()
         {

@@ -457,7 +457,6 @@ namespace ProjectX.Master.Modules.LootRespawn
         internal static void OnPickUpCollected(PickUp pickup)
         {
             if (pickup == null || !RespawnConfig.Enabled) return;
-            if (IsMultiplayerClient()) return;
 
             try
             {
@@ -481,11 +480,21 @@ namespace ProjectX.Master.Modules.LootRespawn
 
                 if (string.IsNullOrEmpty(hash)) return;
 
+                // ── DUAL-PATH: local host records directly; dedicated server clients report to server ──
+                if (IsMultiplayerClient())
+                {
+                    // CLIENT on dedicated server → report to server
+                    Network.LootSyncEvent.Instance?.ReportCollected(hash, itemId);
+                    RLog.Msg($"[LootRespawn] Reported pickup to server: {objName} (itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…)");
+                    return;
+                }
+
+                // LOCAL HOST / SOLO / SERVER → record directly
                 long timestamp = GetGameTimestamp();
                 _collected[hash] = new LootData(hash, timestamp, itemId);
                 _dirty = true;
 
-                RLog.Msg($"[LootRespawn] Collected pickup: {objName} (itemId={itemId}, hash={hash.Substring(0, 8)}…, ts={timestamp})");
+                RLog.Msg($"[LootRespawn] Collected pickup: {objName} (itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp})");
             }
             catch (Exception ex)
             {
@@ -653,7 +662,6 @@ namespace ProjectX.Master.Modules.LootRespawn
             RLog.Msg($"[LootRespawn] ★ OnBreak FIRED: {container?.name ?? "null"} (enabled={RespawnConfig.Enabled}, trackBreak={RespawnConfig.TrackBreakables})");
 
             if (container == null || !RespawnConfig.Enabled) return;
-            if (IsMultiplayerClient()) return;
             if (!RespawnConfig.TrackBreakables) return;
 
             try
@@ -688,6 +696,17 @@ namespace ProjectX.Master.Modules.LootRespawn
                     return;
                 }
 
+                // ── DUAL-PATH: local host records directly; dedicated server clients report to server ──
+                if (IsMultiplayerClient())
+                {
+                    // CLIENT on dedicated server → report to server
+                    Network.LootSyncEvent.Instance?.ReportContainerBroken(hash);
+                    RLog.Msg($"[LootRespawn] Reported container break to server: {objName} (hash={hash.Substring(0, Math.Min(8, hash.Length))}…)");
+                    return;
+                }
+
+                // LOCAL HOST / SOLO / SERVER → record directly
+
                 // IDEMPOTENT: Skip if already tracked — prevents WoodenCrateItems
                 // from resetting their timestamp every time their area streams in
                 if (_collected.ContainsKey(hash))
@@ -699,7 +718,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 _collected[hash] = new LootData(hash, timestamp, RespawnConfig.BreakableId);
                 _dirty = true;
 
-                RLog.Msg($"[LootRespawn] Container broken: {objName} (hash={hash.Substring(0, 8)}…, ts={timestamp}, tracked={_collected.Count})");
+                RLog.Msg($"[LootRespawn] Container broken: {objName} (hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count})");
             }
             catch (Exception ex)
             {
@@ -721,7 +740,6 @@ namespace ProjectX.Master.Modules.LootRespawn
 
             if (!open) return; // Only track opening, not closing
             if (controller == null || !RespawnConfig.Enabled) return;
-            if (IsMultiplayerClient()) return;
             if (!RespawnConfig.TrackOpenables) return;
 
             try
@@ -736,6 +754,16 @@ namespace ProjectX.Master.Modules.LootRespawn
                     return;
                 }
 
+                // ── DUAL-PATH: local host records directly; dedicated server clients report to server ──
+                if (IsMultiplayerClient())
+                {
+                    // CLIENT on dedicated server → report to server
+                    Network.LootSyncEvent.Instance?.ReportContainerOpened(hash);
+                    RLog.Msg($"[LootRespawn] Reported GrabBag open to server: containerId={containerId} (key={hash})");
+                    return;
+                }
+
+                // LOCAL HOST / SOLO / SERVER → record directly
                 long timestamp = GetGameTimestamp();
                 _collected[hash] = new LootData(hash, timestamp, RespawnConfig.OpenableId);
                 _dirty = true;
@@ -812,7 +840,6 @@ namespace ProjectX.Master.Modules.LootRespawn
                 RLog.Msg($"[LootRespawn] ★ ContainerItemSpawner.OpenContainer: spawnItems={spawnItems}, contentsSeed={contentsSeed}, obj={objName}");
 
                 if (!RespawnConfig.Enabled) return;
-                if (IsMultiplayerClient()) return;
                 if (!RespawnConfig.TrackOpenables) return; // category disabled
                 if (spawnItems) return; // only track the initial open call
 
@@ -836,6 +863,17 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // Skip WoodenCrateItems — tracked by BreakableObject.OnBreak
                 if (objName.Contains("WoodenCrateItems"))
                     return;
+
+                // ── DUAL-PATH: local host records directly; dedicated server clients report to server ──
+                if (IsMultiplayerClient())
+                {
+                    // CLIENT on dedicated server → report to server
+                    Network.LootSyncEvent.Instance?.ReportContainerOpened(hash);
+                    RLog.Msg($"[LootRespawn] Reported container open to server: {objName} (key={hash})");
+                    return;
+                }
+
+                // LOCAL HOST / SOLO / SERVER → record directly
 
                 // Already tracked with unexpired timer — don't update timestamp
                 if (_collected.ContainsKey(hash))
@@ -960,7 +998,99 @@ namespace ProjectX.Master.Modules.LootRespawn
             catch { return false; }
         }
 
-        // ── Persistence ──────────────────────────────────────────────
+        /// <summary>
+        /// Returns true if running as a dedicated server (headless).
+        /// On a dedicated server, clients must report collections to us.
+        /// </summary>
+        private static bool IsDedicatedServer()
+        {
+            try
+            {
+                return BoltNetwork.isRunning && BoltNetwork.isServer;
+            }
+            catch { return false; }
+        }
+
+        // ── Remote Loot Reports (Server receives from clients) ───────
+
+        /// <summary>
+        /// [Server] Called when a client reports collecting a pickup.
+        /// Records the pickup in the server's tracker and persists.
+        /// </summary>
+        public static void OnRemoteLootCollected(string hash, int itemId)
+        {
+            if (string.IsNullOrEmpty(hash)) return;
+            if (!RespawnConfig.Enabled) return;
+            if (!RespawnConfig.ShouldTrackItem(itemId)) return;
+
+            long timestamp = GetGameTimestamp();
+            _collected[hash] = new LootData(hash, timestamp, itemId);
+            _dirty = true;
+
+            RLog.Msg($"[LootRespawn] ★ Server recorded remote COLLECT: itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count}");
+        }
+
+        /// <summary>
+        /// [Server] Called when a client reports breaking a container.
+        /// </summary>
+        public static void OnRemoteContainerBroken(string hash)
+        {
+            if (string.IsNullOrEmpty(hash)) return;
+            if (!RespawnConfig.Enabled) return;
+            if (!RespawnConfig.TrackBreakables) return;
+
+            // Idempotent — don't update timestamp if already tracked
+            if (_collected.ContainsKey(hash)) return;
+
+            long timestamp = GetGameTimestamp();
+            _collected[hash] = new LootData(hash, timestamp, RespawnConfig.BreakableId);
+            _dirty = true;
+
+            RLog.Msg($"[LootRespawn] ★ Server recorded remote CONTAINER_BREAK: hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count}");
+        }
+
+        /// <summary>
+        /// [Server] Called when a client reports opening a container (GrabBag).
+        /// </summary>
+        public static void OnRemoteContainerOpened(string hash)
+        {
+            if (string.IsNullOrEmpty(hash)) return;
+            if (!RespawnConfig.Enabled) return;
+            if (!RespawnConfig.TrackOpenables) return;
+
+            // Idempotent — don't update timestamp if already tracked
+            if (_collected.ContainsKey(hash)) return;
+
+            long timestamp = GetGameTimestamp();
+            _collected[hash] = new LootData(hash, timestamp, RespawnConfig.OpenableId);
+            _dirty = true;
+
+            RLog.Msg($"[LootRespawn] ★ Server recorded remote CONTAINER_OPEN: hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count}");
+        }
+
+        // ── Server → Client State Sync ──────────────────────────────
+
+        /// <summary>
+        /// [Server] Expose collected entries for LootSyncEvent to serialize.
+        /// </summary>
+        public static List<LootData> GetCollectedEntries()
+        {
+            return new List<LootData>(_collected.Values);
+        }
+
+        /// <summary>
+        /// [Client] Apply the suppression list received from the server.
+        /// Replaces local _collected with server's authoritative data.
+        /// </summary>
+        public static void ApplyServerState(List<(string hash, long timestamp, int itemId)> entries)
+        {
+            _collected.Clear();
+            foreach (var (hash, timestamp, itemId) in entries)
+            {
+                _collected[hash] = new LootData(hash, timestamp, itemId);
+            }
+            RLog.Msg($"[LootRespawn] ★ Applied server state: {entries.Count} tracked items");
+        }
 
         private static void SaveToDisk()
         {
@@ -1041,7 +1171,7 @@ namespace ProjectX.Master.Modules.LootRespawn
     /// <summary>
     /// Recorded data for a single collected item.
     /// </summary>
-    internal class LootData
+    public class LootData
     {
         public string Hash;
         public long Timestamp;  // game-time in total seconds

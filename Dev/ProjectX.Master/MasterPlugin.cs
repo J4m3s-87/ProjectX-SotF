@@ -165,6 +165,7 @@ namespace ProjectX.Master
             PermissionEvent.Register();
             AdminCommandEvent.Register();
             ConfigSyncEvent.Register();
+            LootSyncEvent.Register();
             IntegrityConfig.Init();
             IntegrityEvent.Register();
             
@@ -257,6 +258,9 @@ namespace ProjectX.Master
             try { ConfigSyncEvent.Register(); } 
             catch (Exception ex) { LoggerInstance.Error($"[Server] ConfigSyncEvent init failed: {ex.Message}"); }
             
+            try { LootSyncEvent.Register(); } 
+            catch (Exception ex) { LoggerInstance.Error($"[Server] LootSyncEvent init failed: {ex.Message}"); }
+            
             try { IntegrityConfig.Init(); IntegrityEvent.Register(); } 
             catch (Exception ex) { LoggerInstance.Error($"[Server] IntegrityEvent init failed: {ex.Message}"); }
             
@@ -338,7 +342,8 @@ namespace ProjectX.Master
                 {
                     PermissionEvent.Instance?.RequestPermissions();
                     ConfigSyncEvent.Instance?.RequestConfig();
-                    LoggerInstance.Msg("[Client] Sent config + permission requests to server (deferred)");
+                    LootSyncEvent.Instance?.RequestState();
+                    LoggerInstance.Msg("[Client] Sent config + permission + loot state requests to server (deferred)");
                 }
                 catch (Exception ex)
                 {

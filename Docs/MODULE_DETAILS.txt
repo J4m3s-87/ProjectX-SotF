@@ -670,7 +670,7 @@ INTERNAL MECHANICS:
 - Re-queues raids when config changes (MustRequeueRaids flag)
 
 ================================================================================
-                         11. LOOT RESPAWN MODULE
+                         11. LOOT RESPAWN MODULE  *** UPDATED ***
 ================================================================================
 
 BASED ON: GlaDOS (laserman120) — LootRespawnControl v2
@@ -682,6 +682,12 @@ them to respawn after a configurable number of in-game days. All item types
 are tracked with unique positional identifiers. After the respawn timer
 expires, items re-appear and containers reset when the area reloads.
 
+*** NEW: SERVER-AUTHORITATIVE TRACKING (March 08, 2026) ***
+On dedicated servers, clients report loot collections to the server via a
+Bolt NetEvent (LootSyncEvent). The server maintains the central tracker for
+ALL players and persists to disk. When new players join, the server sends
+the full suppression list so they see a consistent world state.
+
 KEY DIFFERENCES FROM ORIGINAL:
 - Integer hash for pickups (original uses MD5 — bottleneck with 600+ Awake calls)
 - Standalone JSON persistence (original uses game save system ICustomSaveable)
@@ -690,6 +696,8 @@ KEY DIFFERENCES FROM ORIGINAL:
 - 2 config options vs original's 50+ (per-category allow/block/timed/sync)
 - Container respawn (openable + breakable + GrabBag) is ENTIRELY NEW —
   the original mod only handles ground pickups, not containers
+- Server-authoritative tracking via LootSyncEvent is ENTIRELY NEW —
+  the original mod has no multiplayer/server support
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ HOW TO USE                                                                   │
@@ -709,6 +717,14 @@ KEY DIFFERENCES FROM ORIGINAL:
 │ 2. The mod records WHAT you took and WHERE (via positional hash)           │
 │ 3. After the configured number of in-game days, the item can respawn       │
 │ 4. On next world load, items past their timer re-appear in the world       │
+│                                                                              │
+│ HOW IT WORKS (Dedicated Server):                                             │
+│ 1. ANY player picks up an item → client reports to server via LootSyncEvent│
+│ 2. Server records the hash + timestamp + item ID in central tracker        │
+│ 3. Server persists tracker to loot_collected.dat on disk                    │
+│ 4. When a new player joins, server sends the full suppression list         │
+│ 5. Client applies list locally — already-collected items are hidden        │
+│ 6. Respawn timer works the same — based on server game time                │
 │                                                                              │
 │ SUPPORTED ITEM TYPES:                                                        │
 │ • Ground pickups (food, meds, ammo, materials, rope, etc.)                  │
@@ -759,7 +775,11 @@ Openable Containers:
 - Harmony PREFIX on ContainerItemSpawner.OpenContainer(): Blocks streaming
   replays (spawnItems=false) for expired entries in _collected
 - Harmony POSTFIX on ContainerItemSpawner.OpenContainer(): Records fresh
-  opens during gameplay when spawnItems=false
+  opens during gameplay
+  • LOCAL PLAY: tracks spawnItems=False call (player opened signal)
+  • DEDICATED SERVER: tracks spawnItems=True + contentsSeed>0 + saveDataLoaded
+    (On servers, OpenContainer always fires with spawnItems=True for player opens.
+     The spawnItems=False calls only happen during deserialization/streaming.)
 - Does NOT call ClearStateSync (breaks container interaction)
 
 Breakable Containers:
@@ -769,13 +789,46 @@ Breakable Containers:
 - ClearContainerSaveState(): Finds child ContainerItemSpawner, calls
   ClearStateSync() + set__isOpen(false) for fresh loot contentsSeed
 - _breakableLoadFrame dictionary tracks frame count per breakable hash
+- OnBreak fires on the dedicated server (via Harmony) — server records directly
 
 Shared:
 - Timer: RespawnDays × 1440 seconds (1 in-game day ≈ 1440 seconds)
 - _collected entries persist permanently (never removed — needed for PREFIX)
 - _recentlyRespawned HashSet prevents re-recording during streaming
 - Manual Harmony patching (HarmonyPatchAll=false for IL2CPP safety)
-- Runs on all deployment tiers (Solo, Owner, Server, Client)
+- Runs on all deployment tiers (Owner, Server, Client)
+
+Dedicated Server Lifecycle Fix (Phase 344):
+  On dedicated servers, OnSdkInitialized does NOT fire, so Init() runs inside
+  OnGameStart() — AFTER OnGameStarted() has already set _saveDataLoaded=true.
+  Init() unconditionally reset _saveDataLoaded=false, breaking all tracking.
+  Fix: Init() preserves _saveDataLoaded if already true. OnSceneInit() also
+  skips reset if _saveDataLoaded is already true (prevents post-game scene
+  inits from resetting the tracker).
+
+Dual-Path Architecture (March 08, 2026):
+  All 4 collection callbacks use a runtime branch:
+  - BoltNetwork.isServer or !BoltNetwork.isRunning → record locally (existing)
+  - BoltNetwork.isClient → report to server via LootSyncEvent (NEW)
+  Local host behavior is IDENTICAL to before — the new code path only
+  activates when running as a client on a dedicated server.
+
+Server-Authoritative Network Sync (LootSyncEvent.cs):
+- Bolt NetEvent (Packets.NetEvent subclass), ID: "ProjectX.LootSync"
+- Protocol:
+  ┌──────┬────────────────┬───────────────────────────────────────┐
+  │ Byte │ Direction      │ Meaning                                │
+  ├──────┼────────────────┼───────────────────────────────────────┤
+  │ 0x01 │ Client→Server  │ Report pickup collected (hash+itemId) │
+  │ 0x02 │ Client→Server  │ Report container broken (hash)         │
+  │ 0x03 │ Client→Server  │ Report container opened (hash)         │
+  │ 0x10 │ Client→Server  │ Request full suppression list           │
+  │ 0x20 │ Server→Client  │ Full suppression list (all entries)    │
+  └──────┴────────────────┴───────────────────────────────────────┘
+- Server handlers: OnRemoteLootCollected, OnRemoteContainerBroken,
+  OnRemoteContainerOpened — validate, apply per-category filters, record
+- Client requests state on join (alongside ConfigSync + Permission requests)
+- Modeled after ConfigSyncEvent pattern (same architecture)
 
 ================================================================================
                        12. DEDICATED SUPERUSER MODULE

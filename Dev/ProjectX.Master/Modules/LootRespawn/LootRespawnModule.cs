@@ -116,7 +116,11 @@ namespace ProjectX.Master.Modules.LootRespawn
                 }
 
                 // Start with save data NOT loaded — items will queue until OnGameStarted
-                _saveDataLoaded = false;
+                // IMPORTANT: On dedicated servers, Init() may run AFTER OnGameStarted()
+                // (because OnSdkInitialized doesn't fire on headless servers).
+                // Don't reset if OnGameStarted() already set it to true.
+                if (!_saveDataLoaded)
+                    _saveDataLoaded = false;
 
                 // Load persisted data
                 LoadFromDisk();
@@ -177,6 +181,25 @@ namespace ProjectX.Master.Modules.LootRespawn
                         _setIsOpenMethod = AccessTools.Method(containerType, "set__isOpen");
                         _toggleIconMethod = AccessTools.Method(containerType, "ToggleIcon");
                         RLog.Msg($"[LootRespawn] Reset methods: ClearStateSync={(_clearStateSyncMethod != null ? "✅" : "❌")} set_isOpen={(_setIsOpenMethod != null ? "✅" : "❌")} ToggleIcon={(_toggleIconMethod != null ? "✅" : "❌")}");
+
+                        // Patch ContainerItemSpawner.Start to proactively set visual state
+                        // On dedicated servers, containers lose their opened state on restart.
+                        // This hook marks tracked containers as opened when they stream in.
+                        try
+                        {
+                            var startMethod = AccessTools.Method(containerType, "Start");
+                            if (startMethod != null)
+                            {
+                                var startPostfix = new HarmonyMethod(AccessTools.Method(typeof(LootRespawnModule), nameof(OnContainerItemSpawnerStart)));
+                                _harmony.Patch(startMethod, postfix: startPostfix);
+                                RLog.Msg($"[LootRespawn] Harmony POSTFIX on {containerType.FullName}.Start — PATCHED OK (proactive visual state)");
+                            }
+                            else
+                            {
+                                RLog.Warning("[LootRespawn] ContainerItemSpawner.Start not found — proactive visual state disabled");
+                            }
+                        }
+                        catch (Exception ex) { RLog.Warning($"[LootRespawn] ContainerItemSpawner.Start patch FAILED: {ex.Message}"); }
                     }
                     else
                     {
@@ -224,6 +247,11 @@ namespace ProjectX.Master.Modules.LootRespawn
         /// </summary>
         public static void OnSceneInit()
         {
+            // On dedicated servers, OnSonsSceneInitialized fires AFTER OnGameStart.
+            // If _saveDataLoaded is already true, don't reset — the game is active.
+            if (_saveDataLoaded)
+                return;
+
             _saveDataLoaded = false;
             _pendingPickups.Clear();
             _pendingContainers.Clear();
@@ -778,18 +806,31 @@ namespace ProjectX.Master.Modules.LootRespawn
 
         /// <summary>
         /// Harmony PREFIX for ContainerItemSpawner.OpenContainer.
-        /// Blocks the game from replaying the "opened" state during deserialization/streaming
-        /// when the container's respawn timer has expired.
-        /// IMPORTANT: Does NOT remove from _collected — entry persists so PREFIX
-        /// can block on every subsequent load until the player re-opens the container.
+        /// Blocks the game from re-opening tracked containers until the respawn
+        /// timer expires. On dedicated servers, containers lose their "opened" state
+        /// on restart, so this PREFIX actively suppresses re-looting.
+        /// 
+        /// LOGIC:
+        ///  - Tracked + timer NOT expired → BLOCK (suppress — prevent re-looting)
+        ///  - Tracked + timer EXPIRED     → BLOCK (respawn — container appears fresh)
+        ///  - Not tracked                 → ALLOW (normal open)
         /// </summary>
         internal static bool OnOpenContainerPrefix(object __instance, bool spawnItems, int contentsSeed)
         {
             try
             {
-                if (spawnItems) return true; // let content-spawn calls through
                 if (!RespawnConfig.Enabled) return true;
                 if (IsMultiplayerClient()) return true;
+
+                // ── DEDICATED SERVER FIX ──
+                // On local play, spawnItems=True means content-spawn (let through).
+                // On dedicated servers, spawnItems=True for BOTH player opens AND
+                // streaming replays — we must NOT skip on spawnItems=True.
+                if (!IsDedicatedServer())
+                {
+                    if (spawnItems) return true; // local: let content-spawn calls through
+                }
+
                 if (!RespawnConfig.TrackOpenables) return false; // category disabled — block replay so container respawns (vanilla behavior)
 
                 string objName = "unknown";
@@ -801,25 +842,78 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // If already respawned this session, block streaming replays too
                 if (_recentlyRespawned.Contains(hash))
                 {
-                    RLog.Msg($"[LootRespawn] ★ BLOCKED OpenContainer (recently respawned): {objName}");
                     return false;
                 }
 
-                // Check if this container is tracked and timer has expired
-                if (_collected.TryGetValue(hash, out var data) && HasEnoughTimePassed(data.Timestamp))
+                // Check if this container is tracked
+                if (_collected.TryGetValue(hash, out var data))
                 {
-                    // Timer expired — block the open call so the container stays closed/full
-                    // DO NOT remove from _collected — keeps the entry so we block on future loads
-                    _recentlyRespawned.Add(hash);
-                    RLog.Msg($"[LootRespawn] ★ BLOCKED OpenContainer (timer expired, respawning): {objName}");
-                    return false; // skip original method
+                    if (HasEnoughTimePassed(data.Timestamp))
+                    {
+                        // Timer EXPIRED — block so container appears fresh/re-lootable
+                        _recentlyRespawned.Add(hash);
+                        _respawnedCount++;
+                        RLog.Msg($"[LootRespawn] ★ RESPAWNED OpenContainer (timer expired): {objName}");
+                        return false;
+                    }
+                    else
+                    {
+                        // Timer NOT expired — suppress re-looting
+                        // Mark container as visually opened so players see it's empty
+                        try
+                        {
+                            _setIsOpenMethod?.Invoke(__instance, new object[] { true });
+                            _toggleIconMethod?.Invoke(__instance, new object[] { false });
+                        }
+                        catch { /* non-critical visual state */ }
+                        _suppressedCount++;
+                        RLog.Msg($"[LootRespawn] ★ SUPPRESSED OpenContainer (timer pending): {objName}");
+                        return false;
+                    }
                 }
             }
             catch (Exception ex)
             {
                 RLog.Warning($"[LootRespawn] OpenContainer prefix error: {ex.Message}");
             }
-            return true; // run original method
+            return true; // not tracked — normal open
+        }
+
+        /// <summary>
+        /// Harmony POSTFIX on ContainerItemSpawner.Start.
+        /// Proactively marks tracked containers as opened when they stream into the world.
+        /// On dedicated servers, the game does NOT replay OpenContainer during streaming,
+        /// so containers appear fresh/closed. This hook fixes the visual state.
+        /// </summary>
+        internal static void OnContainerItemSpawnerStart(object __instance)
+        {
+            try
+            {
+                if (!RespawnConfig.Enabled) return;
+                if (!RespawnConfig.TrackOpenables) return;
+
+                string objName = "unknown";
+                if (__instance is UnityEngine.Component comp)
+                    objName = comp.name ?? "null";
+
+                string hash = $"name:{objName}";
+
+                // If tracked with unexpired timer, mark as visually opened
+                if (_collected.TryGetValue(hash, out var data) && !HasEnoughTimePassed(data.Timestamp))
+                {
+                    try
+                    {
+                        _setIsOpenMethod?.Invoke(__instance, new object[] { true });
+                        _toggleIconMethod?.Invoke(__instance, new object[] { false });
+                    }
+                    catch { /* non-critical */ }
+                    RLog.Msg($"[LootRespawn] ★ VISUAL STATE: marked as opened on Start: {objName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[LootRespawn] ContainerItemSpawner.Start postfix error: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -836,12 +930,25 @@ namespace ProjectX.Master.Modules.LootRespawn
                 if (__instance is UnityEngine.Component comp)
                     objName = comp.name ?? "null";
 
-                // DIAGNOSTIC: always log
-                RLog.Msg($"[LootRespawn] ★ ContainerItemSpawner.OpenContainer: spawnItems={spawnItems}, contentsSeed={contentsSeed}, obj={objName}");
-
                 if (!RespawnConfig.Enabled) return;
                 if (!RespawnConfig.TrackOpenables) return; // category disabled
-                if (spawnItems) return; // only track the initial open call
+
+                // ── DEDICATED SERVER FIX ──
+                // On dedicated servers, OpenContainer fires with spawnItems=True when
+                // a player opens a container. The spawnItems=False call happens during
+                // deserialization/streaming but gets skipped by _saveDataLoaded below.
+                // On local play, spawnItems=False is the "player opened" signal.
+                if (IsDedicatedServer())
+                {
+                    // Server: track when spawnItems=True AND contentsSeed > 0 (real open)
+                    // AND save is loaded (not during streaming)
+                    if (!spawnItems || contentsSeed <= 0 || !_saveDataLoaded) return;
+                }
+                else
+                {
+                    // Local/solo: track the initial spawnItems=False call
+                    if (spawnItems) return;
+                }
 
                 string hash = $"name:{objName}";
 

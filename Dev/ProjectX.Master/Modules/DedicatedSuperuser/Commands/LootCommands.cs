@@ -72,7 +72,7 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
         private static void Log(string msg)
         {
             // Send to all connected players' chat AND server log
-            ChatResponse.Send(msg);
+            ChatResponse.SendLine(msg);
         }
     }
 }

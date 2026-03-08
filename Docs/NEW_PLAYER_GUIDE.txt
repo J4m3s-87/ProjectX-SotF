@@ -130,6 +130,12 @@ If the waterfalls are deafening your base:
 - Timers are configured by the server (e.g., common items every 1 day, rare items every 7 days)
 - The world won't feel permanently looted — exploration stays rewarding
 
+**On a Dedicated Server:**
+- When **any player** collects loot, it's reported to the server and tracked centrally
+- The server manages respawn timers for **all** players — no loot desyncs
+- When you join mid-session, the server sends you the current world state so already-looted items stay hidden until their timer expires
+- Admin can check tracking status with `/px loot status`, reset all timers with `/px loot reset`, or toggle the feature with `/px loot toggle`
+
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
 
 ## 🪵 Builder Stacks (Carry More Materials)

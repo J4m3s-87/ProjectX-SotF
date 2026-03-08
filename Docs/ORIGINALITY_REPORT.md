@@ -4,7 +4,7 @@
 
 ## Overview
 
-Project X is a unified modding suite for Sons of the Forest, combining the functionality of 20+ standalone mods into a single package with dedicated server support. It is **72 source files totalling over 760KB of custom C# code**, representing over 200 development phases.
+Project X is a unified modding suite for Sons of the Forest, combining the functionality of 20+ standalone mods into a single package with dedicated server support. It is **73 source files totalling over 770KB of custom C# code**, representing over 200 development phases.
 
 This document provides a transparent account of what was built, what was studied, how each module relates to existing mods, and where the implementations diverge.
 
@@ -42,6 +42,7 @@ These modules exist only in Project X — there was nothing to study or referenc
 | **Integrity / Anti-Cheat** (IntegrityEvent + IntegrityConfig)          | **40.6KB**  | 2     | Server-side cheat detection and validation                                            |
 | **Permission System** (PermissionEvent + PermissionSync + RoleManager) | **15.5KB**  | 3     | Role-based access control (Owner / Admin / Player) synced via Bolt                    |
 | **Config Sync** (ConfigSyncEvent + ConfigSyncPayload)                  | **14.9KB**  | 2     | Real-time server-to-client config broadcast — live economy control                    |
+| **Loot Sync** (LootSyncEvent)                                          | **10.5KB**  | 1     | Server-authoritative loot tracking — client→server collection reports via Bolt        |
 | **Admin Command Bridge** (AdminCommandEvent + CommandBridge)           | **20.3KB**  | 2     | Remote `/px` commands via hybrid Bolt/ChatBox protocol                                |
 | **Building Enhancements** (BuilderEnhancements)                        | **26.9KB**  | 1     | Custom building tools with correct API discovery and server-side support              |
 | **Player Module** (PlayerModule + Actions)                             | **5.2KB**   | 1     | Player controls (Max Strength, vanilla speed capture for reset), companion management |
@@ -68,7 +69,7 @@ Each module below was _studied_ from an existing mod to understand the concept a
 | **Stack**               | 14.9KB (1 file)    | ~4KB                                                                            | **3.7× larger**  | Per-item configs across 14 categories, reset-to-defaults, tier guards                                                                                                        |
 | **StructureDurability** | 11.7KB (1 file)    | ~4KB                                                                            | **2.9× larger**  | Base-health tracking, Harmony postfix on `GetStructureInfo()` — direct field access stripped by IL2CPP                                                                       |
 | **BuilderStacks**       | 10.8KB (1 file)    | 14.4KB (4 files)                                                                | condensed        | Studied ItemCarryAmount — rebuilt with per-material capacity (logs/planks/stones), independent buffers, vanilla visual stacking preserved, icon-based HUD, text entry config |
-| **LootRespawn**         | 46KB+ (2 files)    | Full C# on [GitHub](https://github.com/laserman120/SOTF-Mod-LootRespawnControl) | **4.4× larger**  | Integer hash replacing MD5 + full container respawn (openable + breakable) with frame-based PREFIX blocking, event ordering fallbacks, and type-dependent ClearStateSync     |
+| **LootRespawn**         | 50KB+ (3 files)    | Full C# on [GitHub](https://github.com/laserman120/SOTF-Mod-LootRespawnControl) | **5× larger**    | Integer hash replacing MD5 + full container respawn (openable + breakable) + server-authoritative tracking via LootSyncEvent (Bolt NetEvent) with client→server reporting    |
 | **AmmoUI**              | 10.1KB (1 file)    | 58.3KB (6 files)                                                                | **5.8× smaller** | Condensed 6-file mod into 1 file with sprite caching and frame throttling                                                                                                    |
 | **Hotbar**              | 8KB (2 files)      | ~3.7KB                                                                          | **2.2× larger**  | Sprite caching, frame throttling, IL2CPP reflection workaround for DummyDll texture casting                                                                                  |
 | **Relocator**           | 5.5KB (1 file)     | ~2KB                                                                            | **2.8× larger**  | Polling + category filter + backup dictionary                                                                                                                                |
@@ -140,12 +141,12 @@ This required **8 iterations** over a single session to solve — each fixing on
 For transparency — features in the original that we intentionally did not include:
 
 - ~~**Per-category granular control**~~ — **Now implemented** (Phase 329): 11 category toggles in native settings (Track Melee, Track Ranged, etc.) wired to `ShouldTrackItem()` filtering
-- **Multiplayer loot sync** — when one player collects, item is removed for all others via custom networking packets
+- ~~**Multiplayer loot sync**~~ — **Now implemented** (March 08, 2026): Server-authoritative tracking via `LootSyncEvent` (Bolt NetEvent). Clients report collections; server maintains central tracker and sends suppression lists to joining players. Uses a different protocol than the original (binary Bolt packets vs custom networking)
 - **Custom whitelist/blacklist** — item ID-based allow/block lists configurable in-game
 - **`LootIdentifier` MonoBehaviour** — `RegisterTypeInIl2Cpp` component injected on each pickup (we use a simpler instance-ID cache)
 - **SUI settings panel** — dedicated in-game settings UI (we use native settings integration)
 
-Our multiplayer sync architecture uses different patterns (command bridge, config sync events) rather than per-pickup networking.
+Our multiplayer sync architecture uses Bolt NetEvent binary packets (same pattern as ConfigSyncEvent, PermissionEvent, AdminCommandEvent) rather than per-pickup networking.
 
 ## Licensing
 
@@ -188,5 +189,5 @@ Full attribution is maintained in [`CREDITS.md`](CREDITS.md).
 ---
 
 _Project X — by J4m3s & Claude_
-_72 source files • 760KB+ custom code • 200+ development phases_
+_73 source files • 770KB+ custom code • 200+ development phases_
 _March 2026_

@@ -405,6 +405,7 @@ namespace ProjectX.Master
             try { ConfigSyncPayload.Update(); } catch { }
             try { IntegrityEvent.CheckTimeouts(); } catch { }
             try { Modules.ScaryCross.ScaryCrossModule.ServerTick(); } catch { }
+            try { Modules.LootRespawn.LootRespawnModule.OnUpdate(); } catch { }
             
             // InstantBookBuild: auto-complete blueprints every 0.5s via finishblueprints
             try

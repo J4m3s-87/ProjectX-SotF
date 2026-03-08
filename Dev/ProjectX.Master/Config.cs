@@ -1353,7 +1353,7 @@ namespace ProjectX.Master
             // Audio Control
             WaterfallVolume = FeaturesCategory.CreateEntry<float>("WaterfallVolume", 1.0f, "Waterfall Volume", "Volume multiplier for waterfalls (0 = mute, 3 = loud)");
             WaterfallVolume.SetRange(0f, 3f);
-#if !SERVER
+#if !SERVER && !CLIENT
             WaterfallVolume.OnValueChanged.Subscribe((oldVal, newVal) => {
                 Modules.Audio.AudioControl.WaterfallVolume = newVal;
             });

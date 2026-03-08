@@ -91,8 +91,10 @@ namespace ProjectX.Master
             // 4a. AmmoUI (client only)
             Modules.AmmoUI.AmmoUiModule.Init();
             
-            // 4c. AudioControl (client only — Harmony tracking for waterfall volume)
+#if !CLIENT
+            // 4c. AudioControl (owner/solo only — Harmony tracking for waterfall volume)
             Modules.Audio.AudioControl.Init();
+#endif
             
             // 4b. BuilderStacks (client only — extra log/plank/stone carrying)
             Modules.BuilderStacks.BuilderStacksModule.Init();

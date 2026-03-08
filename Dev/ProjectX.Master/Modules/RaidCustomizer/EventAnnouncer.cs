@@ -73,7 +73,7 @@ namespace ProjectX.Master.Modules.RaidCustomizer
             
             _lastSoundPlayedTime = Time.time;
             
-#if !SERVER
+#if !SERVER && !CLIENT
             try
             {
                 // Cache the PlayOneshot method on first call — IL2CPP signature differs from decompiled source

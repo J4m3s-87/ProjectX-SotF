@@ -110,6 +110,9 @@ namespace ProjectX.Master.Modules.UI
             RLog.Msg("[ProjectXGUI] Client build: menu disabled (server-authoritative)");
             return;
 #endif
+            // Don't open mod menu when the game's Esc/pause menu is active
+            if (Sons.Gui.PauseMenu.IsActive) return;
+            
             _showMenu = !_showMenu;
             
             // Use SonsTools.MenuMode for proper input blocking (same as SUI panels)

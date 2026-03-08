@@ -721,10 +721,14 @@ KEY DIFFERENCES FROM ORIGINAL:
 │ HOW IT WORKS (Dedicated Server):                                             │
 │ 1. ANY player picks up an item → client reports to server via LootSyncEvent│
 │ 2. Server records the hash + timestamp + item ID in central tracker        │
-│ 3. Server persists tracker to loot_collected.dat on disk                    │
-│ 4. When a new player joins, server sends the full suppression list         │
-│ 5. Client applies list locally — already-collected items are hidden        │
-│ 6. Respawn timer works the same — based on server game time                │
+│ 3. Server persists tracker to loot_collected.dat via ServerTickPostfix      │
+│ 4. On server restart, tracked data loads → containers suppressed:          │
+│    • Openable: marked as visually opened via Start hook (isOpen + icon)    │
+│    • Openable: PREFIX blocks any interaction attempts (belt & braces)      │
+│    • Breakable: destroyed during Awake if timer not expired                │
+│    • Pickups: destroyed during Awake if timer not expired                  │
+│ 5. When timer expires, containers/items respawn fresh on next load         │
+│ 6. Use /px loot status to check: Tracked, Suppressed, Respawned counts    │
 │                                                                              │
 │ SUPPORTED ITEM TYPES:                                                        │
 │ • Ground pickups (food, meds, ammo, materials, rope, etc.)                  │
@@ -737,6 +741,7 @@ KEY DIFFERENCES FROM ORIGINAL:
 │ • Breakable containers spawn with fresh loot on each respawn cycle         │
 │ • 1 in-game day ≈ 24 real minutes (default cycle)                          │
 │ • At default 3-day respawn: items return after ~72 real minutes             │
+│ • Suppressed containers look opened/empty — no player confusion            │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 CONFIG OPTIONS:

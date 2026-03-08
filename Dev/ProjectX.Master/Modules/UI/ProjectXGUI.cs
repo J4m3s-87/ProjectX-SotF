@@ -48,6 +48,12 @@ namespace ProjectX.Master.Modules.UI
         private bool _noForestActive = false;
         private string _activeSeason = "";
         
+        // Console commands state
+        private string _activeDifficulty = "";
+        private bool _noAiDetection = false;
+        private bool _hordeModeActive = false;
+        private string _dayInput = "1";
+        
         // Teleport locations (matches Axel's)
         private static readonly Dictionary<string, Vector3> TeleportLocations = new Dictionary<string, Vector3>
         {
@@ -563,6 +569,21 @@ namespace ProjectX.Master.Modules.UI
                 }
             }
             
+            DrawDivider("SET DAY");
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Day:", ProjectXStyles.NormalLabel, GUILayout.Width(50));
+            _dayInput = GUILayout.TextField(_dayInput, ProjectXStyles.InputField, GUILayout.Width(80));
+            if (GUILayout.Button("Set", ProjectXStyles.Button, GUILayout.Width(60)))
+            {
+                if (int.TryParse(_dayInput, out int day) && day > 0)
+                {
+                    DebugConsole.Instance.SendCommand($"setday {day}");
+                    RLog.Msg($"[GUI] Set day to {day}");
+                }
+            }
+            GUILayout.EndHorizontal();
+            
             DrawDivider("LOOT RESPAWN");
             
             // Enable toggle
@@ -586,6 +607,21 @@ namespace ProjectX.Master.Modules.UI
             
             // Status display
             GUILayout.Label(Modules.LootRespawn.LootRespawnModule.GetStatus(), ProjectXStyles.NormalLabel);
+            
+            DrawDivider("WORLD RESET");
+            
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Regen World Items", ProjectXStyles.Button, GUILayout.Height(45)))
+            {
+                DebugConsole.Instance.SendCommand("regenworlditems");
+                RLog.Msg("[GUI] regenworlditems");
+            }
+            if (GUILayout.Button("Regen Game (Full)", ProjectXStyles.Button, GUILayout.Height(45)))
+            {
+                DebugConsole.Instance.SendCommand("regengame");
+                RLog.Msg("[GUI] regengame");
+            }
+            GUILayout.EndHorizontal();
         }
         
         private void DrawTeleportPanel()
@@ -981,6 +1017,61 @@ namespace ProjectX.Master.Modules.UI
                 RaidCustomizer.RaidActions.PrintQueuedRaids();
             }
             GUILayout.EndHorizontal();
+            
+            DrawDivider("DIFFICULTY MODE");
+            
+            float colWR = (PANEL_WIDTH - 60f) / 2f;
+            GUILayout.BeginHorizontal();
+            bool isPeaceful = _activeDifficulty == "peaceful";
+            if (GUILayout.Toggle(isPeaceful, "  Peaceful", ProjectXStyles.Toggle, GUILayout.Width(colWR)) && !isPeaceful)
+            { _activeDifficulty = "peaceful"; SetDifficulty("peaceful"); }
+            bool isNormal = _activeDifficulty == "normal";
+            if (GUILayout.Toggle(isNormal, "  Normal", ProjectXStyles.Toggle, GUILayout.Width(colWR)) && !isNormal)
+            { _activeDifficulty = "normal"; SetDifficulty("normal"); }
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            bool isHard = _activeDifficulty == "hard";
+            if (GUILayout.Toggle(isHard, "  Hard", ProjectXStyles.Toggle, GUILayout.Width(colWR)) && !isHard)
+            { _activeDifficulty = "hard"; SetDifficulty("hard"); }
+            bool isHardSurv = _activeDifficulty == "hardsurvival";
+            if (GUILayout.Toggle(isHardSurv, "  Hard Survival", ProjectXStyles.Toggle, GUILayout.Width(colWR)) && !isHardSurv)
+            { _activeDifficulty = "hardsurvival"; SetDifficulty("hardsurvival"); }
+            GUILayout.EndHorizontal();
+            
+            DrawDivider("AI AWARENESS");
+            
+            GUILayout.BeginHorizontal();
+            bool newNoDetect = GUILayout.Toggle(_noAiDetection, "  No AI Detection", ProjectXStyles.Toggle, GUILayout.Width(colWR));
+            if (newNoDetect != _noAiDetection)
+            {
+                _noAiDetection = newNoDetect;
+                DebugConsole.Instance.SendCommand(_noAiDetection ? "airemoveplayerdetection off" : "airemoveplayerdetection on");
+                RLog.Msg($"[GUI] AI Detection: {(_noAiDetection ? "OFF" : "ON")}");
+            }
+            bool newHorde = GUILayout.Toggle(_hordeModeActive, "  Horde Mode (All Hunt You)", ProjectXStyles.Toggle, GUILayout.Width(colWR));
+            if (newHorde != _hordeModeActive)
+            {
+                _hordeModeActive = newHorde;
+                DebugConsole.Instance.SendCommand(_hordeModeActive ? "aishowplayerlocation on" : "aishowplayerlocation off");
+                RLog.Msg($"[GUI] Horde Mode: {(_hordeModeActive ? "ON" : "OFF")}");
+            }
+            GUILayout.EndHorizontal();
+        }
+        
+        private void SetDifficulty(string mode)
+        {
+            try
+            {
+                DebugConsole.Instance.SendCommand($"setdifficultymode {mode}");
+                // Flush old NPC stats — already-spawned enemies keep old difficulty values
+                DebugConsole.Instance.SendCommand("removedead");
+                RLog.Msg($"[GUI] Difficulty → {mode} (removedead auto-run)");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[GUI] SetDifficulty failed: {ex.Message}");
+            }
         }
         
         /// <summary>

@@ -7,7 +7,7 @@ This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
-Last Updated: March 07, 2026
+Last Updated: March 08, 2026
 
 ================================================================================
                                 TABLE OF CONTENTS
@@ -48,6 +48,7 @@ Provides player quality-of-life features including teleportation of companions.
 │ HOW TO USE                                                                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ 1. Open the Project X menu (default: Insert key)                            │
+│    NOTE: Menu is blocked when the Esc pause menu is open.                    │
 │ 2. Navigate to the "Player" tab                                             │
 │ 3. Toggle cheats on/off:                                                    │
 │    • God Mode - Makes you invulnerable to all damage                        │
@@ -972,6 +973,10 @@ INTERNAL MECHANICS:
 - BroadcastMessageModule handles Discord webhook/bot communication
 - InGameChat handles the in-game chat overlay
 - Client-only module (#if !SERVER)
+- ProtectFromReset removed (March 2026) — Discord config entries are
+  in their own category, so native "Reset to Default" cannot wipe them.
+  The old ProtectFromReset caused infinite recursion crashes via
+  OnValueChanged re-entrancy.
 
 ================================================================================
                      17. GUI LAYOUT & MENU SYSTEM
@@ -986,6 +991,8 @@ Uses Unity IMGUI (not SUI) for IL2CPP stability.
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ OPENING THE MENU:                                                            │
 │ Press the Insert key (configurable in Settings → Mods → ProjectX - Keys)    │
+│ NOTE: The Insert key is BLOCKED when the Esc pause menu is active.           │
+│ This prevents the mod menu overlapping with the native pause menu.           │
 │                                                                              │
 │ TABS (7 total):                                                              │
 │ 1. Player      - Cheats (god mode, inf stamina, max strength, etc.),        │
@@ -999,7 +1006,7 @@ Uses Unity IMGUI (not SUI) for IL2CPP stability.
 │                   HP multiplier sliders, stat override toggle               │
 │ 4. Building+    - Module toggles (Relocator, Durability, etc.)              │
 │ 5. Raids        - X Raids scheduling, enemy types, stat multipliers,        │
-│                   raid announcements                                         │
+│                   raid announcements, AI aggression slider (aiangerlevel)   │
 │ 6. Server Admin - Admin commands for dedicated server control               │
 │ 7. Server Raids - Server-side raid configuration                            │
 │                                                                              │

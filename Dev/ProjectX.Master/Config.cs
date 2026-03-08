@@ -1727,8 +1727,11 @@ namespace ProjectX.Master
         private static void ProtectFromReset(ConfigEntry<string> entry)
         {
             string lastKnownValue = entry.Value;
+            bool restoring = false; // re-entrancy guard — setting Value fires OnValueChanged again
             entry.OnValueChanged.Subscribe((oldVal, newVal) =>
             {
+                if (restoring) return;
+                
                 // Track the latest non-empty value
                 if (!string.IsNullOrEmpty(oldVal))
                     lastKnownValue = oldVal;
@@ -1737,7 +1740,9 @@ namespace ProjectX.Master
                 if (!string.IsNullOrEmpty(lastKnownValue) && string.IsNullOrEmpty(newVal))
                 {
                     RLog.Warning($"[Config] {entry.Identifier} reset to empty — restoring previous value");
+                    restoring = true;
                     entry.Value = lastKnownValue;
+                    restoring = false;
                 }
             });
         }

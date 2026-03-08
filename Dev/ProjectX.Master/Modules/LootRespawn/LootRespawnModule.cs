@@ -210,6 +210,13 @@ namespace ProjectX.Master.Modules.LootRespawn
 
                 _initialized = true;
                 RLog.Msg($"[LootRespawn] ★ Initialized — {_collected.Count} tracked items loaded, days={RespawnConfig.RespawnDays}");
+
+                // Server-only: register debugCommand listener for C→S loot reports
+                if (!IsMultiplayerClient())
+                {
+                    LootEventListener.Create();
+                }
+
             }
             catch (Exception ex)
             {
@@ -511,9 +518,19 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // ── DUAL-PATH: local host records directly; dedicated server clients report to server ──
                 if (IsMultiplayerClient())
                 {
-                    // CLIENT on dedicated server → report to server
-                    Network.LootSyncEvent.Instance?.ReportCollected(hash, itemId);
-                    RLog.Msg($"[LootRespawn] Reported pickup to server: {objName} (itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…)");
+                    // CLIENT on dedicated server → report via debugCommand Bolt event (proven C→S)
+                    try
+                    {
+                        var cmd = debugCommand.Raise(Bolt.GlobalTargets.Everyone);
+                        cmd.input = "px:loot:collect";
+                        cmd.input2 = $"{hash}:{itemId}";
+                        cmd.Send();
+                        RLog.Msg($"[LootRespawn] Sent pickup via debugCommand: {objName} (itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…)");
+                    }
+                    catch (Exception ex)
+                    {
+                        RLog.Warning($"[LootRespawn] debugCommand send failed: {ex.Message}");
+                    }
                     return;
                 }
 
@@ -529,6 +546,20 @@ namespace ProjectX.Master.Modules.LootRespawn
                 if (Time.frameCount % 600 == 0)
                     RLog.Warning($"[LootRespawn] Collect error: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// [Server] Record a pickup collected by a remote client (called from LootEventListener).
+        /// </summary>
+        internal static void RecordPickupFromClient(string hash, int itemId)
+        {
+            if (string.IsNullOrEmpty(hash) || !RespawnConfig.Enabled) return;
+
+            long timestamp = GetGameTimestamp();
+            _collected[hash] = new LootData(hash, timestamp, itemId);
+            _dirty = true;
+
+            RLog.Msg($"[LootRespawn] ★ Received C→S pickup: itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}");
         }
 
         // ── BreakableObject (Container) Callbacks ────────────────────

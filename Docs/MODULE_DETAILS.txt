@@ -683,10 +683,12 @@ are tracked with unique positional identifiers. After the respawn timer
 expires, items re-appear and containers reset when the area reloads.
 
 *** NEW: SERVER-AUTHORITATIVE TRACKING (March 08, 2026) ***
-On dedicated servers, clients report loot collections to the server via a
-Bolt NetEvent (LootSyncEvent). The server maintains the central tracker for
-ALL players and persists to disk. When new players join, the server sends
-the full suppression list so they see a consistent world state.
+On dedicated servers, clients report ground pickup collections to the server
+via Bolt's built-in debugCommand event (silent C→S transport, Pattern #28).
+A server-side LootEventListener (GlobalEventListener) receives and processes
+these events. Container events (break/open) fire server-side directly — no
+C→S transport needed. The server maintains the central tracker for ALL
+players and persists to disk.
 
 KEY DIFFERENCES FROM ORIGINAL:
 - Integer hash for pickups (original uses MD5 — bottleneck with 600+ Awake calls)
@@ -696,7 +698,7 @@ KEY DIFFERENCES FROM ORIGINAL:
 - 2 config options vs original's 50+ (per-category allow/block/timed/sync)
 - Container respawn (openable + breakable + GrabBag) is ENTIRELY NEW —
   the original mod only handles ground pickups, not containers
-- Server-authoritative tracking via LootSyncEvent is ENTIRELY NEW —
+- Server-authoritative tracking via debugCommand C→S is ENTIRELY NEW —
   the original mod has no multiplayer/server support
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -719,10 +721,13 @@ KEY DIFFERENCES FROM ORIGINAL:
 │ 4. On next world load, items past their timer re-appear in the world       │
 │                                                                              │
 │ HOW IT WORKS (Dedicated Server):                                             │
-│ 1. ANY player picks up an item → client reports to server via LootSyncEvent│
-│ 2. Server records the hash + timestamp + item ID in central tracker        │
-│ 3. Server persists tracker to loot_collected.dat via ServerTickPostfix      │
-│ 4. On server restart, tracked data loads → containers suppressed:          │
+│ 1. ANY player picks up a ground item → client sends debugCommand event      │
+│    (input="px:loot:collect", input2="{hash}:{itemId}")                       │
+│ 2. LootEventListener (GlobalEventListener) receives on server               │
+│ 3. Server records hash + timestamp + item ID in central tracker             │
+│ 4. Container events (break/open) fire server-side directly (no C→S needed) │
+│ 5. Server persists tracker to loot_collected.dat via ServerTickPostfix      │
+│ 6. On server restart, tracked data loads → containers suppressed:          │
 │    • Openable: marked as visually opened via Start hook (isOpen + icon)    │
 │    • Openable: PREFIX blocks any interaction attempts (belt & braces)      │
 │    • Breakable: destroyed during Awake if timer not expired                │
@@ -812,28 +817,27 @@ Dedicated Server Lifecycle Fix (Phase 344):
   inits from resetting the tracker).
 
 Dual-Path Architecture (March 08, 2026):
-  All 4 collection callbacks use a runtime branch:
+  Ground pickup collection uses a runtime branch:
   - BoltNetwork.isServer or !BoltNetwork.isRunning → record locally (existing)
-  - BoltNetwork.isClient → report to server via LootSyncEvent (NEW)
-  Local host behavior is IDENTICAL to before — the new code path only
+  - IsMultiplayerClient() → send debugCommand.Raise(GlobalTargets.Everyone)
+    with input="px:loot:collect" and input2="{hash}:{itemId}" (NEW)
+  Container events (OnBreak, OpenContainer) fire server-side directly —
+  no C→S transport needed for these.
+  Local host behavior is IDENTICAL to before — the debugCommand path only
   activates when running as a client on a dedicated server.
 
-Server-Authoritative Network Sync (LootSyncEvent.cs):
-- Bolt NetEvent (Packets.NetEvent subclass), ID: "ProjectX.LootSync"
-- Protocol:
-  ┌──────┬────────────────┬───────────────────────────────────────┐
-  │ Byte │ Direction      │ Meaning                                │
-  ├──────┼────────────────┼───────────────────────────────────────┤
-  │ 0x01 │ Client→Server  │ Report pickup collected (hash+itemId) │
-  │ 0x02 │ Client→Server  │ Report container broken (hash)         │
-  │ 0x03 │ Client→Server  │ Report container opened (hash)         │
-  │ 0x10 │ Client→Server  │ Request full suppression list           │
-  │ 0x20 │ Server→Client  │ Full suppression list (all entries)    │
-  └──────┴────────────────┴───────────────────────────────────────┘
-- Server handlers: OnRemoteLootCollected, OnRemoteContainerBroken,
-  OnRemoteContainerOpened — validate, apply per-category filters, record
-- Client requests state on join (alongside ConfigSync + Permission requests)
-- Modeled after ConfigSyncEvent pattern (same architecture)
+Silent C→S Transport (debugCommand + LootEventListener):
+- Uses Bolt's built-in debugCommand event (from bolt.user.dll)
+- Pattern proven by SimpleNetworkEvents (7,800+ installs), Shops, Banking mods
+- LootEventListener: [RegisterTypeInIl2Cpp] GlobalEventListener subclass
+  • Start() calls BoltNetwork.AddGlobalEventListener() — REQUIRED
+  • OnEvent(debugCommand) override — must NOT have [HideFromIl2Cpp]
+  • Filters by BoltNetwork.isServer + evnt.input == "px:loot:collect"
+  • Parses evnt.input2 as "{hash}:{itemId}" and calls RecordPickupFromClient()
+- Client sends via: debugCommand.Raise(Bolt.GlobalTargets.Everyone)
+  (NOT OnlyServer — Bolt security blocks OnlyServer for built-in events)
+- Namespace note: using Bolt; conflicts with System.Math — fully qualify
+  Bolt types or alias Math
 
 ================================================================================
                        12. DEDICATED SUPERUSER MODULE

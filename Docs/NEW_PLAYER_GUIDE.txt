@@ -144,7 +144,7 @@ How it works:
 - Pick up materials normally — the first few stack visually on your shoulder just like in vanilla
 - Once your hands are full, extra items are stored in an invisible buffer
 - When you place a material, the next one is automatically given back from the buffer
-- A HUD counter shows your total carry count (e.g. "8 Stones")
+- A HUD panel shows the material icon and your carry count (e.g. "4/8")
 
 To configure:
 - Go to **Settings → Mods → Project X → Builder Stacks**

@@ -934,65 +934,6 @@ INTERNAL MECHANICS:
 - Configurable at init time — changes require game restart
 
 ================================================================================
-                         15. BUILDER STACKS MODULE
-================================================================================
-
-PURPOSE:
-Allows configurable per-material carrying capacity for logs, planks, and stones
-using direct IL2CPP memory access. Each material type has its own independent
-buffer and capacity setting.
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ HOW TO USE                                                                   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ CONFIGURE:                                                                   │
-│ Go to Settings → Mods → ProjectX - Builder Stacks:                          │
-│                                                                              │
-│ • Builder Stacks Enabled (bool): Master toggle                              │
-│ • Max Log Capacity (int, 2-50): How many logs you can carry                │
-│   Default: 10 (vanilla is 1)                                                │
-│ • Max Plank Capacity (int, 2-50): How many planks you can carry            │
-│   Default: 10 (vanilla is 1)                                                │
-│ • Max Stone Capacity (int, 2-50): How many stones you can carry            │
-│   Default: 10 (vanilla is 1)                                                │
-│ • Re-Equip Delay (float): Seconds between auto-fills                       │
-│   Default: 0.8 seconds                                                      │
-│ • Enable Max Limit (bool): Cap at capacity vs truly infinite               │
-│   Default: true                                                             │
-│                                                                              │
-│ MATERIAL ITEM IDs:                                                           │
-│ • Logs:   78, 406, 408, 409                                                 │
-│ • Planks: 395, 576, 577, 578                                                │
-│ • Stones: 640                                                                │
-│                                                                              │
-│ INFINITE MODE (Enable Max Limit = OFF):                                     │
-│ • Carry unlimited logs/planks/stones                                        │
-│ • Uses DebugConsole._loghack() and ._stonehack() silently                  │
-│                                                                              │
-│ BUFFER MODE (Enable Max Limit = ON):                                        │
-│ • Each material has its own buffer (switching materials won't interfere)    │
-│ • Uses direct IL2CPP memory write to _heldCount (offset 0x5C)              │
-│ • Auto-fills when placing items via TryEquip() polling                     │
-│ • HUD shows current count and capacity (e.g., "4/10 Logs")                │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-CONFIG OPTIONS (Settings → Mods → ProjectX - Builder Stacks):
-- BuilderStacksEnabled (bool): Enable/disable module. Default: true
-- BuilderStacksMaxLogCapacity (int, 2-50): Max logs to carry. Default: 10
-- BuilderStacksMaxPlankCapacity (int, 2-50): Max planks to carry. Default: 10
-- BuilderStacksMaxStoneCapacity (int, 2-50): Max stones to carry. Default: 10
-- BuilderStacksGiveDelay (float, 0.1-2.0): Delay between fills. Default: 0.8
-- BuilderStacksEnableMaxLimit (bool): Cap vs infinite. Default: true
-
-INTERNAL MECHANICS:
-- Per-material buffers: _logBuffer, _plankBuffer, _stoneBuffer (independent)
-- Buffer Approach: Writes _heldCount via Marshal.WriteInt32 at offset 0x5C
-- Infinite Mode: Direct calls to DebugConsole.Instance._loghack()/_stonehack()
-- Uses LocalPlayer.Inventory.TryEquip() for item acquisition
-- HUD panel (SUI): bottom-left, shows "4/10 Logs" with capacity when limited
-- No Harmony patches — pure polling in OnUpdate()
-
-================================================================================
                          16. DISCORD BRIDGE MODULE
 ================================================================================
 
@@ -1133,7 +1074,7 @@ capacity, native visual stacking, and configurable limits.
 │ 4. Enable Max Limit must be ON for the cap to take effect                   │
 │ 5. Pick up materials normally — the mod buffers excess items invisibly      │
 │ 6. When you place one, the next item is given back from the buffer          │
-│ 7. A HUD counter shows your total carried amount (e.g. "8 Stones")         │
+│ 7. A HUD panel shows the material icon + carry count (e.g. "4/8")       │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 HOW IT WORKS:

@@ -1543,22 +1543,32 @@ namespace ProjectX.Master.Modules.UI
                 }
                 catch { GUILayout.Label("Loot module not loaded", ProjectXStyles.NormalLabel); }
                 
-                // Respawn days slider — null-safe
+                // Respawn days slider — route changes to server via /px config set
                 if (Config.LootRespawnDays != null)
                 {
+                    int prevDays = Config.LootRespawnDays.Value;
                     Config.LootRespawnDays.Value = (int)DrawSlider("Respawn Days", Config.LootRespawnDays.Value, 1, 100);
+                    if (Config.LootRespawnDays.Value != prevDays)
+                    {
+                        ServerCmd($"config set LootRespawnDays {Config.LootRespawnDays.Value}");
+                    }
                 }
                 
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Reset Loot Tracker", ProjectXStyles.Button, GUILayout.Height(45)))
                     ServerCmd("loot reset");
-                if (GUILayout.Button("Show Loot Status", ProjectXStyles.Button, GUILayout.Height(45)))
-                    ServerCmd("loot status");
+                if (GUILayout.Button("Refresh Server Status", ProjectXStyles.Button, GUILayout.Height(45)))
+                    LootRespawn.LootEventListener.RequestServerStatus();
                 GUILayout.EndHorizontal();
                 
-                // Status display
-                try { GUILayout.Label(LootRespawn.LootRespawnModule.GetStatus(), ProjectXStyles.NormalLabel); }
-                catch { /* module not loaded */ }
+                // Status display — prefer cached server data, fall back to local
+                try {
+                    string serverStatus = LootRespawn.LootEventListener.ServerStatusText;
+                    string status = !string.IsNullOrEmpty(serverStatus) 
+                        ? $"Server: {serverStatus}" 
+                        : LootRespawn.LootRespawnModule.GetStatus();
+                    GUILayout.Label(status, ProjectXStyles.NormalLabel);
+                } catch { /* module not loaded */ }
                 
                 DrawDivider("SERVER");
                 

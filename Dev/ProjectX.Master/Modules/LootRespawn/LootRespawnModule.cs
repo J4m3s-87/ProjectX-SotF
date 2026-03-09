@@ -211,11 +211,10 @@ namespace ProjectX.Master.Modules.LootRespawn
                 _initialized = true;
                 RLog.Msg($"[LootRespawn] ★ Initialized — {_collected.Count} tracked items loaded, days={RespawnConfig.RespawnDays}");
 
-                // Server-only: register debugCommand listener for C→S loot reports
-                if (!IsMultiplayerClient())
-                {
-                    LootEventListener.Create();
-                }
+                // Register debugCommand listener for loot events (both server and client)
+                // Server: handles C→S loot collection + status requests
+                // Client: handles S→C status responses for GUI display
+                LootEventListener.Create();
 
             }
             catch (Exception ex)

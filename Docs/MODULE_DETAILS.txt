@@ -7,7 +7,7 @@ This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
-Last Updated: March 08, 2026
+Last Updated: March 09, 2026
 
 ================================================================================
                                 TABLE OF CONTENTS
@@ -682,13 +682,25 @@ them to respawn after a configurable number of in-game days. All item types
 are tracked with unique positional identifiers. After the respawn timer
 expires, items re-appear and containers reset when the area reloads.
 
-*** NEW: SERVER-AUTHORITATIVE TRACKING (March 08, 2026) ***
-On dedicated servers, clients report ground pickup collections to the server
-via Bolt's built-in debugCommand event (silent C→S transport, Pattern #28).
-A server-side LootEventListener (GlobalEventListener) receives and processes
-these events. Container events (break/open) fire server-side directly — no
-C→S transport needed. The server maintains the central tracker for ALL
-players and persists to disk.
+*** UPDATED: SERVER-AUTHORITATIVE TRACKING (March 09, 2026) ***
+On dedicated servers, all tracking uses LootSyncEvent (Packets.NetEvent,
+scope "ProjectX.LootSync") — a dedicated binary protocol replacing the
+original debugCommand relay. Clients report collections via 0x01/0x02/0x03
+messages; server broadcasts suppressions via 0x20 (full sync) and 0x21
+(incremental). Container events (break/open) fire server-side directly.
+The server persists to loot_collected.dat in UserData/ (SFTP-visible).
+
+*** FIXED: CONTAINER RESPAWN (March 09, 2026) ***
+Timer-expired containers are now REMOVED from _collected and the PREFIX
+returns true (allowing player interaction). Previously, expired containers
+were kept in _collected and added to _recentlyRespawned, which permanently
+blocked all future interaction. _recentlyRespawned now only blocks during
+streaming (save-load phase); once _saveDataLoaded=true, players interact
+normally and the hash is removed from the set.
+
+*** FIXED: RESPAWN DAYS UI (March 09, 2026) ***
+Replaced slider with text input + "Set" button in Server Admin panel.
+Slider was spamming ServerCmd on every drag tick causing lag.
 
 KEY DIFFERENCES FROM ORIGINAL:
 - Integer hash for pickups (original uses MD5 — bottleneck with 600+ Awake calls)
@@ -698,7 +710,7 @@ KEY DIFFERENCES FROM ORIGINAL:
 - 2 config options vs original's 50+ (per-category allow/block/timed/sync)
 - Container respawn (openable + breakable + GrabBag) is ENTIRELY NEW —
   the original mod only handles ground pickups, not containers
-- Server-authoritative tracking via debugCommand C→S is ENTIRELY NEW —
+- Server-authoritative tracking via LootSyncEvent is ENTIRELY NEW —
   the original mod has no multiplayer/server support
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -721,19 +733,20 @@ KEY DIFFERENCES FROM ORIGINAL:
 │ 4. On next world load, items past their timer re-appear in the world       │
 │                                                                              │
 │ HOW IT WORKS (Dedicated Server):                                             │
-│ 1. ANY player picks up a ground item → client sends debugCommand event      │
-│    (input="px:loot:collect", input2="{hash}:{itemId}")                       │
-│ 2. LootEventListener (GlobalEventListener) receives on server               │
-│ 3. Server records hash + timestamp + item ID in central tracker             │
+│ 1. ANY player picks up a ground item → client sends LootSyncEvent (0x01)   │
+│ 2. Server records hash + timestamp + item ID in central tracker             │
+│ 3. Server broadcasts 0x21 (incremental suppress) to all tracked clients    │
 │ 4. Container events (break/open) fire server-side directly (no C→S needed) │
 │ 5. Server persists tracker to loot_collected.dat via ServerTickPostfix      │
+│    (saved to UserData/ via LoaderEnvironment — SFTP visible)               │
 │ 6. On server restart, tracked data loads → containers suppressed:          │
 │    • Openable: marked as visually opened via Start hook (isOpen + icon)    │
-│    • Openable: PREFIX blocks any interaction attempts (belt & braces)      │
+│    • Openable: PREFIX blocks interaction while timer active                 │
 │    • Breakable: destroyed during Awake if timer not expired                │
 │    • Pickups: destroyed during Awake if timer not expired                  │
-│ 5. When timer expires, containers/items respawn fresh on next load         │
-│ 6. Use /px loot status to check: Tracked, Suppressed, Respawned counts    │
+│ 7. When timer expires, entry removed from tracker → item respawns fresh   │
+│ 8. Client on join: sends 0x10 → receives 0x20 full sync → suppresses      │
+│ 9. Use /px loot status to check: Tracked, Suppressed, Respawned counts    │
 │                                                                              │
 │ SUPPORTED ITEM TYPES:                                                        │
 │ • Ground pickups (food, meds, ammo, materials, rope, etc.)                  │
@@ -796,6 +809,10 @@ Breakable Containers:
 - Harmony PREFIX on BreakableObject.OnBreak(): Frame-based blocking
   (≤120 frames of Awake) + expired timer fallback from _collected
 - Harmony POSTFIX on BreakableObject.OnBreak(): Records break events
+- IsNonLootBreakable() filter: skips BreakableSticksInteraction,
+  SmallGroundStickPile*, BreakableStump*, and "Unbroken" objects.
+  These are environment objects (stick piles, stumps, player structures) —
+  not loot containers. Applied to Awake, PREFIX, and POSTFIX hooks.
 - ClearContainerSaveState(): Finds child ContainerItemSpawner, calls
   ClearStateSync() + set__isOpen(false) for fresh loot contentsSeed
 - _breakableLoadFrame dictionary tracks frame count per breakable hash
@@ -803,10 +820,12 @@ Breakable Containers:
 
 Shared:
 - Timer: RespawnDays × 1440 seconds (1 in-game day ≈ 1440 seconds)
-- _collected entries persist permanently (never removed — needed for PREFIX)
-- _recentlyRespawned HashSet prevents re-recording during streaming
+- Timer-expired entries are REMOVED from _collected (container is truly fresh)
+- _recentlyRespawned HashSet blocks streaming replays only (not player interaction)
+  Once _saveDataLoaded=true, _recentlyRespawned entries allow through + get removed
 - Manual Harmony patching (HarmonyPatchAll=false for IL2CPP safety)
 - Runs on all deployment tiers (Owner, Server, Client)
+- Save path: UserData/ via LoaderEnvironment.UserDataDirectory (SFTP visible)
 
 Dedicated Server Lifecycle Fix (Phase 344):
   On dedicated servers, OnSdkInitialized does NOT fire, so Init() runs inside
@@ -816,28 +835,23 @@ Dedicated Server Lifecycle Fix (Phase 344):
   skips reset if _saveDataLoaded is already true (prevents post-game scene
   inits from resetting the tracker).
 
-Dual-Path Architecture (March 08, 2026):
-  Ground pickup collection uses a runtime branch:
-  - BoltNetwork.isServer or !BoltNetwork.isRunning → record locally (existing)
-  - IsMultiplayerClient() → send debugCommand.Raise(GlobalTargets.Everyone)
-    with input="px:loot:collect" and input2="{hash}:{itemId}" (NEW)
-  Container events (OnBreak, OpenContainer) fire server-side directly —
-  no C→S transport needed for these.
-  Local host behavior is IDENTICAL to before — the debugCommand path only
-  activates when running as a client on a dedicated server.
+LootSyncEvent Network Protocol (March 09, 2026):
+  Replaced debugCommand relay with dedicated LootSyncEvent (Packets.NetEvent).
+  Scope: "ProjectX.LootSync". Binary messages:
+  - 0x01 C→S: Pickup collected (hash + itemId)
+  - 0x02 C→S: Container broken (hash)
+  - 0x03 C→S: Container opened (hash)
+  - 0x10 C→S: Request full suppression list
+  - 0x20 S→C: Full suppression list (all hashes)
+  - 0x21 S→C: Incremental suppress (single hash, broadcast to all)
+  Server tracks client connections in _trackedClients HashSet.
+  Client clears _collected on join, requests 0x10, applies 0x20 state.
 
-Silent C→S Transport (debugCommand + LootEventListener):
-- Uses Bolt's built-in debugCommand event (from bolt.user.dll)
-- Pattern proven by SimpleNetworkEvents (7,800+ installs), Shops, Banking mods
-- LootEventListener: [RegisterTypeInIl2Cpp] GlobalEventListener subclass
-  • Start() calls BoltNetwork.AddGlobalEventListener() — REQUIRED
-  • OnEvent(debugCommand) override — must NOT have [HideFromIl2Cpp]
-  • Filters by BoltNetwork.isServer + evnt.input == "px:loot:collect"
-  • Parses evnt.input2 as "{hash}:{itemId}" and calls RecordPickupFromClient()
-- Client sends via: debugCommand.Raise(Bolt.GlobalTargets.Everyone)
-  (NOT OnlyServer — Bolt security blocks OnlyServer for built-in events)
-- Namespace note: using Bolt; conflicts with System.Math — fully qualify
-  Bolt types or alias Math
+LootEventListener (debugCommand fallback — still used for C→S pickups):
+- C→S transport via Bolt's debugCommand event (bolt.user.dll)
+- LootSyncEvent 0x01 is defined but pickup collection still uses debugCommand
+  as a proven C→S path. Containers (0x02/0x03) use LootSyncEvent directly.
+- LootEventListener still registered as GlobalEventListener for this path
 
 ================================================================================
                        12. DEDICATED SUPERUSER MODULE
@@ -856,6 +870,8 @@ server hosts. Owner clients route commands to the server via ChatBox.SendLine.
 │                                                                              │
 │ WORLD COMMANDS:                                                              │
 │ • /px world time [0-24]        → Set time of day                            │
+│ • /px world locktime [on/off]  → Lock/unlock time of day (silent)           │
+│ • /px world speed [0.1-10]     → Set daytime speed multiplier (silent)      │
 │ • /px world season [name]      → Change season (spring/summer/autumn/winter)│
 │ • /px world weather [type]     → Set weather (sunny/rain/snow)              │
 │ • /px world freeze             → Toggle AI freeze                           │
@@ -917,7 +933,7 @@ All features are accessible from the Project X menu under "Building Cheats".
 │   Uses: GameSetupManager.SetFreeFormForcePlaceFullLoadSetting(bool)         │
 │                                                                              │
 │ • Instant Build - Structures complete instantly after placement             │
-│   On dedicated server: polls finishblueprints every 0.5s (server-side)     │
+│   On dedicated server: one-shot finishblueprints on toggle (server-side)   │
 │   On SP/P2P: Harmony PREFIX on StructureCraftingSystem.Update              │
 │                                                                              │
 │ • No Wood Cuttings - Structures build without wood cutting debris           │
@@ -938,10 +954,11 @@ INTERNAL MECHANICS:
 - BuilderEnhancements.cs contains all toggle logic
 - FreeForm and NoCuttings: Direct static API calls on
   Sons.Gameplay.GameSetup.GameSetupManager (requires Sons.Gameplay.GameSetup.dll)
-- Instant Build (Dedicated Server): ServerTickPostfix polls "finishblueprints"
-  every 0.5s via WorldCommands.TrySendDebugCommand (server-authoritative)
-- Instant Build (SP/P2P): Harmony PREFIX on StructureCraftingSystem.Update
-  writes InstantBuild=true at offset 0x71 every frame
+- Instant Build (Dedicated Server): One-shot "finishblueprints" fired via
+  WorldCommands.TrySendDebugCommand when toggle turned ON. Harmony PREFIX
+  on PlaceStructureNode handles all new placements (instantBuild=true).
+  Polling loop removed March 09 2026 — game logs "Finished N blueprints"
+  on every finishblueprints call, causing log spam at any poll interval.
 
 API DISCOVERY NOTES:
 - "skipwoodcuttings" and "freeformplace" console commands DO NOT EXIST
@@ -1069,7 +1086,10 @@ Uses Unity IMGUI (not SUI) for IL2CPP stability.
 │ 4. Building+    - Module toggles (Relocator, Durability, etc.)              │
 │ 5. Raids        - X Raids scheduling, enemy types, stat multipliers,        │
 │                   raid announcements, AI aggression slider (aiangerlevel)   │
-│ 6. Server Admin - Admin commands for dedicated server control               │
+│ 6. Server Admin - Admin commands for dedicated server control:              │
+│                   World Control: Time of Day (text+Set), Lock/Unlock Time,  │
+│                   Speed (text+Set+0.5x/1x/2x/5x presets),                  │
+│                   Season, Weather, Loot Respawn Days (text+Set)             │
 │ 7. Server Raids - Server-side raid configuration                            │
 │                                                                              │
 │ NAVIGATION:                                                                  │

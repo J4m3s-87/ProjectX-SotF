@@ -48,6 +48,9 @@ namespace ProjectX.Master.Modules.LootRespawn
         private static readonly List<BreakableObject> _pendingContainers = new();
         private static bool _saveDataLoaded;
 
+        /// <summary>True once the client has received the server's suppression list via LootSyncEvent</summary>
+        private static bool _serverSyncReceived;
+
         /// <summary>Cache: instance ID → MD5 hash (so Collect can look up the hash)</summary>
         private static readonly Dictionary<int, string> _hashCache = new();
 
@@ -80,6 +83,19 @@ namespace ProjectX.Master.Modules.LootRespawn
         private static int _breakableAwakeCount;
         private static int _pickupAwakeCount;
 
+        /// <summary>
+        /// Returns true if the breakable object is a non-loot environment object
+        /// that should NOT be tracked (stick piles, stumps, player structures, etc.)
+        /// </summary>
+        private static bool IsNonLootBreakable(string objName)
+        {
+            if (objName.Contains("BreakableSticksInteraction")) return true;
+            if (objName.Contains("SmallGroundStickPile")) return true;
+            if (objName.Contains("BreakableStump")) return true;
+            if (objName == "Unbroken") return true;
+            return false;
+        }
+
         // ── Public API ───────────────────────────────────────────────
 
         public static bool Enabled
@@ -98,22 +114,39 @@ namespace ProjectX.Master.Modules.LootRespawn
 
             try
             {
-                // Save file path
-                string userDataDir = Path.Combine(
-                    Path.GetDirectoryName(typeof(LootRespawnModule).Assembly.Location) ?? "",
-                    "..", "..", "UserData");
+                // Save file path — use RedLoader's canonical UserData directory
+                // (same directory as ProjectX.Master.cfg)
+                string userDataDir;
+                try
+                {
+                    userDataDir = RedLoader.Utils.LoaderEnvironment.UserDataDirectory;
+                }
+                catch
+                {
+                    // Fallback: relative to DLL location (legacy path)
+                    userDataDir = Path.Combine(
+                        Path.GetDirectoryName(typeof(LootRespawnModule).Assembly.Location) ?? "",
+                        "..", "..", "UserData");
+                }
                 Directory.CreateDirectory(userDataDir);
                 _saveFilePath = Path.Combine(userDataDir, "loot_collected.dat");
 
-                // Migrate old save file
-                string oldPath = Path.Combine(
-                    Path.GetDirectoryName(typeof(LootRespawnModule).Assembly.Location) ?? "",
-                    "loot_collected.dat");
-                if (File.Exists(oldPath) && !File.Exists(_saveFilePath))
+                // Migrate old save file from legacy locations
+                string[] legacyPaths = new[]
                 {
-                    try { File.Move(oldPath, _saveFilePath); }
-                    catch { /* non-critical */ }
+                    Path.Combine(Path.GetDirectoryName(typeof(LootRespawnModule).Assembly.Location) ?? "", "loot_collected.dat"),
+                    Path.Combine(Path.GetDirectoryName(typeof(LootRespawnModule).Assembly.Location) ?? "", "..", "..", "UserData", "loot_collected.dat"),
+                };
+                foreach (var oldPath in legacyPaths)
+                {
+                    if (oldPath != _saveFilePath && File.Exists(oldPath) && !File.Exists(_saveFilePath))
+                    {
+                        try { File.Move(oldPath, _saveFilePath); RLog.Msg($"[LootRespawn] Migrated save from {oldPath}"); break; }
+                        catch { /* non-critical */ }
+                    }
                 }
+
+                RLog.Msg($"[LootRespawn] Save path: {_saveFilePath}");
 
                 // Start with save data NOT loaded — items will queue until OnGameStarted
                 // IMPORTANT: On dedicated servers, Init() may run AFTER OnGameStarted()
@@ -279,6 +312,27 @@ namespace ProjectX.Master.Modules.LootRespawn
         {
             _saveDataLoaded = true;
             ProcessPendingItems();
+
+            // Client on dedicated server: discard local tracker and wait for server state
+            if (IsMultiplayerClient())
+            {
+                int localCount = _collected.Count;
+                _collected.Clear();
+                _suppressedCount = 0;
+                _respawnedCount = 0;
+                _serverSyncReceived = false;
+                RLog.Msg($"[LootRespawn] Client mode — cleared {localCount} local items, awaiting server sync");
+
+                try
+                {
+                    Network.LootSyncEvent.Instance?.RequestState();
+                    RLog.Msg("[LootRespawn] Client requesting server suppression list...");
+                }
+                catch (Exception ex)
+                {
+                    RLog.Warning($"[LootRespawn] RequestState failed: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>
@@ -397,14 +451,14 @@ namespace ProjectX.Master.Modules.LootRespawn
                 string containerName = key.Substring(5);
                 RLog.Msg($"[LootRespawn] Released container (category disabled): {containerName}");
             }
-            // Timer expired — keep in _collected, add to _recentlyRespawned
+            // Timer expired — REMOVE from _collected so container is truly fresh
             foreach (var key in nameKeysToRespawn)
             {
-                // DO NOT remove from _collected — the PREFIX needs the entry to block
-                // on future loads. Just add to _recentlyRespawned so PREFIX blocks streaming.
+                _collected.Remove(key);
                 _recentlyRespawned.Add(key);
+                _dirty = true;
                 string containerName = key.Substring(5);
-                RLog.Msg($"[LootRespawn] Respawned container: {containerName}");
+                RLog.Msg($"[LootRespawn] Respawned container (removed from tracker): {containerName}");
             }
 
             RLog.Msg($"[LootRespawn] ★ Deferred check — queuedPickups={_pendingPickups.Count}, queuedContainers={_pendingContainers.Count}, suppressed={suppressed}, respawned={respawned}, tracked={_collected.Count}, breakableAwakes={_breakableAwakeCount}, pickupAwakes={_pickupAwakeCount}");
@@ -428,7 +482,6 @@ namespace ProjectX.Master.Modules.LootRespawn
         internal static void OnPickUpAwake(PickUp pickup)
         {
             if (pickup == null || !RespawnConfig.Enabled) return;
-            if (IsMultiplayerClient()) return;
 
             try
             {
@@ -436,13 +489,29 @@ namespace ProjectX.Master.Modules.LootRespawn
                 string objName = pickup.name;
                 if (!string.IsNullOrEmpty(objName) && objName.Contains("(Clone)")) return;
 
+                // Client on dedicated server: suppress using server-synced data only
+                if (IsMultiplayerClient())
+                {
+                    if (!_serverSyncReceived) return; // Haven't received server data yet
+
+                    string hash = GetOrGenerateHash(pickup.transform, pickup.GetInstanceID());
+                    if (hash != null && _collected.ContainsKey(hash))
+                    {
+                        UnityEngine.Object.Destroy(pickup.gameObject);
+                        _suppressedCount++;
+                        if (_suppressedCount <= 50)
+                            RLog.Msg($"[LootRespawn] Client suppressed pickup: {objName} (hash={hash.Substring(0, 8)}…)");
+                    }
+                    return;
+                }
+
                 _pickupAwakeCount++;
                 // Log first 5 non-clone pickups for diagnostics
                 if (_pickupAwakeCount <= 5)
                     RLog.Msg($"[LootRespawn] PickUp.Awake #{_pickupAwakeCount}: {objName} (saveLoaded={_saveDataLoaded})");
 
-                string hash = GetOrGenerateHash(pickup.transform, pickup.GetInstanceID());
-                if (hash == null) return;
+                string hash2 = GetOrGenerateHash(pickup.transform, pickup.GetInstanceID());
+                if (hash2 == null) return;
 
                 if (!_saveDataLoaded)
                 {
@@ -451,30 +520,30 @@ namespace ProjectX.Master.Modules.LootRespawn
                 }
 
                 // Immediate check (items that Awake after save data is loaded)
-                if (_collected.TryGetValue(hash, out var data))
+                if (_collected.TryGetValue(hash2, out var data))
                 {
                     // Category disabled — release item immediately
                     if (!RespawnConfig.ShouldTrackItem(data.ItemId))
                     {
-                        _collected.Remove(hash);
+                        _collected.Remove(hash2);
                         _dirty = true;
                         return;
                     }
 
                     if (HasEnoughTimePassed(data.Timestamp))
                     {
-                        _collected.Remove(hash);
-                        _recentlyRespawned.Add(hash);
+                        _collected.Remove(hash2);
+                        _recentlyRespawned.Add(hash2);
                         _dirty = true;
                         _respawnedCount++;
-                        RLog.Msg($"[LootRespawn] Respawned pickup: {objName} (hash={hash.Substring(0, 8)}…)");
+                        RLog.Msg($"[LootRespawn] Respawned pickup: {objName} (hash={hash2.Substring(0, 8)}…)");
                     }
                     else
                     {
                         UnityEngine.Object.Destroy(pickup.gameObject);
                         _suppressedCount++;
                         if (_suppressedCount <= 50)
-                            RLog.Msg($"[LootRespawn] Suppressed pickup: {objName} (hash={hash.Substring(0, 8)}…)");
+                            RLog.Msg($"[LootRespawn] Suppressed pickup: {objName} (hash={hash2.Substring(0, 8)}…)");
                     }
                 }
             }
@@ -558,6 +627,11 @@ namespace ProjectX.Master.Modules.LootRespawn
             _collected[hash] = new LootData(hash, timestamp, itemId);
             _dirty = true;
 
+            // Broadcast to all clients so they suppress this item too
+#if SERVER || OWNER
+            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, timestamp, itemId); } catch { }
+#endif
+
             RLog.Msg($"[LootRespawn] ★ Received C→S pickup: itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}");
         }
 
@@ -569,22 +643,37 @@ namespace ProjectX.Master.Modules.LootRespawn
         internal static void OnContainerAwake(BreakableObject container)
         {
             if (container == null || !RespawnConfig.Enabled) return;
-            if (IsMultiplayerClient()) return;
             if (!RespawnConfig.TrackBreakables) return;
 
             try
             {
                 string objName = container.name;
                 if (string.IsNullOrEmpty(objName)) return;
-                if (objName.Contains("BreakableSticksInteraction")) return;
+                if (IsNonLootBreakable(objName)) return;
+
+                // Client on dedicated server: suppress using server-synced data only
+                if (IsMultiplayerClient())
+                {
+                    if (!_serverSyncReceived) return;
+
+                    string hash = GetOrGenerateHash(container.transform, container.GetInstanceID());
+                    if (hash != null && _collected.ContainsKey(hash))
+                    {
+                        UnityEngine.Object.Destroy(container.gameObject);
+                        _suppressedCount++;
+                        if (_suppressedCount <= 50)
+                            RLog.Msg($"[LootRespawn] Client suppressed container: {objName}");
+                    }
+                    return;
+                }
 
                 _breakableAwakeCount++;
                 // Log first 10 breakable objects for diagnostics
                 if (_breakableAwakeCount <= 10)
                     RLog.Msg($"[LootRespawn] BreakableObject.Awake #{_breakableAwakeCount}: {objName} (saveLoaded={_saveDataLoaded})");
 
-                string hash = GetOrGenerateHash(container.transform, container.GetInstanceID());
-                if (hash == null) return;
+                string hash2 = GetOrGenerateHash(container.transform, container.GetInstanceID());
+                if (hash2 == null) return;
 
                 if (!_saveDataLoaded)
                 {
@@ -593,13 +682,13 @@ namespace ProjectX.Master.Modules.LootRespawn
                 }
 
                 // Immediate check
-                if (_collected.TryGetValue(hash, out var data))
+                if (_collected.TryGetValue(hash2, out var data))
                 {
                     if (HasEnoughTimePassed(data.Timestamp))
                     {
                         // DO NOT remove from _collected — PREFIX needs entry for future loads
-                        _recentlyRespawned.Add(hash);
-                        _breakableLoadFrame[hash] = Time.frameCount;
+                        _recentlyRespawned.Add(hash2);
+                        _breakableLoadFrame[hash2] = Time.frameCount;
                         _respawnedCount++;
                         RLog.Msg($"[LootRespawn] Respawned container: {objName} (frame={Time.frameCount})");
                     }
@@ -635,7 +724,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 string objName = container.name;
                 if (string.IsNullOrEmpty(objName)) return true;
                 if (objName.Contains("Clone")) return true;
-                if (objName.Contains("BreakableSticksInteraction")) return true;
+                if (IsNonLootBreakable(objName)) return true;
 
                 int instanceId = container.GetInstanceID();
                 string hash;
@@ -727,7 +816,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 string objName = container.name;
                 if (string.IsNullOrEmpty(objName)) return;
                 if (objName.Contains("Clone")) return;
-                if (objName.Contains("BreakableSticksInteraction")) return;
+                if (IsNonLootBreakable(objName)) return;
 
                 // Check breakable blacklist
                 var brokenPrefab = container._brokenPrefab;
@@ -869,10 +958,17 @@ namespace ProjectX.Master.Modules.LootRespawn
 
                 string hash = $"name:{objName}";
 
-                // If already respawned this session, block streaming replays too
+                // If already respawned this session, only block during streaming
+                // (save-load phase). After streaming, let players interact normally.
                 if (_recentlyRespawned.Contains(hash))
                 {
-                    return false;
+                    if (!_saveDataLoaded)
+                    {
+                        return false; // streaming replay — block
+                    }
+                    // Player interaction — allow through, remove from set
+                    _recentlyRespawned.Remove(hash);
+                    return true;
                 }
 
                 // Check if this container is tracked
@@ -880,11 +976,12 @@ namespace ProjectX.Master.Modules.LootRespawn
                 {
                     if (HasEnoughTimePassed(data.Timestamp))
                     {
-                        // Timer EXPIRED — block so container appears fresh/re-lootable
-                        _recentlyRespawned.Add(hash);
+                        // Timer EXPIRED — remove from tracker, let player re-loot
+                        _collected.Remove(hash);
+                        _dirty = true;
                         _respawnedCount++;
                         RLog.Msg($"[LootRespawn] ★ RESPAWNED OpenContainer (timer expired): {objName}");
-                        return false;
+                        return true; // ALLOW — container is fresh now
                     }
                     else
                     {
@@ -1164,6 +1261,11 @@ namespace ProjectX.Master.Modules.LootRespawn
             _collected[hash] = new LootData(hash, timestamp, itemId);
             _dirty = true;
 
+            // Broadcast to all clients so they suppress this item too
+#if SERVER || OWNER
+            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, timestamp, itemId); } catch { }
+#endif
+
             RLog.Msg($"[LootRespawn] ★ Server recorded remote COLLECT: itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count}");
         }
 
@@ -1183,6 +1285,11 @@ namespace ProjectX.Master.Modules.LootRespawn
             _collected[hash] = new LootData(hash, timestamp, RespawnConfig.BreakableId);
             _dirty = true;
 
+            // Broadcast to all clients
+#if SERVER || OWNER
+            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, timestamp, RespawnConfig.BreakableId); } catch { }
+#endif
+
             RLog.Msg($"[LootRespawn] ★ Server recorded remote CONTAINER_BREAK: hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count}");
         }
 
@@ -1201,6 +1308,11 @@ namespace ProjectX.Master.Modules.LootRespawn
             long timestamp = GetGameTimestamp();
             _collected[hash] = new LootData(hash, timestamp, RespawnConfig.OpenableId);
             _dirty = true;
+
+            // Broadcast to all clients
+#if SERVER || OWNER
+            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, timestamp, RespawnConfig.OpenableId); } catch { }
+#endif
 
             RLog.Msg($"[LootRespawn] ★ Server recorded remote CONTAINER_OPEN: hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count}");
         }
@@ -1226,7 +1338,18 @@ namespace ProjectX.Master.Modules.LootRespawn
             {
                 _collected[hash] = new LootData(hash, timestamp, itemId);
             }
-            RLog.Msg($"[LootRespawn] ★ Applied server state: {entries.Count} tracked items");
+            _serverSyncReceived = true;
+            RLog.Msg($"[LootRespawn] ★ Applied server state: {entries.Count} tracked items — client suppression ACTIVE");
+        }
+
+        /// <summary>
+        /// [Client] Add a single entry from incremental server broadcast (0x21).
+        /// Called when any player collects something and the server notifies all clients.
+        /// </summary>
+        public static void AddServerSuppression(string hash, long timestamp, int itemId)
+        {
+            _collected[hash] = new LootData(hash, timestamp, itemId);
+            RLog.Msg($"[LootRespawn] ★ Server broadcast: suppressing {hash.Substring(0, Math.Min(8, hash.Length))}… (tracked={_collected.Count})");
         }
 
         private static void SaveToDisk()
@@ -1298,8 +1421,15 @@ namespace ProjectX.Master.Modules.LootRespawn
         public static string GetStatus()
         {
             if (!_initialized) return "Respawn: Not initialized";
-            long ts = GetGameTimestamp();
-            return $"Respawn: {(RespawnConfig.Enabled ? "ON" : "OFF")} | Days: {RespawnConfig.RespawnDays} | Tracked: {_collected.Count} | GameTime: {ts}s | Suppressed: {_suppressedCount} | Respawned: {_respawnedCount}";
+            int currentDay = 0;
+            try
+            {
+                var tod = TimeOfDayHolder.GetTimeOfDay();
+                string[] parts = tod.ToString().Split(' ');
+                currentDay = int.Parse(parts[1]);
+            }
+            catch { }
+            return $"Respawn: {(RespawnConfig.Enabled ? "ON" : "OFF")} | Days: {RespawnConfig.RespawnDays} | Tracked: {_collected.Count} | Day: {currentDay} | Suppressed: {_suppressedCount} | Respawned: {_respawnedCount}";
         }
     }
 

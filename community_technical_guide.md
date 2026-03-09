@@ -81,16 +81,16 @@
 
 ### Other
 
-| Issue                                                                           | Root Cause                                                                         | Resolution                                                                                          |
-| :------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------- |
-| **Ghost Registry / Phantom Toggles** — Settings visible but not functional      | `SettingsRegistry` creating default stubs, or UI not wired to logic                | **Action-on-Change**: Use `OnValueChanged.Subscribe`. Use unique IDs for registry calls.            |
-| **Side-Effect Crashes** — Mass entity operations causing delayed crashes        | Rapidly invoking native `ForceDeath`/`Destroy` overwhelms the event queue          | **Throttled Execution**: Use `try-catch` per entity and/or throttle over multiple frames.           |
-| **Fake Console Command Pattern** — `SendCommand` fails silently                 | Command names fabricated without verifying against `dump.cs`                       | **API Verification**: Always verify commands exist in `dump.cs` under `DebugConsole`.               |
-| **Hot-Path Allocation Trap** — Game stutter during world load                   | Crypto hashing + allocations in hot loops (e.g., `MD5.Create()` firing 600+ times) | **Integer Hash Combining**: Replace crypto with `GetHashCode()` + quantized position. ~100x faster. |
-| **Reflection Invoke in Hot Loops** — Lag during winter with complex systems     | `MethodInfo.Invoke` called every tick even when state hasn't changed               | **State Caching**: Track processed instances with `HashSet<int>`. Only invoke on state transitions. |
-| **ChatBox.SendLine Visibility Bug** — Server-side messages invisible to clients | `SendLine()` adds to history but doesn't trigger client popup                      | **Discord Relay Bounce** (Pattern #17): Route through Discord for visible delivery.                 |
-| **Packets.NetEvent Client→Server Drop** — Custom packets silently dropped       | Bolt doesn't deliver `NetEvent` client→server on dedicated servers                 | **Hybrid Protocol** (Pattern #20): NetEvent for server→client, ChatBox for client→server.           |
-| **SdkEvents.OnInWorldUpdate Dead on Headless** — Fires once then stops          | Not designed for headless/batch mode. No exception, no log.                        | **Server-Safe Tick Driver** (Pattern #19): Use `SeasonsManager.LateUpdate` Harmony Postfix.         |
+| Issue                                                                           | Root Cause                                                                         | Resolution                                                                                           |
+| :------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- |
+| **Ghost Registry / Phantom Toggles** — Settings visible but not functional      | `SettingsRegistry` creating default stubs, or UI not wired to logic                | **Action-on-Change**: Use `OnValueChanged.Subscribe`. Use unique IDs for registry calls.             |
+| **Side-Effect Crashes** — Mass entity operations causing delayed crashes        | Rapidly invoking native `ForceDeath`/`Destroy` overwhelms the event queue          | **Throttled Execution**: Use `try-catch` per entity and/or throttle over multiple frames.            |
+| **Fake Console Command Pattern** — `SendCommand` fails silently                 | Command names fabricated without verifying against `dump.cs`                       | **API Verification**: Always verify commands exist in `dump.cs` under `DebugConsole`.                |
+| **Hot-Path Allocation Trap** — Game stutter during world load                   | Crypto hashing + allocations in hot loops (e.g., `MD5.Create()` firing 600+ times) | **Integer Hash Combining**: Replace crypto with `GetHashCode()` + quantized position. ~100x faster.  |
+| **Reflection Invoke in Hot Loops** — Lag during winter with complex systems     | `MethodInfo.Invoke` called every tick even when state hasn't changed               | **State Caching**: Track processed instances with `HashSet<int>`. Only invoke on state transitions.  |
+| **ChatBox.SendLine Visibility Bug** — Server-side messages invisible to clients | `SendLine()` adds to history but doesn't trigger client popup                      | **Discord Relay Bounce** (Pattern #17): Route through Discord for visible delivery.                  |
+| **Packets.NetEvent Client→Server Drop** — Ad-hoc packets silently dropped       | Bolt doesn't deliver ad-hoc `NetEvent` client→server on dedicated servers          | **Scope-based NetEvent** (LootSyncEvent pattern) works. Fallback: **Hybrid Protocol** (Pattern #20). |
+| **SdkEvents.OnInWorldUpdate Dead on Headless** — Fires once then stops          | Not designed for headless/batch mode. No exception, no log.                        | **Server-Safe Tick Driver** (Pattern #19): Use `SeasonsManager.LateUpdate` Harmony Postfix.          |
 
 ---
 
@@ -406,7 +406,7 @@ private static void OnChatEvent(ChatEvent evnt)
 > **⚠️ What DOES NOT work for client→server:**
 >
 > 1. `DebugConsole.SendCommand()` — local only
-> 2. `Packets.NetEvent` — silently dropped on dedicated servers
+> 2. `Packets.NetEvent` — silently dropped on dedicated servers for _ad-hoc_ events (but scope-based `NetEvent` with `ReadMessageServer`/`ReadMessageClient` works — see LootSyncEvent pattern)
 > 3. `AdminCommand.Create(GlobalTargets.OnlyServer)` — blocked by Bolt security
 > 4. `ChatEvent.Create()` + `.Send()` via reflection — server `OnEvent` never fires
 > 5. ✅ `ChatBox.SendLine("/mymod ...")` — game's own proven bidirectional path

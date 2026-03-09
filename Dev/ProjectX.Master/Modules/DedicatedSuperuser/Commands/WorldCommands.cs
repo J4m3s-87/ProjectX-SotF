@@ -16,7 +16,7 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
         {
             if (args.Length == 0)
             {
-                Log("Usage: /px world time|season|freeze|trees|removedead|revive|weather");
+                Log("Usage: /px world time|locktime|speed|season|freeze|trees|removedead|revive|weather");
                 return;
             }
 
@@ -27,6 +27,18 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                         SetTimeOfDay(hour);
                     else
                         Log("Usage: /px world time <0-24>");
+                    break;
+
+                case "locktime":
+                    bool lockOn = args.Length < 2 || args[1].ToLower() != "off";
+                    SetLockTime(lockOn);
+                    break;
+
+                case "speed":
+                    if (args.Length >= 2 && float.TryParse(args[1], out float speed))
+                        SetDaytimeSpeed(speed);
+                    else
+                        Log("Usage: /px world speed <0.1-10>");
                     break;
 
                 case "season":
@@ -123,7 +135,11 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
                     // 2) Also send via DebugConsole on server (belt and suspenders)
                     TrySendDebugCommand(enable ? "instantbookbuild on" : "instantbookbuild off");
                     
-                    // 3) Broadcast to all connected clients so their local flag is also set
+                    // 3) One-shot: finish any existing in-progress blueprints
+                    // New placements are handled by the Harmony PREFIX on PlaceStructureNode
+                    if (enable) TrySendDebugCommand("finishblueprints");
+                    
+                    // 4) Broadcast to all connected clients so their local flag is also set
                     try
                     {
 #if SERVER || OWNER
@@ -246,6 +262,43 @@ namespace ProjectX.Master.Modules.DedicatedSuperuser.Commands
             catch (Exception ex)
             {
                 Log($"SetTimeOfDay failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Lock/unlock time of day via DebugConsole. Silent — no chat broadcast.
+        /// </summary>
+        public static void SetLockTime(bool locked)
+        {
+            try
+            {
+                if (TrySendDebugCommand(locked ? "settimeofday lock" : "settimeofday unlock", quiet: true))
+                    RLog.Msg($"[Superuser] Time of day: {(locked ? "LOCKED" : "UNLOCKED")}");
+                else
+                    RLog.Warning("[Superuser] Lock time failed — DebugConsole not available");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[Superuser] SetLockTime failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Set daytime speed multiplier via DebugConsole. Silent — no chat broadcast.
+        /// </summary>
+        public static void SetDaytimeSpeed(float speed)
+        {
+            try
+            {
+                speed = Mathf.Clamp(speed, 0.1f, 10f);
+                if (TrySendDebugCommand($"settimescale {speed:F2}", quiet: true))
+                    RLog.Msg($"[Superuser] Daytime speed set to {speed:F1}x");
+                else
+                    RLog.Warning("[Superuser] Set speed failed — DebugConsole not available");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[Superuser] SetDaytimeSpeed failed: {ex.Message}");
             }
         }
 

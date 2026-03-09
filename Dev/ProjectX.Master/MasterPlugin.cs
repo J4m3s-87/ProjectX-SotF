@@ -388,7 +388,6 @@ namespace ProjectX.Master
         /// Player-presence guard: skip ticking when no players are connected
         /// to prevent 24/7 world simulation (NPC buildup, wasted resources).
         /// </summary>
-        private static float _lastInstantBuildPoll = 0f;
         
         private static void ServerTickPostfix()
         {
@@ -406,21 +405,6 @@ namespace ProjectX.Master
             try { IntegrityEvent.CheckTimeouts(); } catch { }
             try { Modules.ScaryCross.ScaryCrossModule.ServerTick(); } catch { }
             try { Modules.LootRespawn.LootRespawnModule.OnUpdate(); } catch { }
-            
-            // InstantBookBuild: auto-complete blueprints every 0.5s via finishblueprints
-            try
-            {
-                if (Config.InstantBookBuild?.Value == true)
-                {
-                    float now = UnityEngine.Time.time;
-                    if (now - _lastInstantBuildPoll >= 0.5f)
-                    {
-                        _lastInstantBuildPoll = now;
-                        Modules.DedicatedSuperuser.Commands.WorldCommands.TrySendDebugCommand("finishblueprints", quiet: true);
-                    }
-                }
-            }
-            catch { }
         }
 #endif
     }

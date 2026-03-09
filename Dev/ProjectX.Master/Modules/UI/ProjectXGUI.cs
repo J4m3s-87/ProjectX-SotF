@@ -40,6 +40,7 @@ namespace ProjectX.Master.Modules.UI
         // Teleport input
         private string _teleportInput = "";
         private string _timeInput = "12:00";
+        private string _respawnDaysInput = "3";
         private string _speedInput = "1";
         private string _stackInput = "999";
         private bool _forceRainActive = false;
@@ -1429,6 +1430,29 @@ namespace ProjectX.Master.Modules.UI
                 }
                 GUILayout.EndHorizontal();
                 
+                // Lock Time of Day — routed to server via /px world locktime
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Lock Time", ProjectXStyles.Button, GUILayout.Height(45), GUILayout.Width(140)))
+                    ServerCmd("world locktime on");
+                if (GUILayout.Button("Unlock Time", ProjectXStyles.Button, GUILayout.Height(45), GUILayout.Width(140)))
+                    ServerCmd("world locktime off");
+                GUILayout.EndHorizontal();
+                
+                // Daytime Speed — routed to server via /px world speed
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Speed:", ProjectXStyles.NormalLabel, GUILayout.Width(70));
+                _speedInput = GUILayout.TextField(_speedInput ?? "1", ProjectXStyles.InputField, GUILayout.Width(60));
+                if (GUILayout.Button("Set", ProjectXStyles.Button, GUILayout.Width(75), GUILayout.Height(45)))
+                {
+                    if (float.TryParse(_speedInput, out float spd))
+                        ServerCmd($"world speed {spd}");
+                }
+                if (GUILayout.Button("0.5x", ProjectXStyles.Button, GUILayout.Width(70), GUILayout.Height(45))) ServerCmd("world speed 0.5");
+                if (GUILayout.Button("1x", ProjectXStyles.Button, GUILayout.Width(55), GUILayout.Height(45))) ServerCmd("world speed 1");
+                if (GUILayout.Button("2x", ProjectXStyles.Button, GUILayout.Width(55), GUILayout.Height(45))) ServerCmd("world speed 2");
+                if (GUILayout.Button("5x", ProjectXStyles.Button, GUILayout.Width(55), GUILayout.Height(45))) ServerCmd("world speed 5");
+                GUILayout.EndHorizontal();
+                
                 // Season buttons — execute LOCALLY (season is a client-side visual system)
                 // Server-side execution (SeasonsManager, _season(), SendCommand) all fail silently
                 // Client direct call proven working in PlayerActions.cs:285
@@ -1543,16 +1567,19 @@ namespace ProjectX.Master.Modules.UI
                 }
                 catch { GUILayout.Label("Loot module not loaded", ProjectXStyles.NormalLabel); }
                 
-                // Respawn days slider — route changes to server via /px config set
-                if (Config.LootRespawnDays != null)
+                // Respawn days — text input + button (single update, no slider spam)
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Respawn Days:", ProjectXStyles.NormalLabel, GUILayout.Width(120));
+                _respawnDaysInput = GUILayout.TextField(_respawnDaysInput ?? "3", ProjectXStyles.InputField, GUILayout.Width(60));
+                if (GUILayout.Button("Set", ProjectXStyles.Button, GUILayout.Height(45), GUILayout.Width(80)))
                 {
-                    int prevDays = Config.LootRespawnDays.Value;
-                    Config.LootRespawnDays.Value = (int)DrawSlider("Respawn Days", Config.LootRespawnDays.Value, 1, 100);
-                    if (Config.LootRespawnDays.Value != prevDays)
+                    string val = _respawnDaysInput?.Trim() ?? "3";
+                    if (int.TryParse(val, out int days) && days >= 1 && days <= 100)
                     {
-                        ServerCmd($"config set LootRespawnDays {Config.LootRespawnDays.Value}");
+                        ServerCmd($"config set LootRespawnDays {days}");
                     }
                 }
+                GUILayout.EndHorizontal();
                 
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Reset Loot Tracker", ProjectXStyles.Button, GUILayout.Height(45)))

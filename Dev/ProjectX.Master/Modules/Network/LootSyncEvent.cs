@@ -21,12 +21,16 @@ namespace ProjectX.Master.Modules.Network
     ///   0x03 = Client reports container opened (client → server)
     ///   0x10 = Client requests suppression list (client → server)
     ///   0x20 = Server sends full suppression list (server → client)
+    ///   0x21 = Server sends incremental suppress (server → all clients)
     /// 
     /// Modeled after ConfigSyncEvent pattern.
     /// </summary>
     public class LootSyncEvent : Packets.NetEvent
     {
         public static LootSyncEvent Instance;
+
+        // Track connected clients for incremental broadcasts (same pattern as ConfigSyncEvent)
+        private static readonly HashSet<BoltConnection> _trackedClients = new HashSet<BoltConnection>();
 
         public override string Id => "ProjectX.LootSync";
 
@@ -95,6 +99,7 @@ namespace ProjectX.Master.Modules.Network
                     case 0x10: // Client requests suppression list
                     {
                         RLog.Msg($"[LootSync] Server received STATE_REQUEST from {steamId}");
+                        _trackedClients.Add(fromConnection);
 #if SERVER || OWNER
                         SendSuppressionList(fromConnection);
 #endif
@@ -135,6 +140,14 @@ namespace ProjectX.Master.Modules.Network
 
                     RLog.Msg($"[LootSync] Client received suppression list: {count} items");
                     LootRespawnModule.ApplyServerState(entries);
+                }
+                else if (msgType == 0x21) // Incremental suppress (single item)
+                {
+                    string hash = packet.ReadString();
+                    long timestamp = packet.ReadLong();
+                    int itemId = packet.ReadInt();
+                    RLog.Msg($"[LootSync] Client received incremental suppress: {hash.Substring(0, System.Math.Min(8, hash.Length))}…");
+                    LootRespawnModule.AddServerSuppression(hash, timestamp, itemId);
                 }
             }
             catch (Exception ex)
@@ -267,6 +280,53 @@ namespace ProjectX.Master.Modules.Network
             catch (Exception ex)
             {
                 RLog.Warning($"[LootSync] Send suppression list error: {ex.Message}");
+            }
+        }
+#endif
+
+#if SERVER || OWNER
+        /// <summary>
+        /// [Server] Broadcast a single new suppression entry to ALL connected clients.
+        /// Called when any player collects an item, so all clients can suppress it.
+        /// </summary>
+        public void BroadcastNewSuppression(string hash, long timestamp, int itemId)
+        {
+            try
+            {
+                if (!BoltNetwork.isRunning || !BoltNetwork.isServer) return;
+                if (_trackedClients.Count == 0) return;
+
+                var deadConnections = new List<BoltConnection>();
+                int sent = 0;
+                foreach (var conn in _trackedClients)
+                {
+                    if (conn == null)
+                    {
+                        deadConnections.Add(conn);
+                        continue;
+                    }
+                    try
+                    {
+                        var eventPacket = NewPacket(256, conn);
+                        eventPacket.Packet.WriteByte(0x21); // Incremental suppress
+                        eventPacket.Packet.WriteString(hash);
+                        eventPacket.Packet.WriteLong(timestamp);
+                        eventPacket.Packet.WriteInt(itemId);
+                        Send(eventPacket);
+                        sent++;
+                    }
+                    catch { deadConnections.Add(conn); }
+                }
+
+                // Clean up dead connections
+                foreach (var dead in deadConnections)
+                    _trackedClients.Remove(dead);
+
+                RLog.Msg($"[LootSync] Broadcast incremental suppress: {hash.Substring(0, System.Math.Min(8, hash.Length))}… to {sent} client(s)");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[LootSync] Broadcast suppress error: {ex.Message}");
             }
         }
 #endif

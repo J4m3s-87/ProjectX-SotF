@@ -400,1412 +400,2162 @@
     <script>
       // Schema: derived from Config.cs
       const SCHEMA = [
-        {
-          section: "ProjectX - Cheats",
-          label: "Cheats",
-          fields: [
-            { key: "GodMode", label: "God Mode", type: "bool", default: false },
-            {
-              key: "IsInfStamina",
-              label: "Infinite Stamina",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "IsNoHungry",
-              label: "No Hunger",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "IsNoDehydration",
-              label: "No Thirst",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "IsNoSleep",
-              label: "No Sleep",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "IsInfiniteAmmo",
-              label: "Infinite Ammo",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "IsNoFallDamage",
-              label: "No Fall Damage",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "InfiniteLogs",
-              label: "Infinite Logs",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "InfiniteStones",
-              label: "Infinite Stones",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "InfiniteInventory",
-              label: "Infinite Inventory",
-              type: "bool",
-              default: false,
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Movement",
-          label: "Movement",
-          fields: [
-            {
-              key: "IsNoClip",
-              label: "NoClip / Fly Hack",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "NoClipSpeed",
-              label: "Flight Speed",
-              type: "float",
-              default: 2.5,
-              min: 0.5,
-              max: 20,
-              step: 0.5,
-            },
-            {
-              key: "NoClipUpDownSpeed",
-              label: "Flight Vertical Speed",
-              type: "float",
-              default: 0.5,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "WalkSpeed",
-              label: "Walk Speed",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "RunSpeed",
-              label: "Run Speed",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "SwimSpeed",
-              label: "Swim Speed",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "JumpMultiplier",
-              label: "Jump Multiplier",
-              type: "float",
-              default: 1.0,
-              min: 0.5,
-              max: 10,
-              step: 0.5,
-            },
-            {
-              key: "IsNoGravity",
-              label: "No Gravity",
-              type: "bool",
-              default: false,
-            },
-          ],
-        },
-        {
-          section: "ProjectX - World",
-          label: "World",
-          fields: [
-            {
-              key: "FreezeAI",
-              label: "Freeze AI (Stop Spawning)",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "IsLockTime",
-              label: "Lock Time of Day",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "DaytimeSpeed",
-              label: "Day/Night Cycle Speed",
-              type: "float",
-              default: 1.0,
-              min: 0,
-              max: 10,
-              step: 0.1,
-              desc: "1 = normal",
-            },
-            {
-              key: "TreeRegrowRate",
-              label: "Tree Regrow Rate",
-              type: "float",
-              default: 1.0,
-              min: 0,
-              max: 10,
-              step: 0.5,
-            },
-            {
-              key: "WindIntensity",
-              label: "Wind Intensity",
-              type: "float",
-              default: -1.0,
-              min: -1,
-              max: 10,
-              step: 0.5,
-              desc: "-1 = auto",
-            },
-            {
-              key: "KillRadius",
-              label: "Kill/Burn All Radius (m)",
-              type: "float",
-              default: 0,
-              min: 0,
-              max: 500,
-              step: 10,
-              desc: "0 = all loaded",
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Modules",
-          label: "Modules",
-          fields: [
-            {
-              key: "RelocatorEnabled",
-              label: "Relocator Enabled",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "LootRespawnEnabled",
-              label: "Loot Respawn Enabled",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "LootRespawnDays",
-              label: "Loot Respawn Days",
-              type: "int",
-              default: 3,
-              min: 1,
-              max: 30,
-            },
-            {
-              key: "StructureDurabilityMultiplier",
-              label: "Structure Durability",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 100,
-              step: 0.5,
-              desc: "100 = invincible",
-            },
-            {
-              key: "FasterCraftingEnabled",
-              label: "Faster Crafting",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "CraftingSpeedMultiplier",
-              label: "Crafting Speed",
-              type: "float",
-              default: 5.0,
-              min: 1,
-              max: 10,
-              step: 0.5,
-              desc: "1=normal, 10=instant",
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Zipline",
-          label: "Zipline",
-          fields: [
-            {
-              key: "MaxZipLineLength",
-              label: "Max Zipline Length",
-              type: "text",
-              default: "3.4028234663852886E+38",
-              desc: "Game default ~150",
-            },
-            {
-              key: "MaxShootingDistance",
-              label: "Max Shooting Distance",
-              type: "text",
-              default: "3.4028234663852886E+38",
-              desc: "Game default ~50",
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Features",
-          label: "Features",
-          fields: [
-            {
-              key: "WaterCollectorHeatRadius",
-              label: "Water Collector Heat Radius",
-              type: "float",
-              default: 2.5,
-              min: 0.5,
-              max: 10,
-              step: 0.5,
-            },
-            {
-              key: "MeatDryerProximityCheckInterval",
-              label: "Meat Dryer Check Interval (s)",
-              type: "float",
-              default: 2.0,
-              min: 0.5,
-              max: 10,
-              step: 0.5,
-            },
-            {
-              key: "MeatDryerSpeedMultiplier",
-              label: "Meat Dryer Speed",
-              type: "float",
-              default: 1.0,
-              min: 1,
-              max: 50,
-              step: 1,
-            },
-            {
-              key: "MeatDryerCureTimeDays",
-              label: "Meat Dryer Cure Time (days)",
-              type: "float",
-              default: -1.0,
-              min: -1,
-              max: 10,
-              step: 0.1,
-              desc: "-1 = use default",
-            },
-            {
-              key: "MeatDryerInstantDry",
-              label: "Meat Dryer Instant Dry",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "MeatDryerNoFireRequired",
-              label: "Meat Dryer No Fire Required",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "FlashlightIntensity",
-              label: "Flashlight Brightness",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 5,
-              step: 0.1,
-            },
-            {
-              key: "MaxRopeBridgeLength",
-              label: "Max Rope Bridge Length",
-              type: "text",
-              default: "3.4028234663852886E+38",
-              desc: "Game default ~24m",
-            },
-            {
-              key: "WaterfallVolume",
-              label: "Waterfall Volume",
-              type: "float",
-              default: 1.0,
-              min: 0,
-              max: 3,
-              step: 0.1,
-              desc: "0 = mute",
-            },
-            {
-              key: "MeatDryerFireRadius",
-              label: "Meat Dryer Fire Radius",
-              type: "float",
-              default: 4.0,
-              min: 3,
-              max: 30,
-              step: 1,
-              desc: "meters to detect fire",
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Discord",
-          label: "Discord",
-          fields: [
-            {
-              key: "EnableDiscordBridge",
-              label: "Enable Discord Bridge",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "DiscordBotToken",
-              label: "Bot Token",
-              type: "text",
-              default: "",
-              preserve: true,
-            },
-            {
-              key: "DiscordChannelId",
-              label: "Channel ID",
-              type: "text",
-              default: "",
-              preserve: true,
-            },
-            {
-              key: "EnableWelcomeMessage",
-              label: "Enable Welcome Message",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "WelcomeMessageDelay",
-              label: "Welcome Delay (seconds)",
-              type: "float",
-              default: 30,
-              min: 1,
-              max: 60,
-              step: 1,
-            },
-            {
-              key: "WelcomeMessageText",
-              label: "Welcome Message Text",
-              type: "text",
-              default:
-                "Visit https://discord.gg/GQDfkdUD for the Mod Pack and Server Information",
-            },
-            {
-              key: "DiscordWelcomeChannelId",
-              label: "Welcome Channel ID / URL",
-              type: "text",
-              default: "",
-              preserve: true,
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Keys",
-          label: "Keybinds",
-          fields: [
-            {
-              key: "OpenKey",
-              label: "Open Menu Key",
-              type: "text",
-              default: "insert",
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Stacks Crafting",
-          label: "Stacks — Crafting",
-          fields: [
-            {
-              key: "MaxTapeStack",
-              label: "Duct Tape",
-              type: "stack",
-              default: "100",
-            },
-            {
-              key: "MaxClothStack",
-              label: "Cloth",
-              type: "stack",
-              default: "1000",
-            },
-            {
-              key: "MaxWireStack",
-              label: "Wire",
-              type: "stack",
-              default: "100",
-            },
-            {
-              key: "MaxBatteriesStack",
-              label: "Batteries",
-              type: "stack",
-              default: "6",
-            },
-            {
-              key: "MaxRopeStack",
-              label: "Ropes",
-              type: "stack",
-              default: "8",
-            },
-            {
-              key: "MaxBoardStack",
-              label: "Circuit Boards",
-              type: "stack",
-              default: "6",
-            },
-            {
-              key: "MaxC4Stack",
-              label: "C4 Bricks",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxVodkaStack",
-              label: "Vodka",
-              type: "stack",
-              default: "6",
-            },
-            {
-              key: "MaxWatchStack",
-              label: "Watches",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxCoinStack",
-              label: "Coins",
-              type: "stack",
-              default: "1000",
-            },
-            {
-              key: "MaxResinStack",
-              label: "Resin",
-              type: "stack",
-              default: "1000",
-            },
-            {
-              key: "MaxMeshStack",
-              label: "Tech Mesh",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxHookStack",
-              label: "Grappling Hooks",
-              type: "stack",
-              default: "2",
-            },
-            {
-              key: "MaxGpsCaseStack",
-              label: "GPS Cases",
-              type: "stack",
-              default: "5",
-            },
-            {
-              key: "MaxSolarStack",
-              label: "Solar Panels",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxBatteryStack",
-              label: "Golfcart Batteries",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxBulbStack",
-              label: "Light Bulbs",
-              type: "stack",
-              default: "8",
-            },
-            {
-              key: "MaxRadioStack",
-              label: "Radios",
-              type: "stack",
-              default: "1",
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Stacks Food",
-          label: "Stacks — Food & Meds",
-          fields: [
-            { key: "MaxMedsStack", label: "Meds", type: "stack", default: "6" },
-            {
-              key: "MaxHealthMixStack",
-              label: "Health Mix",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxHealthMixPlusStack",
-              label: "Health+ Mix",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxEnergyMixStack",
-              label: "Energy Mix",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxEnergyMixPlusStack",
-              label: "Energy+ Mix",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxPotStack",
-              label: "Cooking Pots",
-              type: "stack",
-              default: "1",
-            },
-            { key: "MaxMeatStack", label: "Meat", type: "stack", default: "7" },
-            { key: "MaxFishStack", label: "Fish", type: "stack", default: "3" },
-            { key: "MaxMreStack", label: "MREs", type: "stack", default: "6" },
-            {
-              key: "MaxEnergyBarStack",
-              label: "Energy Bars",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxEnergyDrinkStack",
-              label: "Energy Drinks",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxCannedFoodStack",
-              label: "Canned Food",
-              type: "stack",
-              default: "6",
-            },
-            {
-              key: "MaxCatFoodStack",
-              label: "Cat Food",
-              type: "stack",
-              default: "1",
-            },
-            {
-              key: "MaxRamenStack",
-              label: "Ramen",
-              type: "stack",
-              default: "4",
-            },
-            {
-              key: "MaxCrunchieStack",
-              label: "Crunchie Wunchies",
-              type: "stack",
-              default: "4",
-            },
-            {
-              key: "MaxOysterStack",
-              label: "Oysters",
-              type: "stack",
-              default: "5",
-            },
-            {
-              key: "MaxEggStack",
-              label: "Turtle Eggs",
-              type: "stack",
-              default: "4",
-            },
-            {
-              key: "MaxSteakBiteStack",
-              label: "Steak Bites",
-              type: "stack",
-              default: "1",
-            },
-            {
-              key: "MaxBaconBiteStack",
-              label: "Bacon Bites",
-              type: "stack",
-              default: "1",
-            },
-            {
-              key: "MaxBrainBiteStack",
-              label: "Brain Bites",
-              type: "stack",
-              default: "1",
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Stacks Combat",
-          label: "Stacks — Combat & Armor",
-          fields: [
-            {
-              key: "MaxMolotovStack",
-              label: "Molotovs",
-              type: "stack",
-              default: "6",
-            },
-            {
-              key: "MaxGrenadeStack",
-              label: "Grenades",
-              type: "stack",
-              default: "5",
-            },
-            {
-              key: "MaxBombStack",
-              label: "Sticky Bombs",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxSpearStack",
-              label: "Spears",
-              type: "stack",
-              default: "5",
-            },
-            {
-              key: "MaxFlareStack",
-              label: "Flares",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxAmmoStack",
-              label: "All Ammo",
-              type: "stack",
-              default: "1000",
-            },
-            {
-              key: "MaxStoneArrowStack",
-              label: "Stone Arrows",
-              type: "stack",
-              default: "20",
-            },
-            {
-              key: "MaxPrintedArrowStack",
-              label: "Printed Arrows",
-              type: "stack",
-              default: "20",
-            },
-            {
-              key: "MaxCarbonArrowStack",
-              label: "Carbon Arrows",
-              type: "stack",
-              default: "20",
-            },
-            {
-              key: "MaxBoltStack",
-              label: "Crossbow Bolts",
-              type: "stack",
-              default: "20",
-            },
-            {
-              key: "MaxZiplineStack",
-              label: "Ziplines",
-              type: "stack",
-              default: "4",
-            },
-            {
-              key: "MaxCreepyArmorStack",
-              label: "Creepy Armor",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxBoneArmorStack",
-              label: "Bone Armor",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxSolafiteArmorStack",
-              label: "Solafite Armor",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxTechArmorStack",
-              label: "Tech Armor",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxLeafArmorStack",
-              label: "Leaf Armor",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxHideArmorStack",
-              label: "Hide Armor",
-              type: "stack",
-              default: "10",
-            },
-          ],
-        },
-        {
-          section: "ProjectX - Stacks Resources",
-          label: "Stacks — Resources",
-          fields: [
-            {
-              key: "MaxStickStack",
-              label: "Sticks",
-              type: "stack",
-              default: "20",
-            },
-            {
-              key: "MaxRockStack",
-              label: "Rocks",
-              type: "stack",
-              default: "10",
-            },
-            {
-              key: "MaxSmallRockStack",
-              label: "Small Rocks",
-              type: "stack",
-              default: "30",
-            },
-            {
-              key: "MaxShellStack",
-              label: "Shells",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxHideStack",
-              label: "Hides",
-              type: "stack",
-              default: "5",
-            },
-            {
-              key: "MaxFeatherStack",
-              label: "Feathers",
-              type: "stack",
-              default: "1000",
-            },
-            {
-              key: "MaxAnimalHeadStack",
-              label: "Animal Heads",
-              type: "stack",
-              default: "1",
-            },
-            {
-              key: "MaxHeadStack",
-              label: "Heads",
-              type: "stack",
-              default: "1",
-            },
-            { key: "MaxArmStack", label: "Arms", type: "stack", default: "2" },
-            { key: "MaxLegStack", label: "Legs", type: "stack", default: "2" },
-            {
-              key: "MaxSkullStack",
-              label: "Skulls",
-              type: "stack",
-              default: "3",
-            },
-            {
-              key: "MaxBoneStack",
-              label: "Bones",
-              type: "stack",
-              default: "16",
-            },
-            {
-              key: "MaxLeafStack",
-              label: "Leaves",
-              type: "stack",
-              default: "1000",
-            },
-            {
-              key: "MaxPlantStack",
-              label: "Plants",
-              type: "stack",
-              default: "20",
-            },
-            {
-              key: "MaxSeedStack",
-              label: "Seeds",
-              type: "stack",
-              default: "20",
-            },
-            {
-              key: "MaxSolafiteStack",
-              label: "Solafite",
-              type: "stack",
-              default: "20",
-            },
-            {
-              key: "MaxPouchStack",
-              label: "Skin Pouches",
-              type: "stack",
-              default: "6",
-            },
-            {
-              key: "MaxGliderStack",
-              label: "Hang Gliders",
-              type: "stack",
-              default: "1",
-            },
-            {
-              key: "MaxTarpStack",
-              label: "Tarps",
-              type: "stack",
-              default: "4",
-            },
-            {
-              key: "MaxAirTankStack",
-              label: "Air Tanks",
-              type: "stack",
-              default: "4",
-            },
-            {
-              key: "MaxPaperTargetStack",
-              label: "Paper Targets",
-              type: "stack",
-              default: "50",
-            },
-            {
-              key: "MaxGolfBallStack",
-              label: "Golf Balls",
-              type: "stack",
-              default: "50",
-            },
-            {
-              key: "MaxCashStack",
-              label: "Cash",
-              type: "stack",
-              default: "1000000",
-            },
-          ],
-        },
-        {
-          section: "ProjectX - ScaryCross",
-          label: "Scary Cross",
-          fields: [
-            {
-              key: "SC_TempRiseThreshold",
-              label: "Temp Rise Threshold",
-              type: "float",
-              default: 60,
-              min: 1,
-              max: 100,
-              step: 1,
-            },
-            {
-              key: "SC_BurnThreshold",
-              label: "Burn Threshold",
-              type: "float",
-              default: 60,
-              min: 1,
-              max: 100,
-              step: 1,
-            },
-            {
-              key: "SC_DamageThreshold",
-              label: "Damage Threshold",
-              type: "float",
-              default: 95,
-              min: 1,
-              max: 100,
-              step: 1,
-            },
-            {
-              key: "SC_DamageAfterSec",
-              label: "Damage After (s)",
-              type: "float",
-              default: 10,
-              min: 1,
-              max: 60,
-              step: 1,
-            },
-            {
-              key: "SC_LightIntensityRise",
-              label: "Light Rise Rate",
-              type: "float",
-              default: 25,
-              min: 1,
-              max: 50,
-              step: 1,
-            },
-            {
-              key: "SC_LightIntensityReduce",
-              label: "Light Reduce Rate",
-              type: "float",
-              default: 8,
-              min: 1,
-              max: 50,
-              step: 1,
-            },
-            {
-              key: "SC_TempRisePerSec",
-              label: "Temp Rise Rate",
-              type: "float",
-              default: 25,
-              min: 1,
-              max: 50,
-              step: 1,
-            },
-            {
-              key: "SC_TempReducePerSec",
-              label: "Temp Reduce Rate",
-              type: "float",
-              default: 8,
-              min: 1,
-              max: 50,
-              step: 1,
-            },
-            {
-              key: "SC_EffigyMinRange",
-              label: "Effigy Min Range",
-              type: "float",
-              default: 24,
-              min: 1,
-              max: 100,
-              step: 1,
-            },
-            {
-              key: "SC_EffigyMaxRange",
-              label: "Effigy Max Range",
-              type: "float",
-              default: 48,
-              min: 1,
-              max: 100,
-              step: 1,
-            },
-            {
-              key: "SC_EffigyMinStrength",
-              label: "Effigy Min Strength",
-              type: "float",
-              default: 0.5,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "SC_EffigyMaxStrength",
-              label: "Effigy Max Strength",
-              type: "float",
-              default: 10,
-              min: 1,
-              max: 20,
-              step: 0.5,
-            },
-            {
-              key: "SC_EffigyDisabledRange",
-              label: "Effigy Disabled Range",
-              type: "float",
-              default: 14,
-              min: 1,
-              max: 50,
-              step: 1,
-            },
-            {
-              key: "SC_EffigyDisabledStrength",
-              label: "Effigy Disabled Strength",
-              type: "float",
-              default: 0.25,
-              min: 0.1,
-              max: 5,
-              step: 0.05,
-            },
-            {
-              key: "SC_BurnDemonRangeMin",
-              label: "Burn Demon Range Min",
-              type: "float",
-              default: 18,
-              min: 1,
-              max: 50,
-              step: 1,
-            },
-            {
-              key: "SC_BurnDemonRangeMax",
-              label: "Burn Demon Range Max",
-              type: "float",
-              default: 36,
-              min: 1,
-              max: 100,
-              step: 1,
-            },
-            {
-              key: "SC_BurnDemonTime",
-              label: "Burn Demon Duration",
-              type: "float",
-              default: 30,
-              min: 1,
-              max: 120,
-              step: 1,
-            },
-            {
-              key: "SC_DemonDetectRadiusMin",
-              label: "Detect Radius Min",
-              type: "float",
-              default: 14,
-              min: 1,
-              max: 50,
-              step: 1,
-            },
-            {
-              key: "SC_DemonDetectRadiusMax",
-              label: "Detect Radius Max",
-              type: "float",
-              default: 24,
-              min: 1,
-              max: 100,
-              step: 1,
-            },
-          ],
-        },
-        {
-          section: "X Raids - General",
-          label: "X Raids — General",
-          fields: [
-            {
-              key: "XR_AllowCreepy",
-              label: "Allow Creepy Raids",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "XR_AllowCannibals",
-              label: "Allow Cannibal Raids",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "XR_AllowMuddies",
-              label: "Allow Muddy Raids",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "XR_AnnounceRaids",
-              label: "Announce Raids",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "XR_PlaySound",
-              label: "Play Sound on Announce",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "XR_IncludeEndgame",
-              label: "Include Endgame Raids",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "XR_IncludeForest",
-              label: "Include Forest-Only Raids",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "XR_RaidsPerDay",
-              label: "Max Raids Per Day",
-              type: "int",
-              default: -1,
-              min: -1,
-              max: 24,
-              desc: "-1 = game default",
-            },
-            {
-              key: "XR_Distribution",
-              label: "Raid Distribution",
-              type: "select",
-              default: "Evenly",
-              options: ["Evenly", "Randomly", "Stacked"],
-            },
-            {
-              key: "XR_ConsiderTime",
-              label: "Consider Current Time",
-              type: "bool",
-              default: false,
-            },
-          ],
-        },
-        {
-          section: "X Raids - Times",
-          label: "X Raids — Times",
-          fields: [
-            {
-              key: "XR_RaidAtNight",
-              label: "Raids at Night",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "XR_RaidAtDay",
-              label: "Raids at Day",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "XR_RaidAtEvening",
-              label: "Raids at Evening",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "XR_RaidAtMorning",
-              label: "Raids at Morning",
-              type: "bool",
-              default: true,
-            },
-          ],
-        },
-        {
-          section: "X Raids - Normal",
-          label: "X Raids — Normal",
-          fields: [
-            {
-              key: "XR_MinSpawnFactor",
-              label: "Min Spawn Factor",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_MaxSpawnFactor",
-              label: "Max Spawn Factor",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_EnemyLimit",
-              label: "Max Enemies Per Raid",
-              type: "int",
-              default: 20,
-              min: 1,
-              max: 30,
-            },
-            {
-              key: "XR_Cooldown",
-              label: "Cooldown Days",
-              type: "int",
-              default: -1,
-              min: -1,
-              max: 50,
-              desc: "-1=default, 0=none",
-            },
-            {
-              key: "XR_IgnoreDayLimit",
-              label: "Ignore Day Limit",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "XR_IgnoreAngerLimit",
-              label: "Ignore Anger Limit",
-              type: "bool",
-              default: false,
-            },
-          ],
-        },
-        {
-          section: "X Raids - Boss",
-          label: "X Raids — Boss",
-          fields: [
-            {
-              key: "XR_BossCount",
-              label: "Boss Spawn Count",
-              type: "int",
-              default: 1,
-              min: 1,
-              max: 30,
-            },
-            {
-              key: "XR_BossCooldown",
-              label: "Boss Cooldown Days",
-              type: "int",
-              default: -1,
-              min: -1,
-              max: 50,
-              desc: "-1 = default",
-            },
-            {
-              key: "XR_BossIgnoreDay",
-              label: "Ignore Boss Day Limit",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "XR_BossIgnoreAnger",
-              label: "Ignore Boss Anger Limit",
-              type: "bool",
-              default: false,
-            },
-          ],
-        },
-        {
-          section: "X Raids - Enemy Stats",
-          label: "X Raids — Enemy Stats",
-          fields: [
-            {
-              key: "XR_EnableStats",
-              label: "Enable Stat Overrides",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "XR_OverrideOnLoad",
-              label: "Override Health on Save Load",
-              type: "bool",
-              default: true,
-            },
-            {
-              key: "XR_CannibalHealth",
-              label: "Cannibal Health ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_CannibalDamage",
-              label: "Cannibal Damage ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_CannibalAggro",
-              label: "Cannibal Aggression ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_CreepHealth",
-              label: "Creep Health ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_CreepDamage",
-              label: "Creep Damage ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_CreepAggro",
-              label: "Creep Aggression ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_BossHealth",
-              label: "Boss Health ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_BossDamage",
-              label: "Boss Damage ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_BossAggro",
-              label: "Boss Aggression ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-          ],
-        },
-        {
-          section: "X Raids - Followers",
-          label: "X Raids — Followers",
-          fields: [
-            {
-              key: "XR_VirginiaHealth",
-              label: "Virginia Health ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-            {
-              key: "XR_KelvinHealth",
-              label: "Kelvin Health ×",
-              type: "float",
-              default: 1.0,
-              min: 0.1,
-              max: 10,
-              step: 0.1,
-            },
-          ],
-        },
-        {
-          section: "X Raids - Multiplayer",
-          label: "X Raids — Multiplayer",
-          fields: [
-            {
-              key: "XR_AdjustByPlayers",
-              label: "Adjust by Player Count",
-              type: "bool",
-              default: false,
-            },
-            {
-              key: "XR_ExtraRaids",
-              label: "Extra Raids Per Player",
-              type: "int",
-              default: 2,
-              min: 0,
-              max: 10,
-            },
-            {
-              key: "XR_ExtraSpawns",
-              label: "Extra Enemies Per Player",
-              type: "int",
-              default: 2,
-              min: 0,
-              max: 10,
-            },
-            {
-              key: "XR_ExtraBosses",
-              label: "Extra Bosses Per Player",
-              type: "int",
-              default: 1,
-              min: 0,
-              max: 10,
-            },
-          ],
-        },
+                {
+                          section: "ProjectX - Cheats",
+                          label: "Cheats",
+                          fields: [
+                                    {
+                                              key: "GodMode",
+                                              label: "GodMode",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Invulnerable to damage"
+                                    },
+                                    {
+                                              key: "IsInfStamina",
+                                              label: "Infinite Stamina",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "No energy loss"
+                                    },
+                                    {
+                                              key: "IsNoHungry",
+                                              label: "No Hunger",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Fullness lock"
+                                    },
+                                    {
+                                              key: "IsNoDehydration",
+                                              label: "No Dehydration",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Hydration lock"
+                                    },
+                                    {
+                                              key: "IsNoSleep",
+                                              label: "No Sleep",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Rested lock"
+                                    },
+                                    {
+                                              key: "IsInfiniteAmmo",
+                                              label: "Infinite Ammo",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Never reload"
+                                    },
+                                    {
+                                              key: "IsNoFallDamage",
+                                              label: "No Fall Damage",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "No fall damage"
+                                    },
+                                    {
+                                              key: "InfiniteLogs",
+                                              label: "Infinite Logs",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Never run out of logs"
+                                    },
+                                    {
+                                              key: "InfiniteStones",
+                                              label: "Infinite Stones",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Never run out of stones"
+                                    },
+                                    {
+                                              key: "InfiniteInventory",
+                                              label: "Infinite Stacks",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Sets ALL item stack caps to 999999999"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Movement",
+                          label: "Movement",
+                          fields: [
+                                    {
+                                              key: "IsNoClip",
+                                              label: "NoClip",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Fly mode"
+                                    },
+                                    {
+                                              key: "NoClipSpeed",
+                                              label: "NoClip Speed",
+                                              type: "float",
+                                              default: 2.5,
+                                              desc: "Flight speed",
+                                              min: 0.5,
+                                              max: 20.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "NoClipUpDownSpeed",
+                                              label: "NoClip Vertical Speed",
+                                              type: "float",
+                                              default: 0.5,
+                                              desc: "Flight vertical speed",
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WalkSpeed",
+                                              label: "Walk Speed",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Base walk speed",
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "RunSpeed",
+                                              label: "Run Speed",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Base run speed",
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "SwimSpeed",
+                                              label: "Swim Speed",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Base swim speed",
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "JumpMultiplier",
+                                              label: "Jump Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Super jump",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "IsNoGravity",
+                                              label: "No Gravity",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Disable gravity - float when jumping"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - World",
+                          label: "World",
+                          fields: [
+                                    {
+                                              key: "FreezeAI",
+                                              label: "Freeze AI",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Pause world simulation - stops all enemy/animal spawning and AI"
+                                    },
+                                    {
+                                              key: "InstantBookBuild",
+                                              label: "Instant Book Build",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Server-wide instant blueprint completion for all players"
+                                    },
+                                    {
+                                              key: "IsLockTime",
+                                              label: "Lock Time",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Freeze current time of day"
+                                    },
+                                    {
+                                              key: "DaytimeSpeed",
+                                              label: "Daytime Speed",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Speed of day/night cycle (1 = normal)",
+                                              min: 0.0,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "TreeRegrowRate",
+                                              label: "Tree Regrow Rate",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Multiplier for tree regrowth speed",
+                                              min: 0.0,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WindIntensity",
+                                              label: "Wind Intensity",
+                                              type: "float",
+                                              default: -1.0,
+                                              desc: "Wind strength (-1 = auto, 0+ = locked value)",
+                                              min: -1,
+                                              max: 10.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "KillRadius",
+                                              label: "Kill/Burn Radius",
+                                              type: "float",
+                                              default: 0.0,
+                                              desc: "Radius for Kill/Burn All (0 = all loaded, >0 = meters from player)",
+                                              min: 0.0,
+                                              max: 500.0,
+                                              step: 1.0
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Modules",
+                          label: "Modules",
+                          fields: [
+                                    {
+                                              key: "RelocatorEnabled",
+                                              label: "Enable Relocator",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Always-on: Unlock 'C' to move for all structures"
+                                    },
+                                    {
+                                              key: "LootRespawnEnabled",
+                                              label: "Enable Loot Respawn",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Respawn picked up items after X days"
+                                    },
+                                    {
+                                              key: "LootRespawnDays",
+                                              label: "Loot Respawn Days",
+                                              type: "int",
+                                              default: 3,
+                                              desc: "Days until items respawn (1-100)",
+                                              min: 1,
+                                              max: 100,
+                                              step: 1
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Loot Categories",
+                          label: "Loot Categories",
+                          fields: [
+                                    {
+                                              key: "LR_TrackMelee",
+                                              label: "Track Melee Weapons",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track melee weapons for respawn (Modern Axe, Katana, etc.)"
+                                    },
+                                    {
+                                              key: "LR_TrackRanged",
+                                              label: "Track Ranged Weapons",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track ranged weapons for respawn (Pistol, Shotgun, etc.)"
+                                    },
+                                    {
+                                              key: "LR_TrackWeaponMods",
+                                              label: "Track Weapon Mods",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track weapon mods for respawn (Silencer, Laser Sight, etc.)"
+                                    },
+                                    {
+                                              key: "LR_TrackMaterials",
+                                              label: "Track Materials",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track crafting materials for respawn (Rope, Duct Tape, Coins, etc.)"
+                                    },
+                                    {
+                                              key: "LR_TrackFood",
+                                              label: "Track Food",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track food items for respawn (MREs, Canned Food, etc.)"
+                                    },
+                                    {
+                                              key: "LR_TrackMeds",
+                                              label: "Track Medicine & Energy",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track meds and energy drinks for respawn"
+                                    },
+                                    {
+                                              key: "LR_TrackPlants",
+                                              label: "Track Plants",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track plants for respawn (Aloe Vera, Mushrooms, etc.)"
+                                    },
+                                    {
+                                              key: "LR_TrackAmmo",
+                                              label: "Track Ammunition",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track ammo for respawn (Bullets, Arrows, Bolts, etc.)"
+                                    },
+                                    {
+                                              key: "LR_TrackThrowables",
+                                              label: "Track Throwables",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track throwables for respawn (Grenades, Sticky Bombs, etc.)"
+                                    },
+                                    {
+                                              key: "LR_TrackExpendables",
+                                              label: "Track Expendables",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track expendables for respawn (Printer Resin, Air Tanks, etc.)"
+                                    },
+                                    {
+                                              key: "LR_TrackBreakables",
+                                              label: "Track Breakable Containers",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track breakable containers for respawn (Wooden Crates, Coffins)"
+                                    },
+                                    {
+                                              key: "LR_TrackOpenables",
+                                              label: "Track Openable Containers",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Track openable containers for respawn (Ammo Cases, Pelican Cases, Suitcases)"
+                                    },
+                                    {
+                                              key: "FasterCraftingEnabled",
+                                              label: "Faster Crafting",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Speed up backpack crafting"
+                                    },
+                                    {
+                                              key: "CraftingSpeedMultiplier",
+                                              label: "Crafting Speed Multiplier",
+                                              type: "float",
+                                              default: 5.0,
+                                              desc: "Speed multiplier (1 = normal, 10 = instant)",
+                                              min: 1.0,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "StructureDurabilityMultiplier",
+                                              label: "Structure Durability",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Health Multiplier (100 = Invincible-ish)",
+                                              min: 0.1,
+                                              max: 100.0,
+                                              step: 1.0
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Builder Stacks",
+                          label: "Builder Stacks",
+                          fields: [
+                                    {
+                                              key: "BuilderStacksEnabled",
+                                              label: "Enable Builder Stacks",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Carry extra logs, planks, and stones beyond vanilla limit"
+                                    },
+                                    {
+                                              key: "BuilderStacksMaxLogCapacity",
+                                              label: "Max Log Capacity",
+                                              type: "stack",
+                                              default: "2",
+                                              desc: "Maximum logs you can carry at once (vanilla: 2)"
+                                    },
+                                    {
+                                              key: "BuilderStacksMaxPlankCapacity",
+                                              label: "Max Plank Capacity",
+                                              type: "stack",
+                                              default: "4",
+                                              desc: "Maximum planks you can carry at once (vanilla: 4)"
+                                    },
+                                    {
+                                              key: "BuilderStacksMaxStoneCapacity",
+                                              label: "Max Stone Capacity",
+                                              type: "stack",
+                                              default: "4",
+                                              desc: "Maximum stones you can carry at once (vanilla: 4)"
+                                    },
+                                    {
+                                              key: "BuilderStacksEnableMaxLimit",
+                                              label: "Enable Max Limit",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "If off, carry unlimited materials"
+                                    },
+                                    {
+                                              key: "BuilderStacksGiveDelay",
+                                              label: "Re-equip Delay",
+                                              type: "float",
+                                              default: 0.2,
+                                              desc: "Seconds before auto re-equipping from buffer (lower = faster)",
+                                              min: 0.1,
+                                              max: 3.0,
+                                              step: 0.5
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Zipline",
+                          label: "Zipline",
+                          fields: [
+                                    {
+                                              key: "MaxZipLineLength",
+                                              label: "Max Zipline Length",
+                                              type: "float",
+                                              default: 0.0,
+                                              desc: "Maximum zipline rope length (game default ~150)"
+                                    },
+                                    {
+                                              key: "MaxShootingDistance",
+                                              label: "Max Shooting Distance",
+                                              type: "float",
+                                              default: 0.0,
+                                              desc: "Max rope gun targeting distance (game default ~50)"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Features",
+                          label: "Features",
+                          fields: [
+                                    {
+                                              key: "WaterCollectorHeatRadius",
+                                              label: "Water Collector Heat Radius",
+                                              type: "float",
+                                              default: 2.5,
+                                              desc: "Radius to check for fire to melt ice",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "MeatDryerProximityCheckInterval",
+                                              label: "Meat Dryer Check Interval",
+                                              type: "float",
+                                              default: 2.0,
+                                              desc: "How often (seconds) to check for fire proximity",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "MeatDryerSpeedMultiplier",
+                                              label: "Meat Dryer Speed Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Multiplier for drying speed near fires (1 = normal, 10 = 10x faster)",
+                                              min: 1.0,
+                                              max: 50.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "MeatDryerCureTimeDays",
+                                              label: "Meat Dryer Cure Time (Days)",
+                                              type: "float",
+                                              default: -1.0,
+                                              desc: "Override cure time in game days (-1 = use default, 0.1 = very fast)",
+                                              min: -1,
+                                              max: 10.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "MeatDryerInstantDry",
+                                              label: "Meat Dryer Instant Dry",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Instantly dry all meat placed on racks"
+                                    },
+                                    {
+                                              key: "MeatDryerNoFireRequired",
+                                              label: "Meat Dryer No Fire Required",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Drying boost always active, no fire needed"
+                                    },
+                                    {
+                                              key: "MeatDryerFireRadius",
+                                              label: "Meat Dryer Fire Radius",
+                                              type: "float",
+                                              default: 10.0,
+                                              desc: "Distance (meters) to detect fire for drying boost",
+                                              min: 3.0,
+                                              max: 30.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "FlashlightIntensity",
+                                              label: "Flashlight Intensity",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Brightness multiplier",
+                                              min: 0.1,
+                                              max: 5.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "MaxRopeBridgeLength",
+                                              label: "Max Rope Bridge Length (m)",
+                                              type: "float",
+                                              default: 0.0,
+                                              desc: "Maximum rope bridge length in meters (game default ~24m)",
+                                              min: 5.0,
+                                              max: 400.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "WaterfallVolume",
+                                              label: "Waterfall Volume",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Volume multiplier for waterfalls (0 = mute, 3 = loud)",
+                                              min: 0.0,
+                                              max: 3.0,
+                                              step: 0.5
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Discord",
+                          label: "Discord",
+                          fields: [
+                                    {
+                                              key: "EnableDiscordBridge",
+                                              label: "Enable Discord Bridge",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Broadcast chat to Discord"
+                                    },
+                                    {
+                                              key: "DiscordBotToken",
+                                              label: "Discord Bot Token",
+                                              type: "text",
+                                              default: "",
+                                              desc: "Your Bot Token",
+                                              preserve: true
+                                    },
+                                    {
+                                              key: "DiscordChannelId",
+                                              label: "Discord Channel ID",
+                                              type: "text",
+                                              default: "",
+                                              desc: "Channel ID to broadcast to",
+                                              preserve: true
+                                    },
+                                    {
+                                              key: "DiscordWelcomeChannelId",
+                                              label: "Discord Welcome Channel ID",
+                                              type: "text",
+                                              default: "",
+                                              desc: "Channel ID to fetch welcome/rules from on player join",
+                                              preserve: true
+                                    },
+                                    {
+                                              key: "EnableWelcomeMessage",
+                                              label: "Enable Welcome Message",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Send welcome to joining players in-game chat"
+                                    },
+                                    {
+                                              key: "WelcomeMessageDelay",
+                                              label: "Welcome Message Delay",
+                                              type: "float",
+                                              default: 30.0,
+                                              desc: "Seconds to wait before sending welcome",
+                                              min: 1.0,
+                                              max: 60.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "WelcomeMessageText",
+                                              label: "Welcome Message Text",
+                                              type: "text",
+                                              default: "Visit https://discord.gg/GQDfkdUD for the Mod Pack and Server Information",
+                                              desc: "Custom text shown to players on join"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Keys",
+                          label: "Keys",
+                          fields: [
+                                    {
+                                              key: "OpenKey",
+                                              label: "Open Menu Key",
+                                              type: "text",
+                                              default: "insert",
+                                              desc: "Key to open Project X menu"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Stacks - Crafting",
+                          label: "Stacks \u2014 - Crafting",
+                          fields: [
+                                    {
+                                              key: "MaxTapeStack",
+                                              label: "Max Duct Tape",
+                                              type: "stack",
+                                              default: "100",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxClothStack",
+                                              label: "Max Cloth",
+                                              type: "stack",
+                                              default: "1000",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxWireStack",
+                                              label: "Max Wire",
+                                              type: "stack",
+                                              default: "100",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxBatteriesStack",
+                                              label: "Max Batteries",
+                                              type: "stack",
+                                              default: "6",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxRopeStack",
+                                              label: "Max Ropes",
+                                              type: "stack",
+                                              default: "8",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxBoardStack",
+                                              label: "Max Circuit Boards",
+                                              type: "stack",
+                                              default: "6",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxC4Stack",
+                                              label: "Max C4 Bricks",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxVodkaStack",
+                                              label: "Max Vodka",
+                                              type: "stack",
+                                              default: "6",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxWatchStack",
+                                              label: "Max Watches",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxCoinStack",
+                                              label: "Max Coins",
+                                              type: "stack",
+                                              default: "1000",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxResinStack",
+                                              label: "Max Resin",
+                                              type: "stack",
+                                              default: "1000",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxMeshStack",
+                                              label: "Max Tech Mesh",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxHookStack",
+                                              label: "Max Grappling Hooks",
+                                              type: "stack",
+                                              default: "2",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxGpsCaseStack",
+                                              label: "Max GPS Cases",
+                                              type: "stack",
+                                              default: "5",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxSolarStack",
+                                              label: "Max Solar Panels",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxBatteryStack",
+                                              label: "Max Golfcart Batteries",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxBulbStack",
+                                              label: "Max Light Bulbs",
+                                              type: "stack",
+                                              default: "8",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxRadioStack",
+                                              label: "Max Radios",
+                                              type: "stack",
+                                              default: "1",
+                                              desc: "1-999999999"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Stacks - Food",
+                          label: "Stacks \u2014 - Food",
+                          fields: [
+                                    {
+                                              key: "MaxMedsStack",
+                                              label: "Max Meds",
+                                              type: "stack",
+                                              default: "6",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxHealthMixStack",
+                                              label: "Max Health Mix",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxHealthMixPlusStack",
+                                              label: "Max Health+ Mix",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxEnergyMixStack",
+                                              label: "Max Energy Mix",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxEnergyMixPlusStack",
+                                              label: "Max Energy+ Mix",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxPotStack",
+                                              label: "Max Cooking Pots",
+                                              type: "stack",
+                                              default: "1",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxMeatStack",
+                                              label: "Max Meat",
+                                              type: "stack",
+                                              default: "7",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxFishStack",
+                                              label: "Max Fish",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxMreStack",
+                                              label: "Max MREs",
+                                              type: "stack",
+                                              default: "6",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxEnergyBarStack",
+                                              label: "Max Energy Bars",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxEnergyDrinkStack",
+                                              label: "Max Energy Drinks",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxCannedFoodStack",
+                                              label: "Max Canned Food",
+                                              type: "stack",
+                                              default: "6",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxCatFoodStack",
+                                              label: "Max Cat Food",
+                                              type: "stack",
+                                              default: "1",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxRamenStack",
+                                              label: "Max Ramen",
+                                              type: "stack",
+                                              default: "4",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxCrunchieStack",
+                                              label: "Max Crunchie Wunchies",
+                                              type: "stack",
+                                              default: "4",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxOysterStack",
+                                              label: "Max Oysters",
+                                              type: "stack",
+                                              default: "5",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxEggStack",
+                                              label: "Max Turtle Eggs",
+                                              type: "stack",
+                                              default: "4",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxSteakBiteStack",
+                                              label: "Max Steak Bites",
+                                              type: "stack",
+                                              default: "1",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxBaconBiteStack",
+                                              label: "Max Bacon Bites",
+                                              type: "stack",
+                                              default: "1",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxBrainBiteStack",
+                                              label: "Max Brain Bites",
+                                              type: "stack",
+                                              default: "1",
+                                              desc: "1-999999999"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Stacks - Combat",
+                          label: "Stacks \u2014 - Combat",
+                          fields: [
+                                    {
+                                              key: "MaxMolotovStack",
+                                              label: "Max Molotovs",
+                                              type: "stack",
+                                              default: "6",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxGrenadeStack",
+                                              label: "Max Grenades",
+                                              type: "stack",
+                                              default: "5",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxBombStack",
+                                              label: "Max Sticky Bombs",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxSpearStack",
+                                              label: "Max Spears",
+                                              type: "stack",
+                                              default: "5",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxFlareStack",
+                                              label: "Max Flares",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxAmmoStack",
+                                              label: "Max All Ammo",
+                                              type: "stack",
+                                              default: "1000",
+                                              desc: "All ammo types"
+                                    },
+                                    {
+                                              key: "MaxStoneArrowStack",
+                                              label: "Max Stone Arrows",
+                                              type: "stack",
+                                              default: "20",
+                                              desc: "Requires menu restart"
+                                    },
+                                    {
+                                              key: "MaxPrintedArrowStack",
+                                              label: "Max Printed Arrows",
+                                              type: "stack",
+                                              default: "20",
+                                              desc: "Requires menu restart"
+                                    },
+                                    {
+                                              key: "MaxCarbonArrowStack",
+                                              label: "Max Carbon Arrows",
+                                              type: "stack",
+                                              default: "20",
+                                              desc: "Requires menu restart"
+                                    },
+                                    {
+                                              key: "MaxBoltStack",
+                                              label: "Max Crossbow Bolts",
+                                              type: "stack",
+                                              default: "20",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxZiplineStack",
+                                              label: "Max Ziplines",
+                                              type: "stack",
+                                              default: "4",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxCreepyArmorStack",
+                                              label: "Max Creepy Armor",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxBoneArmorStack",
+                                              label: "Max Bone Armor",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxSolafiteArmorStack",
+                                              label: "Max Solafite Armor",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxTechArmorStack",
+                                              label: "Max Tech Armor",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxLeafArmorStack",
+                                              label: "Max Leaf Armor",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxHideArmorStack",
+                                              label: "Max Hide Armor",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Stacks - Resources",
+                          label: "Stacks \u2014 - Resources",
+                          fields: [
+                                    {
+                                              key: "MaxStickStack",
+                                              label: "Max Sticks",
+                                              type: "stack",
+                                              default: "20",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxRockStack",
+                                              label: "Max Rocks",
+                                              type: "stack",
+                                              default: "10",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxSmallRockStack",
+                                              label: "Max Small Rocks",
+                                              type: "stack",
+                                              default: "30",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxShellStack",
+                                              label: "Max Shells",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxHideStack",
+                                              label: "Max Hides",
+                                              type: "stack",
+                                              default: "5",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxFeatherStack",
+                                              label: "Max Feathers",
+                                              type: "stack",
+                                              default: "1000",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxAnimalHeadStack",
+                                              label: "Max Animal Heads",
+                                              type: "stack",
+                                              default: "1",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxHeadStack",
+                                              label: "Max Heads",
+                                              type: "stack",
+                                              default: "1",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxArmStack",
+                                              label: "Max Arms",
+                                              type: "stack",
+                                              default: "2",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxLegStack",
+                                              label: "Max Legs",
+                                              type: "stack",
+                                              default: "2",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxSkullStack",
+                                              label: "Max Skulls",
+                                              type: "stack",
+                                              default: "3",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxBoneStack",
+                                              label: "Max Bones",
+                                              type: "stack",
+                                              default: "16",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxLeafStack",
+                                              label: "Max Leaves",
+                                              type: "stack",
+                                              default: "1000",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxPlantStack",
+                                              label: "Max Plants",
+                                              type: "stack",
+                                              default: "20",
+                                              desc: "All plant types"
+                                    },
+                                    {
+                                              key: "MaxSeedStack",
+                                              label: "Max Seeds",
+                                              type: "stack",
+                                              default: "20",
+                                              desc: "All seed types"
+                                    },
+                                    {
+                                              key: "MaxSolafiteStack",
+                                              label: "Max Solafite",
+                                              type: "stack",
+                                              default: "20",
+                                              desc: "1-999999"
+                                    },
+                                    {
+                                              key: "MaxPouchStack",
+                                              label: "Max Skin Pouches",
+                                              type: "stack",
+                                              default: "6",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxGliderStack",
+                                              label: "Max Hang Gliders",
+                                              type: "stack",
+                                              default: "1",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxTarpStack",
+                                              label: "Max Tarps",
+                                              type: "stack",
+                                              default: "4",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxAirTankStack",
+                                              label: "Max Air Tanks",
+                                              type: "stack",
+                                              default: "4",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxPaperTargetStack",
+                                              label: "Max Paper Targets",
+                                              type: "stack",
+                                              default: "50",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxGolfBallStack",
+                                              label: "Max Golf Balls",
+                                              type: "stack",
+                                              default: "50",
+                                              desc: "1-999999999"
+                                    },
+                                    {
+                                              key: "MaxCashStack",
+                                              label: "Max Cash",
+                                              type: "stack",
+                                              default: "1000000",
+                                              desc: "1-999999999"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Scarycross",
+                          label: "Scarycross",
+                          fields: [
+                                    {
+                                              key: "SC_TempRiseThreshold",
+                                              label: "SC: Temp Rise Threshold",
+                                              type: "float",
+                                              default: 60.0,
+                                              desc: "Light Intensity threshold for heat increase",
+                                              min: 1.0,
+                                              max: 100.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_BurnThreshold",
+                                              label: "SC: Burn Threshold",
+                                              type: "float",
+                                              default: 60.0,
+                                              desc: "Heat threshold for burning",
+                                              min: 1.0,
+                                              max: 100.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_DamageThreshold",
+                                              label: "SC: Damage Threshold",
+                                              type: "float",
+                                              default: 95.0,
+                                              desc: "Heat threshold for damage",
+                                              min: 1.0,
+                                              max: 100.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_DamageAfterSec",
+                                              label: "SC: Damage After Sec",
+                                              type: "float",
+                                              default: 10.0,
+                                              desc: "Seconds before damage tick",
+                                              min: 1.0,
+                                              max: 60.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_LightIntensityRise",
+                                              label: "SC: Light Rise Rate",
+                                              type: "float",
+                                              default: 25.0,
+                                              desc: "Rate of light increase",
+                                              min: 1.0,
+                                              max: 50.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_LightIntensityReduce",
+                                              label: "SC: Light Reduce Rate",
+                                              type: "float",
+                                              default: 8.0,
+                                              desc: "Rate of light decrease",
+                                              min: 1.0,
+                                              max: 50.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_TempRisePerSec",
+                                              label: "SC: Temp Rise Rate",
+                                              type: "float",
+                                              default: 25.0,
+                                              desc: "Rate of temp increase",
+                                              min: 1.0,
+                                              max: 50.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_TempReducePerSec",
+                                              label: "SC: Temp Reduce Rate",
+                                              type: "float",
+                                              default: 8.0,
+                                              desc: "Rate of temp decrease",
+                                              min: 1.0,
+                                              max: 50.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_EffigyMinRange",
+                                              label: "SC: Effigy Min Range",
+                                              type: "float",
+                                              default: 24.0,
+                                              desc: "Min range of effigy effect",
+                                              min: 1.0,
+                                              max: 100.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_EffigyMaxRange",
+                                              label: "SC: Effigy Max Range",
+                                              type: "float",
+                                              default: 48.0,
+                                              desc: "Max range of effigy effect",
+                                              min: 1.0,
+                                              max: 100.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_EffigyMinStrength",
+                                              label: "SC: Effigy Min Strength",
+                                              type: "float",
+                                              default: 0.5,
+                                              desc: "Min strength",
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "SC_EffigyMaxStrength",
+                                              label: "SC: Effigy Max Strength",
+                                              type: "float",
+                                              default: 10.0,
+                                              desc: "Max strength",
+                                              min: 1.0,
+                                              max: 20.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_EffigyDisabledRange",
+                                              label: "SC: Effigy Disabled Range",
+                                              type: "float",
+                                              default: 14.0,
+                                              desc: "Range when off",
+                                              min: 1.0,
+                                              max: 50.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_EffigyDisabledStrength",
+                                              label: "SC: Effigy Disabled Strength",
+                                              type: "float",
+                                              default: 0.25,
+                                              desc: "Strength when off",
+                                              min: 0.1,
+                                              max: 5.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "SC_BurnDemonRangeMin",
+                                              label: "SC: Burn Demon Range Min",
+                                              type: "float",
+                                              default: 18.0,
+                                              desc: "Min range of burn effect",
+                                              min: 1.0,
+                                              max: 50.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_BurnDemonRangeMax",
+                                              label: "SC: Burn Demon Range Max",
+                                              type: "float",
+                                              default: 36.0,
+                                              desc: "Max range of burn effect",
+                                              min: 1.0,
+                                              max: 100.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_BurnDemonTime",
+                                              label: "SC: Burn Demon Time",
+                                              type: "float",
+                                              default: 30.0,
+                                              desc: "Duration of burn effect",
+                                              min: 1.0,
+                                              max: 120.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_DemonDetectRadiusMin",
+                                              label: "SC: Detection Radius Min",
+                                              type: "float",
+                                              default: 14.0,
+                                              desc: "Min detection radius",
+                                              min: 1.0,
+                                              max: 50.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "SC_DemonDetectRadiusMax",
+                                              label: "SC: Detection Radius Max",
+                                              type: "float",
+                                              default: 24.0,
+                                              desc: "Max detection radius",
+                                              min: 1.0,
+                                              max: 100.0,
+                                              step: 1.0
+                                    }
+                          ]
+                },
+                {
+                          section: "X Raids - GENERAL",
+                          label: "GENERAL",
+                          fields: [
+                                    {
+                                              key: "XR_AllowCreepy",
+                                              label: "Enable Creepy Raids",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_AllowCannibals",
+                                              label: "Enable Cannibal Raids",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_AllowMuddies",
+                                              label: "Enable Muddy Raids",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_AnnounceRaids",
+                                              label: "Announce Incoming Raids",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_PlaySound",
+                                              label: "Play Sound When Announced",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_IncludeEndgame",
+                                              label: "Always Include Endgame Raids",
+                                              type: "bool",
+                                              default: false
+                                    },
+                                    {
+                                              key: "XR_IncludeForest",
+                                              label: "Always Include Forest-Only Raids",
+                                              type: "bool",
+                                              default: false
+                                    },
+                                    {
+                                              key: "XR_RaidsPerDay",
+                                              label: "Max Raids Per Day (-1=Default)",
+                                              type: "int",
+                                              default: -1,
+                                              min: -1,
+                                              max: 24,
+                                              step: 1
+                                    },
+                                    {
+                                              key: "XR_Distribution",
+                                              label: "Raid Distribution",
+                                              type: "select",
+                                              default: "Evenly",
+                                              options: [
+                                                        "Evenly",
+                                                        "Randomly",
+                                                        "Stacked"
+                                              ]
+                                    },
+                                    {
+                                              key: "XR_ConsiderTime",
+                                              label: "Consider Current Time",
+                                              type: "bool",
+                                              default: false
+                                    }
+                          ]
+                },
+                {
+                          section: "X Raids - TIMES",
+                          label: "TIMES",
+                          fields: [
+                                    {
+                                              key: "XR_RaidAtNight",
+                                              label: "Raids at Night",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_RaidAtDay",
+                                              label: "Raids at Day",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_RaidAtEvening",
+                                              label: "Raids at Evening",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_RaidAtMorning",
+                                              label: "Raids at Morning",
+                                              type: "bool",
+                                              default: true
+                                    }
+                          ]
+                },
+                {
+                          section: "X Raids - NORMAL",
+                          label: "NORMAL",
+                          fields: [
+                                    {
+                                              key: "XR_MinSpawnFactor",
+                                              label: "Min Spawn Count Factor",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_MaxSpawnFactor",
+                                              label: "Max Spawn Count Factor",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_EnemyLimit",
+                                              label: "Max Enemies Per Raid",
+                                              type: "int",
+                                              default: 20,
+                                              min: 1,
+                                              max: 30,
+                                              step: 1
+                                    },
+                                    {
+                                              key: "XR_Cooldown",
+                                              label: "Cooldown Days (-1=Default, 0=None)",
+                                              type: "int",
+                                              default: -1,
+                                              min: -1,
+                                              max: 50,
+                                              step: 1
+                                    },
+                                    {
+                                              key: "XR_IgnoreDayLimit",
+                                              label: "Ignore Min/Max Day Limit",
+                                              type: "bool",
+                                              default: false
+                                    },
+                                    {
+                                              key: "XR_IgnoreAngerLimit",
+                                              label: "Ignore Min/Max Anger Limit",
+                                              type: "bool",
+                                              default: false
+                                    }
+                          ]
+                },
+                {
+                          section: "X Raids - BOSS",
+                          label: "BOSS",
+                          fields: [
+                                    {
+                                              key: "XR_BossCount",
+                                              label: "Boss Spawn Count",
+                                              type: "int",
+                                              default: 1,
+                                              min: 1,
+                                              max: 30,
+                                              step: 1
+                                    },
+                                    {
+                                              key: "XR_BossCooldown",
+                                              label: "Boss Cooldown Days (-1=Default)",
+                                              type: "int",
+                                              default: -1,
+                                              min: -1,
+                                              max: 50,
+                                              step: 1
+                                    },
+                                    {
+                                              key: "XR_BossIgnoreDay",
+                                              label: "Ignore Boss Day Limit",
+                                              type: "bool",
+                                              default: false
+                                    },
+                                    {
+                                              key: "XR_BossIgnoreAnger",
+                                              label: "Ignore Boss Anger Limit",
+                                              type: "bool",
+                                              default: false
+                                    }
+                          ]
+                },
+                {
+                          section: "X Raids - ENEMY STATS",
+                          label: "ENEMY STATS",
+                          fields: [
+                                    {
+                                              key: "XR_EnableStats",
+                                              label: "Enable Stat Overrides",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_OverrideOnLoad",
+                                              label: "Override Health on Save Load",
+                                              type: "bool",
+                                              default: true
+                                    },
+                                    {
+                                              key: "XR_CannibalHealth",
+                                              label: "Cannibal Health Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_CannibalDamage",
+                                              label: "Cannibal Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_CannibalAggro",
+                                              label: "Cannibal Aggression Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_CreepHealth",
+                                              label: "Creep Health Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_CreepDamage",
+                                              label: "Creep Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_CreepAggro",
+                                              label: "Creep Aggression Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_BossHealth",
+                                              label: "Boss Health Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_BossDamage",
+                                              label: "Boss Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "XR_BossAggro",
+                                              label: "Boss Aggression Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 0.1,
+                                              max: 10.0,
+                                              step: 0.5
+                                    }
+                          ]
+                },
+                {
+                          section: "X Raids - FOLLOWERS",
+                          label: "FOLLOWERS",
+                          fields: [
+                                    {
+                                              key: "XR_VirginiaHealth",
+                                              label: "Virginia Health Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 1.0,
+                                              max: 200.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "XR_KelvinHealth",
+                                              label: "Kelvin Health Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              min: 1.0,
+                                              max: 200.0,
+                                              step: 1.0
+                                    }
+                          ]
+                },
+                {
+                          section: "X Raids - MULTIPLAYER",
+                          label: "MULTIPLAYER",
+                          fields: [
+                                    {
+                                              key: "XR_AdjustByPlayers",
+                                              label: "Adjust Raids by Player Count",
+                                              type: "bool",
+                                              default: false
+                                    },
+                                    {
+                                              key: "XR_ExtraRaids",
+                                              label: "Extra Raids Per Player",
+                                              type: "int",
+                                              default: 2,
+                                              min: 0,
+                                              max: 10,
+                                              step: 1
+                                    },
+                                    {
+                                              key: "XR_ExtraSpawns",
+                                              label: "Extra Enemies Per Player",
+                                              type: "int",
+                                              default: 2,
+                                              min: 0,
+                                              max: 10,
+                                              step: 1
+                                    },
+                                    {
+                                              key: "XR_ExtraBosses",
+                                              label: "Extra Bosses Per Player",
+                                              type: "int",
+                                              default: 1,
+                                              min: 0,
+                                              max: 10,
+                                              step: 1
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Ammo Ui",
+                          label: "Ammo Ui",
+                          fields: [
+                                    {
+                                              key: "AmmoUiSize",
+                                              label: "AmmoUI Size",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Scale of the ammo display (0.1 = tiny, 2.0 = large)",
+                                              min: 0.1,
+                                              max: 2.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "AmmoUiOpacity",
+                                              label: "AmmoUI Opacity",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Transparency of the ammo display (0 = invisible, 1 = solid)",
+                                              min: 0.0,
+                                              max: 1.0,
+                                              step: 0.05
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Hotbar",
+                          label: "Hotbar",
+                          fields: [
+                                    {
+                                              key: "HotbarEnabled",
+                                              label: "Enable Hotbar",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Show the item hotbar HUD overlay"
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Weapon Damage (Ranged)",
+                          label: "Weapon Damage (Ranged)",
+                          fields: [
+                                    {
+                                              key: "WD_PistolDmg",
+                                              label: "Pistol Damage Multiplier",
+                                              type: "float",
+                                              default: 2.5,
+                                              desc: "Damage multiplier for the Pistol",
+                                              min: 1.0,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_RevolverDmg",
+                                              label: "Revolver Damage Multiplier",
+                                              type: "float",
+                                              default: 3.5,
+                                              desc: "Damage multiplier for the Revolver",
+                                              min: 1.0,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_ShotgunDmg",
+                                              label: "Shotgun Damage Multiplier",
+                                              type: "float",
+                                              default: 2.5,
+                                              desc: "Damage multiplier for the Shotgun (slugs)",
+                                              min: 1.0,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_BuckshotDmg",
+                                              label: "Buckshot Damage Factor",
+                                              type: "float",
+                                              default: 0.14,
+                                              desc: "Buckshot damage = Shotgun multiplier \u00d7 this value (default 0.14 = reduced per-pellet)",
+                                              min: 0.01,
+                                              max: 1.0,
+                                              step: 0.05
+                                    },
+                                    {
+                                              key: "WD_BuckshotSpread",
+                                              label: "Buckshot Spread Angle",
+                                              type: "float",
+                                              default: 7.0,
+                                              desc: "Buckshot pellet scatter cone in degrees (lower = tighter)",
+                                              min: 1.0,
+                                              max: 20.0,
+                                              step: 1.0
+                                    },
+                                    {
+                                              key: "WD_RifleDmg",
+                                              label: "Rifle Damage Multiplier",
+                                              type: "float",
+                                              default: 2.0,
+                                              desc: "Damage multiplier for the Rifle",
+                                              min: 1.0,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_CompoundBowDmg",
+                                              label: "Compound Bow Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Compound Bow",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_CraftedBowDmg",
+                                              label: "Crafted Bow Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Crafted Bow",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_CrossbowDmg",
+                                              label: "Crossbow Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Crossbow",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_SlingshotDmg",
+                                              label: "Slingshot Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Slingshot",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_StunGunDmg",
+                                              label: "Stun Gun Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Stun Gun/Taser",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_GrenadeDmg",
+                                              label: "Grenade Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for Frag Grenades",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_MolotovDmg",
+                                              label: "Molotov Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for Molotov Cocktails",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_StickyBombDmg",
+                                              label: "Sticky Bomb Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for Time Bombs/Sticky Bombs",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_C4Dmg",
+                                              label: "C4 Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for C4 Bricks",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_StoneArrowDmg",
+                                              label: "Stone Arrow Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for Stone/Crafted Arrows",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_PrintedArrowDmg",
+                                              label: "3D Printed Arrow Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for 3D Printed Arrows",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_CarbonArrowDmg",
+                                              label: "Carbon Fiber Arrow Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for Carbon Fiber Arrows",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_FireArrowDmg",
+                                              label: "Fire Arrow Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for Fire Arrows",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_ShockArrowDmg",
+                                              label: "Shock Arrow Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for Shock Arrows",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_ExplosiveArrowDmg",
+                                              label: "Explosive Arrow Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for Explosive Arrows",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Weapon Damage (Melee)",
+                          label: "Weapon Damage (Melee)",
+                          fields: [
+                                    {
+                                              key: "WD_KatanaDmg",
+                                              label: "Katana Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Katana",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_MacheteDmg",
+                                              label: "Machete Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Machete",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_ModernAxeDmg",
+                                              label: "Modern Axe Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Modern Axe",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_FireAxeDmg",
+                                              label: "Firefighter Axe Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Firefighter Axe",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_TacticalAxeDmg",
+                                              label: "Tactical Axe Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Tactical Axe",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_CraftedSpearDmg",
+                                              label: "Crafted Spear Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Crafted Spear",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_StunBatonDmg",
+                                              label: "Stun Baton Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Stun Baton",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_CraftedClubDmg",
+                                              label: "Crafted Club Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Crafted Club",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_GuitarDmg",
+                                              label: "Guitar Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Guitar",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_ChainsawDmg",
+                                              label: "Chainsaw Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Chainsaw",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_GolfPutterDmg",
+                                              label: "Golf Putter Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Golf Putter",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_KnifeDmg",
+                                              label: "Knife Damage Multiplier",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Damage multiplier for the Knife",
+                                              min: 0.5,
+                                              max: 10.0,
+                                              step: 0.5
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Weapon Features",
+                          label: "Weapon Features",
+                          fields: [
+                                    {
+                                              key: "WD_Enabled",
+                                              label: "Enable Weapon Damage",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Master toggle \u2014 OFF restores vanilla damage for all weapons"
+                                    },
+                                    {
+                                              key: "WD_SolafiteBonus",
+                                              label: "Solafite Plating Bonus",
+                                              type: "float",
+                                              default: 1.25,
+                                              desc: "Damage multiplier when weapon has solafite plating (1.0 = no bonus, 1.25 = +25%)",
+                                              min: 1.0,
+                                              max: 3.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "WD_InspectKey",
+                                              label: "Weapon Inspect Key",
+                                              type: "text",
+                                              default: "i",
+                                              desc: "Key to re-equip weapon and replay first-equip animation"
+                                    },
+                                    {
+                                              key: "WD_InspectLeftHand",
+                                              label: "Inspect Left Hand",
+                                              type: "bool",
+                                              default: false,
+                                              desc: "Allow inspecting left-hand items when no right-hand weapon is held"
+                                    }
+                          ]
+                }
+      ]
       ];
 
       let values = {};

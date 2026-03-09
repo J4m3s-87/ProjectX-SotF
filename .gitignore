@@ -1,0 +1,85 @@
+# ===========================================
+# Project X .gitignore
+# ===========================================
+
+# Build outputs
+bin/
+obj/
+Build_Output/
+*.dll
+*.exe
+*.pdb
+*.nupkg
+
+# Runtime config / credentials (never commit real values)
+*.cfg
+roles.json
+
+# IDE / Editor
+.vs/
+.vscode/
+*.user
+*.suo
+*.userprefs
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Tooling and internal docs (not distributed)
+Tools/
+!Tools/Makefile
+!Tools/Lint-IL2CPP.ps1
+!Tools/Test-ProjectX.ps1
+!Tools/Test-StaticAnalysis.ps1
+!Tools/il2cpp_banned_apis.txt
+!Tools/ConfigEditor.html
+Makefile.local
+Docs/
+Old_Source/
+DecompiledMods/
+discord_posts/
+Copy of Working Sons Of The Forest Directory/
+
+# Temp dump directories
+temp_dummy_dump/
+temp_dump/
+temp_dump_interop/
+
+# Agent / AI
+.agent/
+.gemini/
+
+# Temp / logs / backups
+*.tmp
+*.log
+*.bak
+~$*
+
+# Root files not for public
+WHAT_IS_PROJECT_X.md
+ORIGINALITY_REPORT.md
+STANDARDS.md
+originality_response.md
+technical_retrospective.md
+NEW_PLAYER_GUIDE.txt
+PROJECT_SUMMARY.txt
+MOD_ANALYSIS_REPORT.md
+author_message_draft.txt
+build_broadcast.txt
+SonsSdk_Analysis.txt
+build_errors.txt
+build_log*.txt
+recent_log.txt
+refactor_sg.ps1
+update_refs.ps1
+
+# Dev non-source files
+Dev/**/*.ps1
+Dev/**/build_log*.txt
+
+# Allow Installer binaries (override *.dll / *.exe rules above)
+!Installer/**
+
+# Allow manifest.json files (no sensitive data)
+!**/manifest.json

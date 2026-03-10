@@ -195,7 +195,7 @@ info:
 #     ProjectX.Client/       <- manifest.json + Assets/
 #     README.txt
 
-DISCORD_OUT ?= $(USERPROFILE)/Desktop/ProjectX-Discord
+DISCORD_OUT ?= $(USERPROFILE)/Desktop/For Discord
 DISCORD_ZIP := $(DISCORD_OUT)/ProjectX_Installer.zip
 INSTALLER_DIR := Installer
 

@@ -112,7 +112,54 @@ These features require the **Client Build** installed:
 
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
 
-## 🔊 Waterfall Volume Control
+## � Weapon Damage & Inspect
+
+Weapon damage on this server may differ from vanilla:
+
+- **All weapon damage multipliers** are controlled by the server — ranged (guns, bows, explosives) and melee (katana, machete, axes, etc.) each have individual multipliers
+- **Shotgun buckshot/slug switching** — damage dynamically changes based on your loaded ammo type. Buckshot has its own multiplier and adjustable spread angle
+- **Solafite plating bonus** — weapons with solafite plating deal extra damage (server-configurable)
+- **Weapon Inspect** — press **V** to re-play the equip animation on your held weapon (like an inspect animation). This works on any held item
+
+> These values are synced from the server so all players have the same damage balance.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## ⚡ Faster Crafting
+
+Crafting in the backpack is **significantly faster** than vanilla:
+
+- Open your backpack, place items on the mat, click the cog — the crafting animation plays at up to **5x speed** (server-configurable)
+- No ramp-up — max speed from the very first craft
+- Fish Traps always craft at normal speed (intentional)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 💬 Discord Bridge
+
+This server has a live link between in-game chat and a Discord channel:
+
+- **In-game messages** appear in the linked Discord channel in real-time
+- **Discord messages** appear as in-game chat popups for all players
+- Player names are shown alongside messages in both directions
+- Server events (player join/leave, deaths) may also appear in Discord
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## 🛡️ Anti-Cheat (Mod Integrity Check)
+
+When you join the server, the mod performs a quick integrity check:
+
+- The server asks your client to report which mods are loaded
+- If you're running **only authorized mods** (Project X Client), you pass automatically
+- If you have **unauthorized mods** loaded alongside Project X, you may be kicked
+- **Vanilla players** (no mods at all) are allowed — the check times out harmlessly
+
+> This runs silently in the background. You won't see anything unless there's a problem.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+## �🔊 Waterfall Volume Control
 
 If the waterfalls are deafening your base:
 
@@ -179,9 +226,6 @@ The server admin can control the game remotely using chat commands:
 
 ## ❓ FAQ
 
-**Q: Do I need the mod to play on this server?**
-A: You can join without it, but you'll miss the HUD features (hotbar icons, ammo counter). All other features work server-side for everyone.
-
 **Q: Can I cheat?**
 A: No. The Client build has all cheats disabled and the mod menu is locked. Only the server admin can authorize access.
 
@@ -190,3 +234,12 @@ A: No. The mod only loads when joining modded servers. Remove the DLL from your 
 
 **Q: Why are my stack sizes different from what I set locally?**
 A: The server overrides local config values so all players have the same experience.
+
+**Q: Why did I get kicked when joining?**
+A: The server runs an anti-cheat check. If you have unauthorized mods installed alongside Project X, you'll be kicked. Remove any extra mods from your `Mods/` folder and try again.
+
+**Q: What does the V key do?**
+A: It triggers a weapon inspect animation — your character re-equips the held item, replaying the first-equip animation. It's a cosmetic feature.
+
+**Q: Why is crafting so fast?**
+A: The server has Faster Crafting enabled. Backpack crafting runs at up to 5x speed by default. This is intentional.

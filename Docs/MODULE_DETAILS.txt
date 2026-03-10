@@ -7,7 +7,7 @@ This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
-Last Updated: March 09, 2026
+ Last Updated: March 10, 2026
 
 ================================================================================
                                 TABLE OF CONTENTS
@@ -26,11 +26,16 @@ Last Updated: March 09, 2026
  11. Loot Respawn Module
  12. Dedicated Superuser Module
  13. Building Cheats Module
- 14. AmmoUI Module  *** UPDATED ***
- 15. Builder Stacks Module  *** NEW ***
+ 14. AmmoUI Module
+ 15. Builder Stacks Module
  16. Discord Bridge Module
  17. GUI Layout & Menu System
- 18. Audio Control Module  *** NEW ***
+ 18. Audio Control Module
+ 19. Network Infrastructure Module  *** NEW ***
+ 20. Inventory Module  *** NEW ***
+ 21. Weapon Damage Module  *** NEW ***
+ 22. Crafting Speed Module  *** NEW ***
+ 23. Hotbar Module  *** NEW ***
 
 Removed Modules (no longer in build):
  - Open Sesame (HarmonyPatchAll vtable corruption)
@@ -1263,6 +1268,375 @@ IL2CPP NOTES:
  - GetComponentsInChildren<SonsFMODEventEmitter>() → stripped (generic plural).
    Replaced with per-emitter Awake tracking + root parent name filtering.
  - _baseVolume field → private in DummyDll. Use SetVolume() public method.
+
+================================================================================
+              19. NETWORK INFRASTRUCTURE MODULE  *** NEW ***
+================================================================================
+
+PURPOSE:
+Server-authoritative networking layer that provides:
+  1. Config Sync — Server broadcasts all config values to clients on join
+  2. RBAC — Role-Based Access Control via roles.json (Owner/Admin/Mod/Player)
+  3. Permission Sync — Server broadcasts per-player permissions to clients
+  4. Integrity Check — Anti-cheat mod whitelist + DLL hash verification
+  5. Admin Command Bridge — Client→Server command relay via ChatBox.SendLine
+  6. Command Bridge — Server-side ChatEvent interception for admin commands
+
+This module is the backbone of the 4-Tier Architecture (Solo/Owner/Client/Server).
+It ensures that all players receive identical game settings and that only
+authorized players can access admin features.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ SUB-COMPONENTS                                                               │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│ ┌─ CONFIG SYNC (ConfigSyncEvent + ConfigSyncPayload) ──────────────────┐    │
+│ │ • Server serializes all Config.cs entries into a key=value payload    │    │
+│ │ • Sends 0x10 PAYLOAD packet to each client on join                   │    │
+│ │ • Re-broadcasts to ALL clients on config change (live update)        │    │
+│ │ • Client applies received values via ConfigSyncPayload.Apply()       │    │
+│ │ • Protocol: 0x01 = client request, 0x10 = server payload             │    │
+│ │ • Buffer: 8192 bytes per packet (~4KB payload typical)               │    │
+│ └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│ ┌─ RBAC: ROLE MANAGER (RoleManager + roles.json) ─────────────────────┐    │
+│ │ • 4-tier role hierarchy: Player(0) → Moderator(1) → Admin(2) → Owner(3)  │
+│ │ • Loaded from roles.json at mod startup (server/owner only)          │    │
+│ │ • Maps SteamID → Role via hand-parsed JSON (no external deps)        │    │
+│ │ • Auto-creates default template if roles.json doesn't exist          │    │
+│ │ • Public API: GetRole(steamId), HasRole(steamId, role),              │    │
+│ │   IsAdmin(steamId), IsOwner(steamId)                                 │    │
+│ │ • Used by PermissionEvent, IntegrityEvent, and DedicatedSuperuser    │    │
+│ └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│ ┌─ PERMISSION SYNC (PermissionSync + PermissionEvent) ────────────────┐    │
+│ │ • Server broadcasts HasMenuAccess, HasAdminAccess, CurrentRole       │    │
+│ │ • Client receives via 0x02 response packet and applies locally       │    │
+│ │ • Owner edition: always has full access (no server query)             │    │
+│ │ • Solo: full access by default                                       │    │
+│ │ • Server can grant/revoke menu access per-player by name             │    │
+│ │ • Session cheats toggle broadcasts to all clients                    │    │
+│ └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│ ┌─ INTEGRITY CHECK / ANTI-CHEAT (IntegrityEvent + IntegrityConfig) ───┐    │
+│ │ • 3-way handshake on player join:                                    │    │
+│ │   1. Server → Client: 0x10 REQUEST_CHECK (Packets.NetEvent)         │    │
+│ │   2. Client → Server: /px integrity mod1,mod2|hash (ChatBox.SendLine)│   │
+│ │   3. Server → Client: 0x12 CHECK_RESULT pass/fail (Packets.NetEvent)│    │
+│ │ • Hybrid protocol: NetEvent server→client, ChatBox client→server     │    │
+│ │   (because Packets.NetEvent client→server is silently dropped on     │    │
+│ │    dedicated servers — documented limitation)                         │    │
+│ │ • Client collects loaded mods via ModTypeBase<SonsMod>.RegisteredMods│    │
+│ │ • Client hashes own DLL via SHA256                                   │    │
+│ │ • Server validates against whitelist + expected hash                  │    │
+│ │ • Timeout = ALLOW (vanilla clients can't respond = likely safe)      │    │
+│ │ • Only explicit whitelist violations trigger disconnect               │    │
+│ │ • Deferred queue: connection events fire on Bolt background threads; │    │
+│ │   requests are queued and dispatched on main thread via tick driver   │    │
+│ │ • Retry mechanism: client retries sending response up to 30 times    │    │
+│ │   (1/sec) if ChatBox isn't available during loading                  │    │
+│ └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│ ┌─ ADMIN COMMAND BRIDGE (AdminCommandEvent) ──────────────────────────┐    │
+│ │ • Routes GUI admin panel commands from client to server              │    │
+│ │ • PRIMARY: ChatBox.SendLine (game's own chat → server via Bolt)      │    │
+│ │ • SECONDARY: ChatEvent.Create(GlobalTargets.Everyone) — fallback     │    │
+│ │ • TERTIARY: Local execution (single player only)                     │    │
+│ │ • ChatBox type resolved at runtime via AccessTools.TypeByName        │    │
+│ │ • SendLine method invoked via reflection (private method)            │    │
+│ └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│ ┌─ COMMAND BRIDGE (CommandBridge) ────────────────────────────────────┐     │
+│ │ • Server-side ChatEvent listener for "/px" prefixed commands         │    │
+│ │ • Routes commands to appropriate handlers (DedicatedSuperuser, etc.) │    │
+│ │ • Intercepts chat messages before they reach other players           │    │
+│ └──────────────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+CONFIG OPTIONS (IntegrityCheck — Server-side only):
+- Enabled (bool): Master toggle for anti-cheat. Default: true
+- ModWhitelist (string): Comma-separated allowed mod IDs.
+  Default: "ProjectX.Master,ProjectX.Owner,ProjectX.Client,ProjectX.Server"
+- ExpectedClientHash (string): SHA256 hash of authorized client DLL.
+  Default: "" (blank = skip hash check)
+- GracePeriodSeconds (float): Timeout before allowing unresponsive clients.
+  Default: 15.0, Range: 5-60
+- KickMessage (string): Message shown to kicked players.
+  Default: "Unauthorized mods detected. Contact the server admin."
+
+ROLES.JSON FORMAT:
+  {
+    "owner": ["76561198012345678"],
+    "admin": ["76561198087654321"],
+    "moderator": [],
+    "player": []
+  }
+  - Place in same directory as the mod DLL
+  - Auto-created with empty template on first run
+  - SteamIDs must be 10+ digit strings
+
+INTERNAL MECHANICS:
+- All events extend Packets.NetEvent from SonsSdk.Networking
+- Event routing: Read() dispatches to ReadMessageServer/ReadMessageClient
+- Binary protocol: UdpPacket.ReadByte/WriteByte for message type discrimination
+- NewPacket(bufferSize, connection) for targeted sends
+- NewPacket(bufferSize, 6) for client→server (type 6 = server endpoint)
+- Connection tracking: HashSet<BoltConnection> for config re-broadcast
+- Dead connection cleanup on each broadcast cycle
+- Background→Main thread safety: lock + deferred queue for WelcomeHandler events
+
+FILES:
+ - Modules/Network/ConfigSyncEvent.cs    (server→client config broadcast)
+ - Modules/Network/ConfigSyncPayload.cs  (serialization/deserialization)
+ - Modules/Network/RoleManager.cs        (RBAC roles.json management)
+ - Modules/Network/PermissionSync.cs     (permission state management)
+ - Modules/Network/PermissionEvent.cs    (permission NetEvent transport)
+ - Modules/Network/IntegrityEvent.cs     (anti-cheat 3-way handshake)
+ - Modules/Network/IntegrityConfig.cs    (anti-cheat server config)
+ - Modules/Network/AdminCommandEvent.cs  (client→server command relay)
+ - Modules/Network/CommandBridge.cs      (server-side chat command router)
+ - Modules/Network/LootSyncEvent.cs      (see section 11: LootRespawn)
+ - Modules/Network/roles.json            (role assignment template)
+
+================================================================================
+                     20. INVENTORY MODULE  *** NEW ***
+================================================================================
+
+PURPOSE:
+Sets the maximum carry amount for ALL items to 999,999,999 when enabled.
+This is a simple quality-of-life toggle that removes inventory capacity
+limits entirely.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 1. Go to Settings → Mods → ProjectX - Features                              │
+│ 2. Toggle "Infinite Inventory" ON                                           │
+│ 3. All items now stack to 999,999,999                                       │
+│                                                                              │
+│ NOTES:                                                                       │
+│ • Applied once on game start via ItemDatabaseManager.Items iteration        │
+│ • Delegates per-item stack logic to Stack Module (section 2)                │
+│ • Config sync: Server sets this value, clients apply via ConfigSyncEvent    │
+│ • Each item modification wrapped in try/catch for crash prevention          │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+CONFIG OPTIONS:
+- InfiniteInventory (bool): Master toggle. Default: false
+
+INTERNAL MECHANICS:
+- Iterates ItemDatabaseManager.Items (all game items)
+- Sets item.MaxAmount = 999999999 for each item
+- Per-item try/catch prevents one bad item from crashing the module
+- Logs count of successfully modified items
+
+FILES:
+ - Modules/Inventory/InventoryModule.cs  (infinite inventory toggle)
+
+================================================================================
+                         21. WEAPON DAMAGE MODULE  *** NEW ***
+================================================================================
+
+BASED ON: Less Useless Guns by SKN The Lisper
+  Concept studied, independently implemented with per-weapon granularity.
+
+PURPOSE:
+Provides configurable per-weapon damage multipliers for all ranged and melee
+weapons. Includes solafite plating bonus, shotgun buckshot/slug switching,
+and a weapon inspect keybind.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ ENABLE THE MODULE:                                                           │
+│ 1. Go to Settings → Mods → ProjectX - Weapon Damage (Ranged / Melee)        │
+│ 2. Toggle "Enable Weapon Damage" ON                                         │
+│ 3. Adjust individual weapon multipliers (default: 1.0 = vanilla)            │
+│                                                                              │
+│ RANGED WEAPONS:                                                              │
+│ • Pistol, Revolver, Rifle, Shotgun (with buckshot/slug switching)           │
+│ • Compound Bow, Crafted Bow, Crossbow, Slingshot, Stun Gun                 │
+│ • All arrow types: Stone, Printed, Carbon, Fire, Shock, Explosive           │
+│ • Explosives: Grenade, Molotov, Sticky Bomb, C4                            │
+│                                                                              │
+│ MELEE WEAPONS:                                                               │
+│ • Katana, Machete, Modern Axe, Fire Axe, Tactical Axe                      │
+│ • Crafted Spear, Stun Baton, Crafted Club, Guitar, Chainsaw                │
+│ • Golf Putter, Knife                                                        │
+│                                                                              │
+│ SPECIAL FEATURES:                                                            │
+│ • Shotgun Buckshot/Slug: Damage dynamically switches based on loaded ammo.  │
+│   Buckshot = ShotgunMult × BuckshotMult. Slug = ShotgunMult alone.          │
+│   Buckshot spread angle is also configurable.                                │
+│ • Solafite Plating Bonus: Weapons with solafite plating get an extra        │
+│   damage multiplier. Cached on weapon swap for performance.                  │
+│ • Weapon Inspect: Press configurable key (default: V) to re-play the        │
+│   first-equip animation. Optional left-hand inspect toggle.                  │
+│                                                                              │
+│ CONFIG SYNC:                                                                 │
+│ On dedicated servers, damage values are set by Server/Owner and synced       │
+│ to all clients via ConfigSyncEvent. Each client applies multipliers         │
+│ locally via ItemDatabaseManager.AmmoDamageMult.                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+CONFIG OPTIONS (Settings → Mods → ProjectX - Weapon Damage):
+- WD_Enabled (bool): Master toggle. Default: false
+- WD_SolafiteBonus (float): Extra damage multiplier for plated weapons. Default: 1.0
+- WD_InspectKey (string): Keybind for weapon inspect. Default: "v"
+- WD_InspectLeftHand (bool): Allow inspecting left-hand items. Default: false
+
+RANGED DAMAGE MULTIPLIERS (float, default 1.0):
+- WD_PistolDmg, WD_RevolverDmg, WD_RifleDmg, WD_ShotgunDmg
+- WD_CompoundBowDmg, WD_CraftedBowDmg, WD_CrossbowDmg, WD_SlingshotDmg
+- WD_StunGunDmg, WD_BuckshotDmg, WD_BuckshotSpread (spread angle, default: 5.0)
+- WD_GrenadeDmg, WD_MolotovDmg, WD_StickyBombDmg, WD_C4Dmg
+- WD_StoneArrowDmg, WD_PrintedArrowDmg, WD_CarbonArrowDmg
+- WD_FireArrowDmg, WD_ShockArrowDmg, WD_ExplosiveArrowDmg
+
+MELEE DAMAGE MULTIPLIERS (float, default 1.0):
+- WD_KatanaDmg, WD_MacheteDmg, WD_ModernAxeDmg, WD_FireAxeDmg
+- WD_TacticalAxeDmg, WD_CraftedSpearDmg, WD_StunBatonDmg
+- WD_CraftedClubDmg, WD_GuitarDmg, WD_ChainsawDmg
+- WD_GolfPutterDmg, WD_KnifeDmg
+
+WEAPON ID REFERENCE:
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ RANGED                                                                       │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 355 = Pistol     │ 386 = Revolver  │ 361 = Rifle     │ 358 = Shotgun       │
+│ 364 = Buckshot   │ 363 = Slug      │ 360 = Comp. Bow │ 443 = Crafted Bow   │
+│ 365 = Crossbow   │ 459 = Slingshot │ 353 = Stun Gun  │                     │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ EXPLOSIVES & ARROWS                                                          │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 381 = Grenade    │ 388 = Molotov   │ 417 = Sticky    │ 420 = C4            │
+│ 507 = Stone Arr  │ 618 = Print Arr │ 373 = Carbon Arr│ 608 = Fire Arr      │
+│ 609 = Shock Arr  │ 610 = Explo Arr │                 │                     │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ MELEE                                                                        │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 367 = Katana     │ 359 = Machete   │ 356 = Mod. Axe  │ 431 = Fire Axe      │
+│ 379 = Tact. Axe  │ 474 = Spear     │ 396 = Stun Bat. │ 477 = Club          │
+│ 340 = Guitar     │ 394 = Chainsaw  │ 525 = Golf Put. │ 380 = Knife         │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+INTERNAL MECHANICS:
+- Damage applied via ItemDatabaseManager.ItemById(id).AmmoDamageMult
+- Dictionary<int, Func<float>> maps weapon IDs to config getters (DRY pattern)
+- OnWorldUpdate() runs per-frame (client only) for dynamic shotgun ammo switching
+- Solafite plating detection: reflection-based — iterates _modules on item instance,
+  finds ItemPlatingItemInstanceModule by type name (Pattern #14), checks IsPlated
+- Weapon inspect: cached UnequipItemAtSlot + TryEquip reflection methods
+- Harmony Postfix on RangedWeapon.LateUpdate tracks current shotgun ammo type
+  (Pattern #13 — string-based, avoids deep assembly dependency chain)
+
+FILES:
+ - Modules/WeaponDamage/WeaponDamageModule.cs  (multiplier application + solafite + inspect)
+ - Modules/WeaponDamage/WeaponDamagePatches.cs (Harmony ammo type tracking)
+
+================================================================================
+                     22. CRAFTING SPEED MODULE  *** UPDATED ***
+================================================================================
+
+BASED ON: FasterCrafting by unknown
+  Concept studied, independently implemented with CraftingCog event hook.
+
+PURPOSE:
+Speeds up backpack crafting animations by setting the CraftingSystem's
+consecutive crafting speed to the configured multiplier on each craft event.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ This module works AUTOMATICALLY once enabled.                                │
+│                                                                              │
+│ TO CONFIGURE:                                                                │
+│ 1. Go to Settings → Mods → ProjectX - Features                              │
+│ 2. Toggle "Faster Crafting" on/off                                          │
+│ 3. Set "Crafting Speed Multiplier" (1.0 - 10.0):                            │
+│    • 1.0 = Normal speed (vanilla)                                           │
+│    • 5.0 = 5x faster (default)                                              │
+│    • 10.0 = 10x faster (near-instant)                                       │
+│                                                                              │
+│ HOW IT WORKS:                                                                │
+│ 1. Open your backpack (Tab)                                                  │
+│ 2. Place items on the crafting mat                                           │
+│ 3. Click the cog to craft — crafting runs at the set speed                  │
+│ 4. No ramp-up period — max speed from the first craft                       │
+│                                                                              │
+│ NOTES:                                                                       │
+│ • Fish Trap (ID 707) is excluded — always crafts at 1x speed               │
+│ • Speed applies immediately — no restart needed                             │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+CONFIG OPTIONS:
+- FasterCraftingEnabled (bool): Enable/disable faster crafting. Default: true
+- CraftingSpeedMultiplier (float): Speed multiplier. Default: 5.0, Range: 1.0-10.0
+
+INTERNAL MECHANICS:
+- Harmony PREFIX on CraftingCog.OnCraftBeginEvent()
+  Sets CraftingSystem properties before the crafting animation plays:
+  • _consecutiveCraftsOfTheSameItem = 100 (skips ramp-up)
+  • _consecutiveItemCraftingSpeedIncrease = 0.25
+  • _maxConsecutiveItemCraftingSpeed = configured multiplier
+- Uses manual harmony.PatchAll(typeof(CraftingCogPatch)) — NOT HarmonyPatchAll
+- Fish Trap exclusion: checks recipe._resultingItems for ID 707
+- Client-only module (#if !SERVER)
+
+FILES:
+ - Modules/Crafting/CraftingSpeed.cs  (patch + speed logic)
+
+================================================================================
+                         23. HOTBAR MODULE  *** NEW ***
+================================================================================
+
+BASED ON: SonsHotbar 1.1.1 by AEDEV
+  Concept and slot logic studied, rebuilt with sprite caching and frame throttling.
+
+PURPOSE:
+Displays hotkey-assigned item icons on-screen, showing which items are mapped
+to the number keys (1-0). Icons update automatically based on inventory state.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ This module works AUTOMATICALLY.                                             │
+│                                                                              │
+│ 1. Assign items to hotkeys as normal (hold item + press 1-0)                │
+│ 2. A visual bar appears at the bottom of the screen showing:                │
+│    • Item icon for each assigned hotkey slot                                 │
+│    • Missing icon (X) if the item is not in inventory                       │
+│ 3. The hotbar auto-hides during pause menu                                  │
+│                                                                              │
+│ TO CONFIGURE:                                                                │
+│ Go to Settings → Mods → ProjectX - Hotbar:                                   │
+│ • HotbarEnabled (bool): Toggle hotbar on/off. Default: true                 │
+│                                                                              │
+│ NOTES:                                                                       │
+│ • Icons are cached after first lookup — no repeated texture creation        │
+│ • Updates every 10 frames (not every frame) for performance                 │
+│ • Works with both right-hand and left-hand hotkey assignments               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+CONFIG OPTIONS (Settings → Mods → ProjectX - Hotbar):
+- HotbarEnabled (bool): Show/hide the hotbar. Default: true
+
+INTERNAL MECHANICS:
+- Prefab: Loaded from ModAssets.HotbarPrefab (bundled asset)
+- Reads ItemHotkeyController._hotkeySaveData for slot assignments
+- Slot mapping: GetSlotId() maps index 0→9 and 1-9→0-8 (keyboard layout)
+- Sprite retrieval: ItemDatabaseManager.ItemById(id).UiData._icon
+  • DummyDll compile-time types don't inherit Il2CppObjectBase at compile time.
+    At RUNTIME they DO. Uses reflection Cast<Texture2D>() via Il2CppInterop
+    to bypass the generic constraint. Sprite.Create() from the cast Texture2D.
+- Frame throttling: UPDATE_INTERVAL = 10 frames between updates
+- Dictionary<int, Sprite> cache avoids re-creating sprites each update
+- Canvas toggle: disabled during PauseMenu.IsActive or when config is off
+- Client-only module (#if !SERVER)
+
+FILES:
+ - Modules/Hotbar/HotbarModule.cs  (slot display + sprite caching)
+ - Modules/Hotbar/ModAssets.cs      (prefab + missingIcon references)
 
 ================================================================================
                     REMOVED MODULES (Historical Reference)

@@ -16,19 +16,19 @@ No code was copied — all implementations were independently written.
 | Scary Cross                               | ScaryCross                       | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/ScaryCross)                  |
 | Dedicated Server Admin                    | DedicatedSuperuser               | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/DedicatedSuperuser)          |
 | Zipline Extension                         | ZiplineExtender                  | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
-| Stone Gate                                | StoneGate                        | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
+| Stone Gate (REMOVED from build)           | StoneGate                        | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
 | Meat Dryer                                | RealisticMeatDryer               | DarkAvatar7             | Unknown  | [sotf-mods](https://sotf-mods.com/mods/DarkAvatar7/)                 |
 | Broadcast Message                         | BroadcastMessage                 | SmokyAce & ThirtyTwelve | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
 | Log/Item Carry (BuilderStacks, Inventory) | LogCarryAmount / ItemCarryAmount | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
 | Waterfall Audio (FMOD volume control)     | WaterfallSoundControl            | Toni Macaroni           | Unknown  | [sotf-mods](https://sotf-mods.com/mods/ToniMacaroni/)                |
-| Ammo UI                                   | AmmoUi                           | ImAxel0                 | Unknown  | [GitHub](https://github.com/ImAxel0)                                 |
+| Ammo UI                                   | AmmoUi                           | ImAxel0                 | MIT      | [GitHub](https://github.com/ImAxel0/AxelModMenu)                     |
 | Open Sesame (Doors)                       | OpenSesame                       | tempbito                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/tempbito/)                    |
 | Hotbar                                    | SonsHotbar                       | AEDEV                   | Unknown  | [sotf-mods](https://sotf-mods.com/mods/AEDEV/)                       |
 | Stack Sizes                               | StackMod                         | Terroducky              | Unknown  | [sotf-mods](https://sotf-mods.com/mods/Terroducky/)                  |
 | Loot Respawn                              | LootRespawnControl               | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/SOTF-Mod-LootRespawnControl) |
 | WaterCollectors                           | Realistic Water Collectors       | GLaD0S (laserman120)    | GPL-3.0  | [GitHub](https://github.com/laserman120/Realistic-Water-Collectors)  |
 | Structure Durability                      | StructureDurability              | tempbito                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/tempbito/)                    |
-| Relocator                                 | Relocator                        | Toni Macaroni           | Unknown  | [sotf-mods](https://sotf-mods.com/mods/ToniMacaroni/)                |
+| Relocator                                 | Relocator                        | Toni Macaroni           | None     | [GitHub](https://github.com/ToniMacaroni/Relocator)                  |
 | WeaponDamage                              | LessUselessGuns                  | sknthelisper            | Unknown  | [sotf-mods](https://sotf-mods.com/mods/sknthelisper/)                |
 | Crafting Speed                            | FasterCrafting                   | Laughingcat             | Unknown  | [sotf-mods](https://sotf-mods.com/mods/Laughingcat/)                 |
 | Mod Compatibility                         | CompatibleModsSynchronizer       | tempbito                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/tempbito/)                    |

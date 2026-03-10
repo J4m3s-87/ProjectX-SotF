@@ -712,7 +712,8 @@ KEY DIFFERENCES FROM ORIGINAL:
 - Standalone JSON persistence (original uses game save system ICustomSaveable)
 - Manual Harmony patching (original uses HarmonyPatchAll = true)
 - Clone filtering: explicit skip for (Clone) items from containers
-- 2 config options vs original's 50+ (per-category allow/block/timed/sync)
+- 2 config options + per-category toggles + item whitelist/blacklist
+  (original has 50+ per-category allow/block/timed/sync)
 - Container respawn (openable + breakable + GrabBag) is ENTIRELY NEW —
   the original mod only handles ground pickups, not containers
 - Server-authoritative tracking via LootSyncEvent is ENTIRELY NEW —
@@ -788,6 +789,18 @@ tracked for respawn — they will always be present in the world.
 - LR_TrackExpendables: Expendables (Printer Resin, Air Tanks, Hide Bags)
 - LR_TrackBreakables: Breakable Containers (Wooden Crates, Coffins)
 - LR_TrackOpenables: Openable Containers (Ammo Cases, Pelican Cases, Suitcases)
+
+PER-ITEM OVERRIDES (Settings → ProjectX - Loot Categories):
+- LR_ItemBlacklist (string): Comma-separated item IDs to NEVER track
+  Items in the blacklist respawn immediately regardless of category toggle.
+  Example: "340,356" = Modern Axe and Machete always respawn
+  Overrides everything (highest priority after building materials).
+- LR_ItemWhitelist (string): Comma-separated item IDs to ALWAYS track
+  Items in the whitelist are always tracked even if their category is off.
+  Example: "437,441" = Meds and Energy Bars always tracked
+  Overrides category toggles but not the blacklist.
+
+Filter priority: Building Materials → Blacklist → Whitelist → Category Toggles
 
 INTERNAL MECHANICS:
 

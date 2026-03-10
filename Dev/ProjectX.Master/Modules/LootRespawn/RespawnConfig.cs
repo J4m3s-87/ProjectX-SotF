@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using RedLoader;
 
 namespace ProjectX.Master.Modules.LootRespawn
@@ -7,6 +9,7 @@ namespace ProjectX.Master.Modules.LootRespawn
     /// Configuration for loot respawn system.
     /// Per-category toggles live in the native RedLoader prefs menu.
     /// GUI exposes only Enabled / RespawnDays / Reset.
+    /// Item-level whitelist/blacklist overrides category toggles.
     /// </summary>
     public static class RespawnConfig
     {
@@ -48,6 +51,20 @@ namespace ProjectX.Master.Modules.LootRespawn
         public static bool TrackExpendables = true;
         public static bool TrackBreakables = true;
         public static bool TrackOpenables = true;
+
+        // ── Per-item whitelist/blacklist (overrides category toggles) ──
+
+        /// <summary>
+        /// Items in the whitelist are ALWAYS tracked regardless of category toggle.
+        /// Configured as comma-separated item IDs in native settings.
+        /// </summary>
+        public static HashSet<int> ItemWhitelist = new();
+
+        /// <summary>
+        /// Items in the blacklist are NEVER tracked regardless of category toggle.
+        /// Takes priority over whitelist. Configured as comma-separated item IDs.
+        /// </summary>
+        public static HashSet<int> ItemBlacklist = new();
 
         // ── Item ID lists (from GlaDOS's LootRespawnControl v2) ─────
 
@@ -125,14 +142,38 @@ namespace ProjectX.Master.Modules.LootRespawn
         // ── Filtering logic ──────────────────────────────────────────
 
         /// <summary>
-        /// Returns true if the given item ID should be tracked for respawn,
-        /// based on which per-category toggles are enabled.
+        /// Parses a comma-separated string of item IDs into a HashSet.
+        /// Invalid entries are silently skipped.
+        /// Example input: "340,356,359"
+        /// </summary>
+        public static HashSet<int> ParseIdList(string csv)
+        {
+            var result = new HashSet<int>();
+            if (string.IsNullOrWhiteSpace(csv)) return result;
+
+            foreach (var token in csv.Split(','))
+            {
+                if (int.TryParse(token.Trim(), out int id))
+                    result.Add(id);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Returns true if the given item ID should be tracked for respawn.
+        /// Priority: BuildingMaterials → Blacklist → Whitelist → Category toggles.
         /// Items not in any known category are tracked unconditionally.
         /// </summary>
         public static bool ShouldTrackItem(int itemId)
         {
             // Building materials — never tracked (handled by BuilderStacks)
             if (BuildingMaterialIds.Contains(itemId)) return false;
+
+            // Per-item blacklist — NEVER tracked (overrides everything)
+            if (ItemBlacklist.Count > 0 && ItemBlacklist.Contains(itemId)) return false;
+
+            // Per-item whitelist — ALWAYS tracked (overrides category toggles)
+            if (ItemWhitelist.Count > 0 && ItemWhitelist.Contains(itemId)) return true;
 
             if (MeleeWeaponIds.Contains(itemId))   return TrackMelee;
             if (RangedWeaponIds.Contains(itemId))   return TrackRanged;

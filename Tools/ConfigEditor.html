@@ -635,6 +635,39 @@
                                               desc: "Always-on: Unlock 'C' to move for all structures"
                                     },
                                     {
+                                              key: "FasterCraftingEnabled",
+                                              label: "Faster Crafting",
+                                              type: "bool",
+                                              default: true,
+                                              desc: "Speed up backpack crafting"
+                                    },
+                                    {
+                                              key: "CraftingSpeedMultiplier",
+                                              label: "Crafting Speed Multiplier",
+                                              type: "float",
+                                              default: 5.0,
+                                              desc: "Speed multiplier (1 = normal, 10 = instant)",
+                                              min: 1.0,
+                                              max: 10.0,
+                                              step: 0.5
+                                    },
+                                    {
+                                              key: "StructureDurabilityMultiplier",
+                                              label: "Structure Durability",
+                                              type: "float",
+                                              default: 1.0,
+                                              desc: "Health Multiplier (100 = Invincible-ish)",
+                                              min: 0.1,
+                                              max: 100.0,
+                                              step: 1.0
+                                    }
+                          ]
+                },
+                {
+                          section: "ProjectX - Loot Respawn Control",
+                          label: "Loot Respawn Control",
+                          fields: [
+                                    {
                                               key: "LootRespawnEnabled",
                                               label: "Enable Loot Respawn",
                                               type: "bool",
@@ -650,13 +683,7 @@
                                               min: 1,
                                               max: 100,
                                               step: 1
-                                    }
-                          ]
-                },
-                {
-                          section: "ProjectX - Loot Categories",
-                          label: "Loot Categories",
-                          fields: [
+                                    },
                                     {
                                               key: "LR_TrackMelee",
                                               label: "Track Melee Weapons",
@@ -742,31 +769,18 @@
                                               desc: "Track openable containers for respawn (Ammo Cases, Pelican Cases, Suitcases)"
                                     },
                                     {
-                                              key: "FasterCraftingEnabled",
-                                              label: "Faster Crafting",
-                                              type: "bool",
-                                              default: true,
-                                              desc: "Speed up backpack crafting"
+                                              key: "LR_ItemBlacklist",
+                                              label: "Item Blacklist (IDs)",
+                                              type: "stack",
+                                              default: "",
+                                              desc: "Comma-separated item IDs to NEVER track (e.g. 340,356). Overrides category toggles."
                                     },
                                     {
-                                              key: "CraftingSpeedMultiplier",
-                                              label: "Crafting Speed Multiplier",
-                                              type: "float",
-                                              default: 5.0,
-                                              desc: "Speed multiplier (1 = normal, 10 = instant)",
-                                              min: 1.0,
-                                              max: 10.0,
-                                              step: 0.5
-                                    },
-                                    {
-                                              key: "StructureDurabilityMultiplier",
-                                              label: "Structure Durability",
-                                              type: "float",
-                                              default: 1.0,
-                                              desc: "Health Multiplier (100 = Invincible-ish)",
-                                              min: 0.1,
-                                              max: 100.0,
-                                              step: 1.0
+                                              key: "LR_ItemWhitelist",
+                                              label: "Item Whitelist (IDs)",
+                                              type: "stack",
+                                              default: "",
+                                              desc: "Comma-separated item IDs to ALWAYS track (e.g. 437,441). Overrides category toggles."
                                     }
                           ]
                 },

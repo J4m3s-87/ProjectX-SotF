@@ -107,3 +107,22 @@ On dedicated servers, `OnSdkInitialized` does NOT fire. `Init()` runs inside `On
 ## 6. Admin Controls
 
 Respawn Days in Server Admin panel uses text input + "Set" button (not slider — slider spammed `ServerCmd` on every drag tick). Routes via `/px config set LootRespawnDays {value}`.
+
+## 7. Per-Item Whitelist / Blacklist
+
+Two comma-separated config entries allow per-item override of category toggles:
+
+| Setting            | Purpose                                                  | Example   |
+| :----------------- | :------------------------------------------------------- | :-------- |
+| `LR_ItemBlacklist` | Items to **NEVER** track (always respawn immediately)    | `340,356` |
+| `LR_ItemWhitelist` | Items to **ALWAYS** track (even if category is disabled) | `437,441` |
+
+**Filter priority in `ShouldTrackItem()`:**
+
+1. **Building materials** → always `false` (logs, planks, stones — never tracked)
+2. **Blacklist** → if item ID is in blacklist, `false` (overrides everything)
+3. **Whitelist** → if item ID is in whitelist, `true` (overrides category toggles)
+4. **Category toggles** → existing per-category on/off (TrackMelee, TrackAmmo, etc.)
+5. **Unknown items** → `true` (tracked by default)
+
+Both entries are visible on **all builds** (solo, owner, server, client) and are pushed to clients via ConfigSync on dedicated servers.

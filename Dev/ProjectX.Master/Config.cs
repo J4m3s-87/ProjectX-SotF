@@ -624,6 +624,12 @@ namespace ProjectX.Master
         [SettingsUiInclude]
 #endif
         public static ConfigEntry<bool> LR_TrackOpenables { get; private set; }
+
+        // ======================== LOOT WHITELIST/BLACKLIST ========================
+        [SettingsUiInclude]  // Visible on all builds — works locally and on server
+        public static ConfigEntry<string> LR_ItemWhitelist { get; private set; }
+        [SettingsUiInclude]  // Visible on all builds — works locally and on server
+        public static ConfigEntry<string> LR_ItemBlacklist { get; private set; }
         
         // ======================== DISCORD BRIDGE ========================
 #if !CLIENT
@@ -1161,20 +1167,21 @@ namespace ProjectX.Master
             ModulesCategory = ConfigSystem.CreateFileCategory("ProjectX - Modules", "ProjectX - Modules", configFile);
             
             RelocatorEnabled = ModulesCategory.CreateEntry<bool>("RelocatorEnabled", true, "Enable Relocator", "Always-on: Unlock 'C' to move for all structures");
-            LootRespawnEnabled = ModulesCategory.CreateEntry<bool>("LootRespawnEnabled", true, "Enable Loot Respawn", "Respawn picked up items after X days");
+
+            // ===== CATEGORY: LOOT RESPAWN CONTROL =====
+            LootCategoriesCategory = ConfigSystem.CreateFileCategory("ProjectX - Loot Respawn Control", "ProjectX - Loot Respawn Control", configFile);
+
+            LootRespawnEnabled = LootCategoriesCategory.CreateEntry<bool>("LootRespawnEnabled", true, "Enable Loot Respawn", "Respawn picked up items after X days");
             LootRespawnEnabled.OnValueChanged.Subscribe((_, newVal) => {
                 Modules.LootRespawn.LootRespawnModule.Enabled = newVal;
             });
             Modules.LootRespawn.LootRespawnModule.Enabled = LootRespawnEnabled.Value;
-            LootRespawnDays = ModulesCategory.CreateEntry<int>("LootRespawnDays", 3, "Loot Respawn Days", "Days until items respawn (1-100)");
+            LootRespawnDays = LootCategoriesCategory.CreateEntry<int>("LootRespawnDays", 3, "Loot Respawn Days", "Days until items respawn (1-100)");
             LootRespawnDays.SetRange(1, 100);
             LootRespawnDays.OnValueChanged.Subscribe((_, newVal) => {
                 Modules.LootRespawn.RespawnConfig.RespawnDays = newVal;
             });
             Modules.LootRespawn.RespawnConfig.RespawnDays = LootRespawnDays.Value;
-
-            // ===== CATEGORY: LOOT CATEGORIES =====
-            LootCategoriesCategory = ConfigSystem.CreateFileCategory("ProjectX - Loot Categories", "ProjectX - Loot Categories", configFile);
 
             LR_TrackMelee = LootCategoriesCategory.CreateEntry<bool>("LR_TrackMelee", true, "Track Melee Weapons", "Track melee weapons for respawn (Modern Axe, Katana, etc.)");
             LR_TrackMelee.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackMelee = v; });
@@ -1223,6 +1230,14 @@ namespace ProjectX.Master
             LR_TrackOpenables = LootCategoriesCategory.CreateEntry<bool>("LR_TrackOpenables", true, "Track Openable Containers", "Track openable containers for respawn (Ammo Cases, Pelican Cases, Suitcases)");
             LR_TrackOpenables.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.TrackOpenables = v; });
             Modules.LootRespawn.RespawnConfig.TrackOpenables = LR_TrackOpenables.Value;
+
+            LR_ItemBlacklist = LootCategoriesCategory.CreateEntry<string>("LR_ItemBlacklist", "", "Item Blacklist (IDs)", "Comma-separated item IDs to NEVER track (e.g. 340,356). Overrides category toggles.");
+            LR_ItemBlacklist.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.ItemBlacklist = Modules.LootRespawn.RespawnConfig.ParseIdList(v); });
+            Modules.LootRespawn.RespawnConfig.ItemBlacklist = Modules.LootRespawn.RespawnConfig.ParseIdList(LR_ItemBlacklist.Value);
+
+            LR_ItemWhitelist = LootCategoriesCategory.CreateEntry<string>("LR_ItemWhitelist", "", "Item Whitelist (IDs)", "Comma-separated item IDs to ALWAYS track (e.g. 437,441). Overrides category toggles.");
+            LR_ItemWhitelist.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.ItemWhitelist = Modules.LootRespawn.RespawnConfig.ParseIdList(v); });
+            Modules.LootRespawn.RespawnConfig.ItemWhitelist = Modules.LootRespawn.RespawnConfig.ParseIdList(LR_ItemWhitelist.Value);
             
             // Crafting Speed — entries on all builds for ConfigSync, module wiring client-only
             FasterCraftingEnabled = ModulesCategory.CreateEntry<bool>("FasterCraftingEnabled", true, "Faster Crafting", "Speed up backpack crafting");

@@ -111,14 +111,14 @@ LootRespawn is now the second-largest module and had the most original engineeri
 
 ### What Was Changed
 
-| Aspect                  | Original (GlaDOS)                                 | Project X                                                                                        |
-| ----------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **Hashing (pickups)**   | MD5 on every `PickUp.Awake`                       | Integer hash (`name.GetHashCode()` + quantized pos) — MD5 was a bottleneck with 600+ Awake calls |
-| **Harmony patching**    | `HarmonyPatchAll = true`                          | Manual `harmony.Patch()` per method — IL2CPP vtable safety                                       |
-| **Persistence**         | Game save system (`ICustomSaveable`)              | Standalone `loot_collected.dat` (binary) — survives save corruption                              |
-| **Config**              | 50+ entries (per-category allow/block/timed/sync) | 2 entries (`LootRespawnEnabled`, `LootRespawnDays`)                                              |
-| **Clone filtering**     | Not clearly handled                               | Explicit skip for `(Clone)` items — container-spawned pickups are ephemeral                      |
-| **Deferred processing** | `PickupsPendingCheck` list + double-check flag    | `_pendingItems` queue with `OnGameStarted` flush                                                 |
+| Aspect                  | Original (GlaDOS)                                 | Project X                                                                                                                                    |
+| ----------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hashing (pickups)**   | MD5 on every `PickUp.Awake`                       | Integer hash (`name.GetHashCode()` + quantized pos) — MD5 was a bottleneck with 600+ Awake calls                                             |
+| **Harmony patching**    | `HarmonyPatchAll = true`                          | Manual `harmony.Patch()` per method — IL2CPP vtable safety                                                                                   |
+| **Persistence**         | Game save system (`ICustomSaveable`)              | Standalone `loot_collected.dat` (binary) — survives save corruption                                                                          |
+| **Config**              | 50+ entries (per-category allow/block/timed/sync) | 26+ entries (per-category toggles, per-category respawn days, whitelist/blacklist, global timer) — uses -1 sentinel for "use global" pattern |
+| **Clone filtering**     | Not clearly handled                               | Explicit skip for `(Clone)` items — container-spawned pickups are ephemeral                                                                  |
+| **Deferred processing** | `PickupsPendingCheck` list + double-check flag    | `_pendingItems` queue with `OnGameStarted` flush                                                                                             |
 
 ### What's Entirely New (Not In The Original)
 
@@ -140,7 +140,7 @@ This required **8 iterations** over a single session to solve — each fixing on
 
 For transparency — features in the original that we intentionally did not include:
 
-- ~~**Per-category granular control**~~ — **Now implemented** (Phase 329): 11 category toggles in native settings (Track Melee, Track Ranged, etc.) wired to `ShouldTrackItem()` filtering
+- ~~**Per-category granular control**~~ — **Now implemented** (Phase 329+): 12 category toggles + 12 per-category respawn day overrides (default -1 = use global `LootRespawnDays`). Each category can have its own timer — e.g., ammo respawns in 1 day, weapons in 7 days
 - ~~**Multiplayer loot sync**~~ — **Now implemented** (March 09, 2026): Server-authoritative tracking via dedicated `LootSyncEvent` NetEvent protocol. Clients report collections (0x01 pickup, 0x02 break, 0x03 open); server broadcasts suppressions (0x20 full sync, 0x21 incremental). Container events fire server-side directly. Server maintains central tracker and persists to `loot_collected.dat`
 
 Our multiplayer sync uses a dedicated `Packets.NetEvent` (scope `ProjectX.LootSync`) with a binary protocol — replacing the earlier `debugCommand` relay approach.

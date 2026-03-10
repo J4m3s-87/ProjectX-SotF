@@ -630,6 +630,32 @@ namespace ProjectX.Master
         public static ConfigEntry<string> LR_ItemWhitelist { get; private set; }
         [SettingsUiInclude]  // Visible on all builds — works locally and on server
         public static ConfigEntry<string> LR_ItemBlacklist { get; private set; }
+
+        // ======================== PER-CATEGORY RESPAWN DAYS ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_MeleeDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_RangedDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_WeaponModsDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_MaterialsDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_FoodDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_MedsDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_PlantsDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_AmmoDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_ThrowablesDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_ExpendablesDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_BreakablesDays { get; private set; }
+        [SettingsUiInclude]
+        public static ConfigEntry<int> LR_OpenablesDays { get; private set; }
         
         // ======================== DISCORD BRIDGE ========================
 #if !CLIENT
@@ -1238,6 +1264,67 @@ namespace ProjectX.Master
             LR_ItemWhitelist = LootCategoriesCategory.CreateEntry<string>("LR_ItemWhitelist", "", "Item Whitelist (IDs)", "Comma-separated item IDs to ALWAYS track (e.g. 437,441). Overrides category toggles.");
             LR_ItemWhitelist.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.ItemWhitelist = Modules.LootRespawn.RespawnConfig.ParseIdList(v); });
             Modules.LootRespawn.RespawnConfig.ItemWhitelist = Modules.LootRespawn.RespawnConfig.ParseIdList(LR_ItemWhitelist.Value);
+
+            // ===== PER-CATEGORY RESPAWN DAYS (-1 = use global LootRespawnDays) =====
+            LR_MeleeDays = LootCategoriesCategory.CreateEntry<int>("LR_MeleeDays", -1, "Melee Respawn Days", "Days for melee weapons (-1 = use global)");
+            LR_MeleeDays.SetRange(-1, 100);
+            LR_MeleeDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.MeleeDays = v; });
+            Modules.LootRespawn.RespawnConfig.MeleeDays = LR_MeleeDays.Value;
+
+            LR_RangedDays = LootCategoriesCategory.CreateEntry<int>("LR_RangedDays", -1, "Ranged Respawn Days", "Days for ranged weapons (-1 = use global)");
+            LR_RangedDays.SetRange(-1, 100);
+            LR_RangedDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.RangedDays = v; });
+            Modules.LootRespawn.RespawnConfig.RangedDays = LR_RangedDays.Value;
+
+            LR_WeaponModsDays = LootCategoriesCategory.CreateEntry<int>("LR_WeaponModsDays", -1, "Weapon Mods Respawn Days", "Days for weapon mods (-1 = use global)");
+            LR_WeaponModsDays.SetRange(-1, 100);
+            LR_WeaponModsDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.WeaponModsDays = v; });
+            Modules.LootRespawn.RespawnConfig.WeaponModsDays = LR_WeaponModsDays.Value;
+
+            LR_MaterialsDays = LootCategoriesCategory.CreateEntry<int>("LR_MaterialsDays", -1, "Materials Respawn Days", "Days for crafting materials (-1 = use global)");
+            LR_MaterialsDays.SetRange(-1, 100);
+            LR_MaterialsDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.MaterialsDays = v; });
+            Modules.LootRespawn.RespawnConfig.MaterialsDays = LR_MaterialsDays.Value;
+
+            LR_FoodDays = LootCategoriesCategory.CreateEntry<int>("LR_FoodDays", -1, "Food Respawn Days", "Days for food items (-1 = use global)");
+            LR_FoodDays.SetRange(-1, 100);
+            LR_FoodDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.FoodDays = v; });
+            Modules.LootRespawn.RespawnConfig.FoodDays = LR_FoodDays.Value;
+
+            LR_MedsDays = LootCategoriesCategory.CreateEntry<int>("LR_MedsDays", -1, "Meds Respawn Days", "Days for medicine & energy (-1 = use global)");
+            LR_MedsDays.SetRange(-1, 100);
+            LR_MedsDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.MedsDays = v; });
+            Modules.LootRespawn.RespawnConfig.MedsDays = LR_MedsDays.Value;
+
+            LR_PlantsDays = LootCategoriesCategory.CreateEntry<int>("LR_PlantsDays", -1, "Plants Respawn Days", "Days for plants (-1 = use global)");
+            LR_PlantsDays.SetRange(-1, 100);
+            LR_PlantsDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.PlantsDays = v; });
+            Modules.LootRespawn.RespawnConfig.PlantsDays = LR_PlantsDays.Value;
+
+            LR_AmmoDays = LootCategoriesCategory.CreateEntry<int>("LR_AmmoDays", -1, "Ammo Respawn Days", "Days for ammunition (-1 = use global)");
+            LR_AmmoDays.SetRange(-1, 100);
+            LR_AmmoDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.AmmoDays = v; });
+            Modules.LootRespawn.RespawnConfig.AmmoDays = LR_AmmoDays.Value;
+
+            LR_ThrowablesDays = LootCategoriesCategory.CreateEntry<int>("LR_ThrowablesDays", -1, "Throwables Respawn Days", "Days for throwables (-1 = use global)");
+            LR_ThrowablesDays.SetRange(-1, 100);
+            LR_ThrowablesDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.ThrowablesDays = v; });
+            Modules.LootRespawn.RespawnConfig.ThrowablesDays = LR_ThrowablesDays.Value;
+
+            LR_ExpendablesDays = LootCategoriesCategory.CreateEntry<int>("LR_ExpendablesDays", -1, "Expendables Respawn Days", "Days for expendables (-1 = use global)");
+            LR_ExpendablesDays.SetRange(-1, 100);
+            LR_ExpendablesDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.ExpendablesDays = v; });
+            Modules.LootRespawn.RespawnConfig.ExpendablesDays = LR_ExpendablesDays.Value;
+
+            LR_BreakablesDays = LootCategoriesCategory.CreateEntry<int>("LR_BreakablesDays", -1, "Breakables Respawn Days", "Days for breakable containers (-1 = use global)");
+            LR_BreakablesDays.SetRange(-1, 100);
+            LR_BreakablesDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.BreakablesDays = v; });
+            Modules.LootRespawn.RespawnConfig.BreakablesDays = LR_BreakablesDays.Value;
+
+            LR_OpenablesDays = LootCategoriesCategory.CreateEntry<int>("LR_OpenablesDays", -1, "Openables Respawn Days", "Days for openable containers (-1 = use global)");
+            LR_OpenablesDays.SetRange(-1, 100);
+            LR_OpenablesDays.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.OpenablesDays = v; });
+            Modules.LootRespawn.RespawnConfig.OpenablesDays = LR_OpenablesDays.Value;
             
             // Crafting Speed — entries on all builds for ConfigSync, module wiring client-only
             FasterCraftingEnabled = ModulesCategory.CreateEntry<bool>("FasterCraftingEnabled", true, "Faster Crafting", "Speed up backpack crafting");

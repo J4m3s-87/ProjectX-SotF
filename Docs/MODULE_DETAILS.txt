@@ -774,7 +774,7 @@ CONFIG OPTIONS:
 - LootRespawnDays (int): In-game days until items respawn
   Default: 3, Range: 1-100
 
-PER-CATEGORY TOGGLES (Settings → ProjectX - Loot Categories):
+PER-CATEGORY TOGGLES (Settings → ProjectX - Loot Respawn Control):
 All default to true. Disabling a category means those items will NOT be
 tracked for respawn — they will always be present in the world.
 - LR_TrackMelee: Melee Weapons (Modern Axe, Katana, Chainsaw, etc.)
@@ -801,6 +801,23 @@ PER-ITEM OVERRIDES (Settings → ProjectX - Loot Categories):
   Overrides category toggles but not the blacklist.
 
 Filter priority: Building Materials → Blacklist → Whitelist → Category Toggles
+
+PER-CATEGORY RESPAWN DAYS (Settings → ProjectX - Loot Respawn Control):
+Each category can have its own respawn timer (in days). Default is -1,
+which means "use the global LootRespawnDays value". Set to 0 for instant
+respawn, or 1-100 to override just that category.
+- LR_MeleeDays: Days for melee weapons (-1 = use global)
+- LR_RangedDays: Days for ranged weapons (-1 = use global)
+- LR_WeaponModsDays: Days for weapon mods (-1 = use global)
+- LR_MaterialsDays: Days for crafting materials (-1 = use global)
+- LR_FoodDays: Days for food items (-1 = use global)
+- LR_MedsDays: Days for medicine & energy (-1 = use global)
+- LR_PlantsDays: Days for plants (-1 = use global)
+- LR_AmmoDays: Days for ammunition (-1 = use global)
+- LR_ThrowablesDays: Days for throwables (-1 = use global)
+- LR_ExpendablesDays: Days for expendables (-1 = use global)
+- LR_BreakablesDays: Days for breakable containers (-1 = use global)
+- LR_OpenablesDays: Days for openable containers (-1 = use global)
 
 INTERNAL MECHANICS:
 

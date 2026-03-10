@@ -374,7 +374,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                             continue;
                         }
 
-                        if (HasEnoughTimePassed(data.Timestamp))
+                        if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
                         {
                             // DO NOT remove from _collected — PREFIX needs entry for future loads
                             _recentlyRespawned.Add(hash);
@@ -401,7 +401,7 @@ namespace ProjectX.Master.Modules.LootRespawn
 
                     if (_collected.TryGetValue(hash, out var data))
                     {
-                        if (HasEnoughTimePassed(data.Timestamp))
+                        if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
                         {
                             // DO NOT remove from _collected — PREFIX needs entry for future loads
                             _recentlyRespawned.Add(hash);
@@ -434,7 +434,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                         continue;
                     }
 
-                    if (HasEnoughTimePassed(kvp.Value.Timestamp))
+                    if (HasEnoughTimePassed(kvp.Value.Timestamp, kvp.Value.ItemId))
                     {
                         nameKeysToRespawn.Add(kvp.Key);
                         respawned++;
@@ -530,7 +530,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                         return;
                     }
 
-                    if (HasEnoughTimePassed(data.Timestamp))
+                    if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
                     {
                         _collected.Remove(hash2);
                         _recentlyRespawned.Add(hash2);
@@ -684,7 +684,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // Immediate check
                 if (_collected.TryGetValue(hash2, out var data))
                 {
-                    if (HasEnoughTimePassed(data.Timestamp))
+                    if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
                     {
                         // DO NOT remove from _collected — PREFIX needs entry for future loads
                         _recentlyRespawned.Add(hash2);
@@ -757,7 +757,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // FALLBACK: First OnBreak fires BEFORE Awake records the frame.
                 // Check if the entry is in _collected with expired timer.
                 // If so, this is the first streaming replay — block it and record frame.
-                else if (_collected.TryGetValue(hash, out var data) && HasEnoughTimePassed(data.Timestamp))
+                else if (_collected.TryGetValue(hash, out var data) && HasEnoughTimePassed(data.Timestamp, data.ItemId))
                 {
                     _breakableLoadFrame[hash] = Time.frameCount;
                     _recentlyRespawned.Add(hash);
@@ -974,7 +974,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // Check if this container is tracked
                 if (_collected.TryGetValue(hash, out var data))
                 {
-                    if (HasEnoughTimePassed(data.Timestamp))
+                    if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
                     {
                         // Timer EXPIRED — remove from tracker, let player re-loot
                         _collected.Remove(hash);
@@ -1026,7 +1026,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 string hash = $"name:{objName}";
 
                 // If tracked with unexpired timer, mark as visually opened
-                if (_collected.TryGetValue(hash, out var data) && !HasEnoughTimePassed(data.Timestamp))
+                if (_collected.TryGetValue(hash, out var data) && !HasEnoughTimePassed(data.Timestamp, data.ItemId))
                 {
                     try
                     {
@@ -1213,11 +1213,13 @@ namespace ProjectX.Master.Modules.LootRespawn
 
         /// <summary>
         /// Check if enough game-time has passed since the item was collected.
+        /// Uses per-category respawn days if configured, otherwise global RespawnDays.
         /// </summary>
-        private static bool HasEnoughTimePassed(long collectedTimestamp)
+        private static bool HasEnoughTimePassed(long collectedTimestamp, int itemId)
         {
             long now = GetGameTimestamp();
-            long threshold = (long)RespawnConfig.RespawnDays * 86400L;
+            int days = RespawnConfig.GetRespawnDaysForItem(itemId);
+            long threshold = (long)days * 86400L;
             return (now - collectedTimestamp) >= threshold;
         }
 

@@ -52,6 +52,21 @@ namespace ProjectX.Master.Modules.LootRespawn
         public static bool TrackBreakables = true;
         public static bool TrackOpenables = true;
 
+        // ── Per-category respawn day overrides (-1 = use global) ─────
+
+        public static int MeleeDays = -1;
+        public static int RangedDays = -1;
+        public static int WeaponModsDays = -1;
+        public static int MaterialsDays = -1;
+        public static int FoodDays = -1;
+        public static int MedsDays = -1;
+        public static int PlantsDays = -1;
+        public static int AmmoDays = -1;
+        public static int ThrowablesDays = -1;
+        public static int ExpendablesDays = -1;
+        public static int BreakablesDays = -1;
+        public static int OpenablesDays = -1;
+
         // ── Per-item whitelist/blacklist (overrides category toggles) ──
 
         /// <summary>
@@ -194,6 +209,31 @@ namespace ProjectX.Master.Modules.LootRespawn
 
             // Unknown category — track it
             return true;
+        }
+
+        /// <summary>
+        /// Returns the respawn days for a given item ID based on its category.
+        /// Returns the category-specific override if set (>= 0), otherwise the global RespawnDays.
+        /// </summary>
+        public static int GetRespawnDaysForItem(int itemId)
+        {
+            int categoryDays = -1;
+
+            if (MeleeWeaponIds.Contains(itemId))        categoryDays = MeleeDays;
+            else if (RangedWeaponIds.Contains(itemId))  categoryDays = RangedDays;
+            else if (WeaponModIds.Contains(itemId))     categoryDays = WeaponModsDays;
+            else if (MaterialIds.Contains(itemId))      categoryDays = MaterialsDays;
+            else if (FoodIds.Contains(itemId))           categoryDays = FoodDays;
+            else if (MedIds.Contains(itemId))            categoryDays = MedsDays;
+            else if (PlantIds.Contains(itemId))          categoryDays = PlantsDays;
+            else if (AmmoIds.Contains(itemId))           categoryDays = AmmoDays;
+            else if (ThrowableIds.Contains(itemId))      categoryDays = ThrowablesDays;
+            else if (ExpendableIds.Contains(itemId))     categoryDays = ExpendablesDays;
+            else if (itemId == BreakableId)              categoryDays = BreakablesDays;
+            else if (itemId == OpenableId)               categoryDays = OpenablesDays;
+
+            // -1 = use global, >= 0 = category override
+            return categoryDays >= 0 ? categoryDays : RespawnDays;
         }
 
         /// <summary>Log current configuration</summary>

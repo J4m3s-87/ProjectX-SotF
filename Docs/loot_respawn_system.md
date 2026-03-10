@@ -36,7 +36,7 @@ internal static void OnPickUpAwake(PickUp pickup)
     string hash2 = GetOrGenerateHash(pickup.transform, pickup.GetInstanceID());
     if (_collected.TryGetValue(hash2, out var data))
     {
-        if (HasEnoughTimePassed(data.Timestamp))
+        if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
         {
             _collected.Remove(hash2);       // Timer expired → respawn
             _recentlyRespawned.Add(hash2);   // Block re-recording during streaming
@@ -61,7 +61,7 @@ The PREFIX on `ContainerItemSpawner.OpenContainer` handles three states:
 ### 2.3 Game Time
 
 - **Tick Driver**: Harmony Postfix on `SeasonsManager.LateUpdate` — only guaranteed per-frame tick on headless (Pattern #19)
-- **Timer**: `RespawnDays × 1440` seconds (1 in-game day ≈ 1440 seconds)
+- **Timer**: Per-category `GetRespawnDaysForItem(itemId)` × 86400 seconds. Each category can override the global `RespawnDays` with its own timer (-1 = use global).
 
 ## 3. LootSyncEvent Protocol
 
@@ -126,3 +126,26 @@ Two comma-separated config entries allow per-item override of category toggles:
 5. **Unknown items** → `true` (tracked by default)
 
 Both entries are visible on **all builds** (solo, owner, server, client) and are pushed to clients via ConfigSync on dedicated servers.
+
+## 8. Per-Category Respawn Timers
+
+Each of the 12 categories can have its own respawn timer (in days), overriding the global `LootRespawnDays`:
+
+| Setting              | Category             | Default |
+| :------------------- | :------------------- | :------ |
+| `LR_MeleeDays`       | Melee Weapons        | -1      |
+| `LR_RangedDays`      | Ranged Weapons       | -1      |
+| `LR_WeaponModsDays`  | Weapon Mods          | -1      |
+| `LR_MaterialsDays`   | Crafting Materials   | -1      |
+| `LR_FoodDays`        | Food                 | -1      |
+| `LR_MedsDays`        | Medicine & Energy    | -1      |
+| `LR_PlantsDays`      | Plants               | -1      |
+| `LR_AmmoDays`        | Ammunition           | -1      |
+| `LR_ThrowablesDays`  | Throwables           | -1      |
+| `LR_ExpendablesDays` | Expendables          | -1      |
+| `LR_BreakablesDays`  | Breakable Containers | -1      |
+| `LR_OpenablesDays`   | Openable Containers  | -1      |
+
+**Values**: `-1` = use global `LootRespawnDays`, `0` = instant respawn, `1-100` = category-specific days.
+
+**Implementation**: `RespawnConfig.GetRespawnDaysForItem(int itemId)` looks up the category for the stored item ID (including pseudo-IDs 9999/9998 for containers) and returns the category-specific timer or the global fallback.

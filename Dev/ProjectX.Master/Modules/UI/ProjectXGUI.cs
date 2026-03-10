@@ -48,6 +48,7 @@ namespace ProjectX.Master.Modules.UI
         private bool _noGrassActive = false;
         private bool _noForestActive = false;
         private string _activeSeason = "";
+        private bool _lootTypeOverride = false;
         
         // Console commands state
         private int _aiAngerLevel = 50;
@@ -579,6 +580,26 @@ namespace ProjectX.Master.Modules.UI
             int newDays = (int)GUILayout.HorizontalSlider(Config.LootRespawnDays.Value, 1, 100, GUILayout.Width(200));
             if (newDays != Config.LootRespawnDays.Value) Config.LootRespawnDays.Value = newDays;
             GUILayout.EndHorizontal();
+            
+            // Loot Type Override toggle — reveals per-category day sliders
+            bool newLootOverride = DrawCheckbox("Loot Type Override", _lootTypeOverride);
+            if (newLootOverride != _lootTypeOverride) _lootTypeOverride = newLootOverride;
+            
+            if (_lootTypeOverride)
+            {
+                Config.LR_MeleeDays.Value = (int)DrawSlider("Melee Days (-1=Global)", Config.LR_MeleeDays.Value, -1, 100);
+                Config.LR_RangedDays.Value = (int)DrawSlider("Ranged Days (-1=Global)", Config.LR_RangedDays.Value, -1, 100);
+                Config.LR_WeaponModsDays.Value = (int)DrawSlider("Weapon Mods Days (-1=Global)", Config.LR_WeaponModsDays.Value, -1, 100);
+                Config.LR_MaterialsDays.Value = (int)DrawSlider("Materials Days (-1=Global)", Config.LR_MaterialsDays.Value, -1, 100);
+                Config.LR_FoodDays.Value = (int)DrawSlider("Food Days (-1=Global)", Config.LR_FoodDays.Value, -1, 100);
+                Config.LR_MedsDays.Value = (int)DrawSlider("Meds Days (-1=Global)", Config.LR_MedsDays.Value, -1, 100);
+                Config.LR_PlantsDays.Value = (int)DrawSlider("Plants Days (-1=Global)", Config.LR_PlantsDays.Value, -1, 100);
+                Config.LR_AmmoDays.Value = (int)DrawSlider("Ammo Days (-1=Global)", Config.LR_AmmoDays.Value, -1, 100);
+                Config.LR_ThrowablesDays.Value = (int)DrawSlider("Throwables Days (-1=Global)", Config.LR_ThrowablesDays.Value, -1, 100);
+                Config.LR_ExpendablesDays.Value = (int)DrawSlider("Expendables Days (-1=Global)", Config.LR_ExpendablesDays.Value, -1, 100);
+                Config.LR_BreakablesDays.Value = (int)DrawSlider("Breakables Days (-1=Global)", Config.LR_BreakablesDays.Value, -1, 100);
+                Config.LR_OpenablesDays.Value = (int)DrawSlider("Openables Days (-1=Global)", Config.LR_OpenablesDays.Value, -1, 100);
+            }
             
             // Reset + Debug (same pattern as server panel — two buttons, Height 45)
             GUILayout.BeginHorizontal();

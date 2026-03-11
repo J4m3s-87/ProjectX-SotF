@@ -995,8 +995,18 @@ namespace ProjectX.Master.Modules.LootRespawn
                     else
                     {
                         // Timer NOT expired — suppress re-looting
-                        // Mark container as visually opened so players see it's empty
-                        // Visual state is handled by the Start postfix via OpenContainer(false, 0)
+                        // Force visual open at the exact moment the game would have opened it
+                        // (secondary defense — Start postfix sets it early, but game replays can reset)
+                        if (_openContainerMethod != null)
+                        {
+                            try
+                            {
+                                _visualOpenBypass = true;
+                                _openContainerMethod.Invoke(__instance, new object[] { false, 0 });
+                            }
+                            catch { /* visual open best-effort */ }
+                            finally { _visualOpenBypass = false; }
+                        }
                         _suppressedCount++;
                         RLog.Msg($"[LootRespawn] ★ SUPPRESSED OpenContainer (timer pending): {objName}");
                         return false;

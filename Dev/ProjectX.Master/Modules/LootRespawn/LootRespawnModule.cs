@@ -76,6 +76,10 @@ namespace ProjectX.Master.Modules.LootRespawn
         private static System.Reflection.MethodInfo _clearStateSyncMethod;
         private static System.Reflection.MethodInfo _setIsOpenMethod;
         private static System.Reflection.MethodInfo _toggleIconMethod;
+        private static System.Reflection.MethodInfo _openContainerMethod;
+
+        /// <summary>When true, the PREFIX allows the next OpenContainer call through (used for visual-only opens)</summary>
+        private static bool _visualOpenBypass;
 
         // Diagnostics
         private static int _suppressedCount;
@@ -213,7 +217,8 @@ namespace ProjectX.Master.Modules.LootRespawn
                         _clearStateSyncMethod = AccessTools.Method(containerType, "ClearStateSync");
                         _setIsOpenMethod = AccessTools.Method(containerType, "set__isOpen");
                         _toggleIconMethod = AccessTools.Method(containerType, "ToggleIcon");
-                        RLog.Msg($"[LootRespawn] Reset methods: ClearStateSync={(_clearStateSyncMethod != null ? "✅" : "❌")} set_isOpen={(_setIsOpenMethod != null ? "✅" : "❌")} ToggleIcon={(_toggleIconMethod != null ? "✅" : "❌")}");
+                        _openContainerMethod = openMethod;
+                        RLog.Msg($"[LootRespawn] Reset methods: ClearStateSync={(_clearStateSyncMethod != null ? "✅" : "❌")} set_isOpen={(_setIsOpenMethod != null ? "✅" : "❌")} ToggleIcon={(_toggleIconMethod != null ? "✅" : "❌")} OpenContainer={(_openContainerMethod != null ? "✅" : "❌")}");
 
                         // Patch ContainerItemSpawner.Start to proactively set visual state
                         // On dedicated servers, containers lose their opened state on restart.
@@ -938,6 +943,9 @@ namespace ProjectX.Master.Modules.LootRespawn
         {
             try
             {
+                // Bypass flag: allow visual-only opens from our Start postfix
+                if (_visualOpenBypass) return true;
+
                 if (!RespawnConfig.Enabled) return true;
                 if (IsMultiplayerClient()) return true;
 
@@ -987,12 +995,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                     {
                         // Timer NOT expired — suppress re-looting
                         // Mark container as visually opened so players see it's empty
-                        try
-                        {
-                            _setIsOpenMethod?.Invoke(__instance, new object[] { true });
-                            _toggleIconMethod?.Invoke(__instance, new object[] { false });
-                        }
-                        catch (Exception vsEx) { RLog.Warning($"[LootRespawn] Visual state invoke failed (prefix): {vsEx.Message}"); }
+                        // Visual state is handled by the Start postfix via OpenContainer(false, 0)
                         _suppressedCount++;
                         RLog.Msg($"[LootRespawn] ★ SUPPRESSED OpenContainer (timer pending): {objName}");
                         return false;
@@ -1028,13 +1031,19 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // If tracked with unexpired timer, mark as visually opened
                 if (_collected.TryGetValue(hash, out var data) && !HasEnoughTimePassed(data.Timestamp, data.ItemId))
                 {
-                    try
+                    // Call OpenContainer(false, 0) to trigger the real visual open (lid animation)
+                    // with spawnItems=false so no loot drops. Bypass flag prevents our PREFIX from blocking.
+                    if (_openContainerMethod != null)
                     {
-                        _setIsOpenMethod?.Invoke(__instance, new object[] { true });
-                        _toggleIconMethod?.Invoke(__instance, new object[] { false });
+                        try
+                        {
+                            _visualOpenBypass = true;
+                            _openContainerMethod.Invoke(__instance, new object[] { false, 0 });
+                        }
+                        catch (Exception vsEx) { RLog.Warning($"[LootRespawn] Visual open failed (Start): {vsEx.Message}"); }
+                        finally { _visualOpenBypass = false; }
                     }
-                    catch (Exception vsEx) { RLog.Warning($"[LootRespawn] Visual state invoke failed (Start): {vsEx.Message}"); }
-                    RLog.Msg($"[LootRespawn] ★ VISUAL STATE: marked as opened on Start: {objName}");
+                    RLog.Msg($"[LootRespawn] ★ VISUAL STATE: opened via OpenContainer(false) on Start: {objName}");
                 }
             }
             catch (Exception ex)

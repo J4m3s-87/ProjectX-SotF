@@ -387,7 +387,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                         }
                         else
                         {
-                            UnityEngine.Object.Destroy(pickup.gameObject);
+                            pickup.gameObject.SetActive(false);
                             suppressed++;
                         }
                     }
@@ -502,7 +502,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                     string hash = GetOrGenerateHash(pickup.transform, pickup.GetInstanceID());
                     if (hash != null && _collected.ContainsKey(hash))
                     {
-                        UnityEngine.Object.Destroy(pickup.gameObject);
+                        pickup.gameObject.SetActive(false);
                         _suppressedCount++;
                         if (_suppressedCount <= 50)
                             RLog.Msg($"[LootRespawn] Client suppressed pickup: {objName} (hash={hash.Substring(0, 8)}…)");
@@ -545,7 +545,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                     }
                     else
                     {
-                        UnityEngine.Object.Destroy(pickup.gameObject);
+                        pickup.gameObject.SetActive(false);
                         _suppressedCount++;
                         if (_suppressedCount <= 50)
                             RLog.Msg($"[LootRespawn] Suppressed pickup: {objName} (hash={hash2.Substring(0, 8)}…)");

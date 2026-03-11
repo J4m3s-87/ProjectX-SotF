@@ -586,18 +586,18 @@ namespace ProjectX.Master.Modules.UI
             
             if (Config.LR_LootTypeOverride.Value)
             {
-                Config.LR_MeleeDays.Value = (int)DrawSlider("Melee Days (-1=Global)", Config.LR_MeleeDays.Value, -1, 100);
-                Config.LR_RangedDays.Value = (int)DrawSlider("Ranged Days (-1=Global)", Config.LR_RangedDays.Value, -1, 100);
-                Config.LR_WeaponModsDays.Value = (int)DrawSlider("Weapon Mods Days (-1=Global)", Config.LR_WeaponModsDays.Value, -1, 100);
-                Config.LR_MaterialsDays.Value = (int)DrawSlider("Materials Days (-1=Global)", Config.LR_MaterialsDays.Value, -1, 100);
-                Config.LR_FoodDays.Value = (int)DrawSlider("Food Days (-1=Global)", Config.LR_FoodDays.Value, -1, 100);
-                Config.LR_MedsDays.Value = (int)DrawSlider("Meds Days (-1=Global)", Config.LR_MedsDays.Value, -1, 100);
-                Config.LR_PlantsDays.Value = (int)DrawSlider("Plants Days (-1=Global)", Config.LR_PlantsDays.Value, -1, 100);
-                Config.LR_AmmoDays.Value = (int)DrawSlider("Ammo Days (-1=Global)", Config.LR_AmmoDays.Value, -1, 100);
-                Config.LR_ThrowablesDays.Value = (int)DrawSlider("Throwables Days (-1=Global)", Config.LR_ThrowablesDays.Value, -1, 100);
-                Config.LR_ExpendablesDays.Value = (int)DrawSlider("Expendables Days (-1=Global)", Config.LR_ExpendablesDays.Value, -1, 100);
-                Config.LR_BreakablesDays.Value = (int)DrawSlider("Breakables Days (-1=Global)", Config.LR_BreakablesDays.Value, -1, 100);
-                Config.LR_OpenablesDays.Value = (int)DrawSlider("Openables Days (-1=Global)", Config.LR_OpenablesDays.Value, -1, 100);
+                Config.LR_MeleeDays.Value = DrawIntSlider("Melee Days (-1=Global)", Config.LR_MeleeDays.Value, -1, 100);
+                Config.LR_RangedDays.Value = DrawIntSlider("Ranged Days (-1=Global)", Config.LR_RangedDays.Value, -1, 100);
+                Config.LR_WeaponModsDays.Value = DrawIntSlider("Weapon Mods Days (-1=Global)", Config.LR_WeaponModsDays.Value, -1, 100);
+                Config.LR_MaterialsDays.Value = DrawIntSlider("Materials Days (-1=Global)", Config.LR_MaterialsDays.Value, -1, 100);
+                Config.LR_FoodDays.Value = DrawIntSlider("Food Days (-1=Global)", Config.LR_FoodDays.Value, -1, 100);
+                Config.LR_MedsDays.Value = DrawIntSlider("Meds Days (-1=Global)", Config.LR_MedsDays.Value, -1, 100);
+                Config.LR_PlantsDays.Value = DrawIntSlider("Plants Days (-1=Global)", Config.LR_PlantsDays.Value, -1, 100);
+                Config.LR_AmmoDays.Value = DrawIntSlider("Ammo Days (-1=Global)", Config.LR_AmmoDays.Value, -1, 100);
+                Config.LR_ThrowablesDays.Value = DrawIntSlider("Throwables Days (-1=Global)", Config.LR_ThrowablesDays.Value, -1, 100);
+                Config.LR_ExpendablesDays.Value = DrawIntSlider("Expendables Days (-1=Global)", Config.LR_ExpendablesDays.Value, -1, 100);
+                Config.LR_BreakablesDays.Value = DrawIntSlider("Breakables Days (-1=Global)", Config.LR_BreakablesDays.Value, -1, 100);
+                Config.LR_OpenablesDays.Value = DrawIntSlider("Openables Days (-1=Global)", Config.LR_OpenablesDays.Value, -1, 100);
             }
             
             // Reset + Debug (same pattern as server panel — two buttons, Height 45)
@@ -1819,6 +1819,21 @@ namespace ProjectX.Master.Modules.UI
                 ProjectXStyles.HorizontalSlider, ProjectXStyles.HorizontalSliderThumb, 
                 GUILayout.Width(sliderBarW));
             GUILayout.Label(newVal.ToString("F1"), ProjectXStyles.ValueLabel, GUILayout.Width(sliderValW));
+            GUILayout.EndHorizontal();
+            return newVal;
+        }
+        
+        private int DrawIntSlider(string label, int value, int min, int max)
+        {
+            float sliderLabelW = PANEL_WIDTH * 0.35f;
+            float sliderBarW = PANEL_WIDTH * 0.42f;
+            float sliderValW = PANEL_WIDTH * 0.08f;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, ProjectXStyles.NormalLabel, GUILayout.Width(sliderLabelW));
+            int newVal = (int)Math.Round(GUILayout.HorizontalSlider(value, min, max, 
+                ProjectXStyles.HorizontalSlider, ProjectXStyles.HorizontalSliderThumb, 
+                GUILayout.Width(sliderBarW)));
+            GUILayout.Label(newVal.ToString(), ProjectXStyles.ValueLabel, GUILayout.Width(sliderValW));
             GUILayout.EndHorizontal();
             return newVal;
         }

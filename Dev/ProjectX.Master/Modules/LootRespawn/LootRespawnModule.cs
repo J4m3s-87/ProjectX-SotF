@@ -387,7 +387,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                         }
                         else
                         {
-                            pickup.gameObject.SetActive(false);
+                            SuppressPickup(pickup.gameObject);
                             suppressed++;
                         }
                     }
@@ -502,7 +502,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                     string hash = GetOrGenerateHash(pickup.transform, pickup.GetInstanceID());
                     if (hash != null && _collected.ContainsKey(hash))
                     {
-                        pickup.gameObject.SetActive(false);
+                        SuppressPickup(pickup.gameObject);
                         _suppressedCount++;
                         if (_suppressedCount <= 50)
                             RLog.Msg($"[LootRespawn] Client suppressed pickup: {objName} (hash={hash.Substring(0, 8)}…)");
@@ -545,7 +545,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                     }
                     else
                     {
-                        pickup.gameObject.SetActive(false);
+                        SuppressPickup(pickup.gameObject);
                         _suppressedCount++;
                         if (_suppressedCount <= 50)
                             RLog.Msg($"[LootRespawn] Suppressed pickup: {objName} (hash={hash2.Substring(0, 8)}…)");
@@ -1241,6 +1241,38 @@ namespace ProjectX.Master.Modules.LootRespawn
             int days = RespawnConfig.GetRespawnDaysForItem(itemId);
             long threshold = (long)days * 86400L;
             return (now - collectedTimestamp) >= threshold;
+        }
+
+        /// <summary>
+        /// Suppresses a pickup by stripping its visual and interaction components.
+        /// Keeps the GameObject alive so the game's save system still considers it "present"
+        /// (unlike Destroy which permanently removes it). Disables renderers (invisible)
+        /// and colliders (non-interactable) so the player cannot see or collect it.
+        /// Uses IL2CPP-safe manual traversal (GetComponent singular, not stripped plural).
+        /// </summary>
+        private static void SuppressPickup(UnityEngine.GameObject go)
+        {
+            if (go == null) return;
+            try
+            {
+                SuppressRecursive(go.transform);
+            }
+            catch { /* best-effort suppression */ }
+        }
+
+        /// <summary>IL2CPP-safe recursive traversal — disables Renderer + Collider on each node.</summary>
+        private static void SuppressRecursive(UnityEngine.Transform t)
+        {
+            if (t == null) return;
+
+            var renderer = t.GetComponent<UnityEngine.Renderer>();
+            if (renderer != null) renderer.enabled = false;
+
+            var collider = t.GetComponent<UnityEngine.Collider>();
+            if (collider != null) collider.enabled = false;
+
+            for (int i = 0; i < t.childCount; i++)
+                SuppressRecursive(t.GetChild(i));
         }
 
         // ── Server Authority ─────────────────────────────────────────

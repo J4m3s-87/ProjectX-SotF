@@ -984,12 +984,13 @@ namespace ProjectX.Master.Modules.LootRespawn
                 {
                     if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
                     {
-                        // Timer EXPIRED — remove from tracker, let player re-loot
+                        // Timer EXPIRED — remove from tracker, block replay so container stays CLOSED/fresh
                         _collected.Remove(hash);
+                        _recentlyRespawned.Add(hash);
                         _dirty = true;
                         _respawnedCount++;
                         RLog.Msg($"[LootRespawn] ★ RESPAWNED OpenContainer (timer expired): {objName}");
-                        return true; // ALLOW — container is fresh now
+                        return false; // BLOCK replay — container stays closed, player can re-open normally
                     }
                     else
                     {

@@ -10,9 +10,6 @@ namespace ProjectX.Master
     [SettingsUiMode(0)]  // 0 = UseGameSettings - Required for native UI visibility
     public static class Config
     {
-        // ======================== RE-ENTRANCY GUARDS ========================
-        private static bool _resettingTracker;
-
         // ======================== CATEGORIES ========================
         // Multi-category segmentation to fix native UI visibility bug
         private static ConfigCategory CheatsCategory { get; set; }
@@ -638,9 +635,6 @@ namespace ProjectX.Master
         [SettingsUiInclude]
         public static ConfigEntry<bool> LR_LootTypeOverride { get; private set; }
 
-        // ======================== RESET LOOT TRACKER ========================
-        [SettingsUiInclude]
-        public static ConfigEntry<bool> LR_ResetTracker { get; private set; }
 
         // ======================== PER-CATEGORY RESPAWN DAYS ========================
         [SettingsUiInclude]
@@ -1281,23 +1275,7 @@ namespace ProjectX.Master
             LR_LootTypeOverride.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.LootTypeOverride = v; });
             Modules.LootRespawn.RespawnConfig.LootTypeOverride = LR_LootTypeOverride.Value;
 
-            // ===== RESET LOOT TRACKER (one-shot toggle) =====
-            LR_ResetTracker = LootCategoriesCategory.CreateEntry<bool>("LR_ResetTracker", false, "Reset Loot Tracker", "Toggle ON to reset all tracked loot (auto-resets to OFF)");
-            LR_ResetTracker.OnValueChanged.Subscribe((_, v) => {
-                if (v && !_resettingTracker)
-                {
-                    _resettingTracker = true;
-                    try
-                    {
-                        Modules.LootRespawn.LootRespawnModule.Reset();
-                    }
-                    finally
-                    {
-                        LR_ResetTracker.Value = false;
-                        _resettingTracker = false;
-                    }
-                }
-            });
+
 
             // ===== PER-CATEGORY RESPAWN DAYS (string for precise text input, -1 = use global) =====
             LR_MeleeDays = LootCategoriesCategory.CreateEntry<string>("LR_MeleeDays", "-1", "Melee Respawn Days", "Days for melee weapons (-1 = use global)");

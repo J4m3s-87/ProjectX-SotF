@@ -247,7 +247,9 @@ namespace ProjectX.Master.Modules.LootRespawn
                 catch (Exception ex) { RLog.Warning($"[LootRespawn] OpenContainer manual patch FAILED: {ex.Message}"); }
 
                 _initialized = true;
-                RLog.Msg($"[LootRespawn] ★ Initialized — {_collected.Count} tracked items loaded, days={RespawnConfig.RespawnDays}");
+                RLog.Msg($"[LootRespawn] ★ Initialized — {_collected.Count} tracked items loaded, globalDays={RespawnConfig.RespawnDays}, override={RespawnConfig.LootTypeOverride}");
+                if (RespawnConfig.LootTypeOverride)
+                    RLog.Msg($"[LootRespawn]   Category days: Melee={RespawnConfig.MeleeDays} Ranged={RespawnConfig.RangedDays} Mods={RespawnConfig.WeaponModsDays} Mats={RespawnConfig.MaterialsDays} Food={RespawnConfig.FoodDays} Meds={RespawnConfig.MedsDays} Plants={RespawnConfig.PlantsDays} Ammo={RespawnConfig.AmmoDays} Throw={RespawnConfig.ThrowablesDays} Expend={RespawnConfig.ExpendablesDays} Break={RespawnConfig.BreakablesDays} Open={RespawnConfig.OpenablesDays}");
 
                 // Register debugCommand listener for loot events (both server and client)
                 // Server: handles C→S loot collection + status requests
@@ -388,6 +390,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                         else
                         {
                             SuppressPickup(pickup.gameObject);
+                            pickup.enabled = false;
                             suppressed++;
                         }
                     }
@@ -503,6 +506,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                     if (hash != null && _collected.ContainsKey(hash))
                     {
                         SuppressPickup(pickup.gameObject);
+                        pickup.enabled = false;
                         _suppressedCount++;
                         if (_suppressedCount <= 50)
                             RLog.Msg($"[LootRespawn] Client suppressed pickup: {objName} (hash={hash.Substring(0, 8)}…)");
@@ -541,11 +545,19 @@ namespace ProjectX.Master.Modules.LootRespawn
                         _recentlyRespawned.Add(hash2);
                         _dirty = true;
                         _respawnedCount++;
+                        // Only restore if this instance was suppressed (scale=zero).
+                        // Fresh game instances on reload already have correct state.
+                        if (pickup.transform.localScale == UnityEngine.Vector3.zero)
+                        {
+                            RestorePickup(pickup.gameObject);
+                            pickup.enabled = true;
+                        }
                         RLog.Msg($"[LootRespawn] Respawned pickup: {objName} (hash={hash2.Substring(0, 8)}…)");
                     }
                     else
                     {
                         SuppressPickup(pickup.gameObject);
+                        pickup.enabled = false;  // disable PickUp component to hide interaction icon
                         _suppressedCount++;
                         if (_suppressedCount <= 50)
                             RLog.Msg($"[LootRespawn] Suppressed pickup: {objName} (hash={hash2.Substring(0, 8)}…)");
@@ -1240,7 +1252,10 @@ namespace ProjectX.Master.Modules.LootRespawn
             long now = GetGameTimestamp();
             int days = RespawnConfig.GetRespawnDaysForItem(itemId);
             long threshold = (long)days * 86400L;
-            return (now - collectedTimestamp) >= threshold;
+            long elapsed = now - collectedTimestamp;
+            bool passed = elapsed >= threshold;
+            RLog.Msg($"[LootRespawn] TimerCheck: itemId={itemId}, days={days}, threshold={threshold}, elapsed={elapsed}, passed={passed}");
+            return passed;
         }
 
         /// <summary>
@@ -1255,24 +1270,62 @@ namespace ProjectX.Master.Modules.LootRespawn
             if (go == null) return;
             try
             {
-                SuppressRecursive(go.transform);
+                // Scale to zero — makes the item invisible regardless of child loading state.
+                // Unlike renderer disabling, this works even when visual mesh children
+                // haven't been created yet (nodes=5 at Awake vs nodes=8+ when fully loaded).
+                go.transform.localScale = UnityEngine.Vector3.zero;
+
+                // Deactivate the _PickupGui_ child which renders the floating interaction icon.
+                // This is a separate world-space GUI element not affected by parent scale.
+                var gui = go.transform.Find("_PickupGui_");
+                if (gui != null) gui.gameObject.SetActive(false);
+
+                // Also disable colliders so no phantom interaction
+                DisableCollidersRecursive(go.transform);
             }
-            catch { /* best-effort suppression */ }
+            catch (Exception ex) { RLog.Warning($"[LootRespawn] SuppressPickup ERROR: {go.name} — {ex.Message}"); }
         }
 
-        /// <summary>IL2CPP-safe recursive traversal — disables Renderer + Collider on each node.</summary>
-        private static void SuppressRecursive(UnityEngine.Transform t)
+        /// <summary>IL2CPP-safe recursive collider disabling.</summary>
+        private static void DisableCollidersRecursive(UnityEngine.Transform t)
         {
             if (t == null) return;
-
-            var renderer = t.GetComponent<UnityEngine.Renderer>();
-            if (renderer != null) renderer.enabled = false;
 
             var collider = t.GetComponent<UnityEngine.Collider>();
             if (collider != null) collider.enabled = false;
 
             for (int i = 0; i < t.childCount; i++)
-                SuppressRecursive(t.GetChild(i));
+                DisableCollidersRecursive(t.GetChild(i));
+        }
+
+        /// <summary>Restores a previously suppressed pickup — inverse of SuppressPickup.
+        /// On reload, items are fresh instances so this is a defensive no-op.
+        /// Handles the edge case of mid-session timer expiry.</summary>
+        private static void RestorePickup(UnityEngine.GameObject go)
+        {
+            if (go == null) return;
+            try
+            {
+                go.transform.localScale = UnityEngine.Vector3.one;
+
+                var gui = go.transform.Find("_PickupGui_");
+                if (gui != null) gui.gameObject.SetActive(true);
+
+                EnableCollidersRecursive(go.transform);
+            }
+            catch { /* best-effort restoration */ }
+        }
+
+        /// <summary>IL2CPP-safe recursive collider enabling.</summary>
+        private static void EnableCollidersRecursive(UnityEngine.Transform t)
+        {
+            if (t == null) return;
+
+            var collider = t.GetComponent<UnityEngine.Collider>();
+            if (collider != null) collider.enabled = true;
+
+            for (int i = 0; i < t.childCount; i++)
+                EnableCollidersRecursive(t.GetChild(i));
         }
 
         // ── Server Authority ─────────────────────────────────────────

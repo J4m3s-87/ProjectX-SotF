@@ -7,7 +7,7 @@ This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
- Last Updated: March 10, 2026
+ Last Updated: March 11, 2026
 
 ================================================================================
                                 TABLE OF CONTENTS
@@ -703,6 +703,20 @@ blocked all future interaction. _recentlyRespawned now only blocks during
 streaming (save-load phase); once _saveDataLoaded=true, players interact
 normally and the hash is removed from the set.
 
+*** FIXED: COMPLETE ITEM SUPPRESSION (March 11, 2026) ***
+Suppressed items are now fully hidden and non-interactable:
+  - transform.localScale = Vector3.zero (hides 3D model)
+  - _PickupGui_ child GameObject deactivated (hides floating icon)
+  - All colliders recursively disabled (prevents interaction)
+  - PickUp component disabled (prevents collection)
+RestorePickup() reverses all of the above when timer expires mid-session.
+Only applied when item was actually suppressed (scale==zero guard prevents
+giant icon bug on fresh game instances).
+
+*** CHANGED: GPS LOCATOR CATEGORY (March 11, 2026) ***
+GPS Locator (itemId 529) moved to Meds category for respawn timer purposes.
+Previously uncategorized (fell through to global timer).
+
 *** FIXED: RESPAWN DAYS UI (March 09, 2026) ***
 Replaced slider with text input + "Set" button in Server Admin panel.
 Slider was spamming ServerCmd on every drag tick causing lag.
@@ -782,7 +796,7 @@ tracked for respawn — they will always be present in the world.
 - LR_TrackWeaponMods: Weapon Mods (Silencer, Laser Sight, etc.)
 - LR_TrackMaterials: Crafting Materials (Rope, Duct Tape, Coins, etc.)
 - LR_TrackFood: Food (MREs, Canned Food, Cereal, etc.)
-- LR_TrackMeds: Medicine & Energy (Pills, Candy Bars, Energy Drinks)
+- LR_TrackMeds: Medicine & Energy (Pills, Candy Bars, Energy Drinks, GPS Locator)
 - LR_TrackPlants: Plants (Aloe Vera, Mushrooms, Chicory, etc.)
 - LR_TrackAmmo: Ammunition (Bullets, Arrows, Bolts, Ziplines)
 - LR_TrackThrowables: Throwables (Grenades, Sticky Bombs, Golf Balls)
@@ -828,6 +842,21 @@ Ground Pickups:
   Previously used MD5 — replaced for performance (600+ PickUp.Awake calls
   during world load made MD5.Create()+ComputeHash() a bottleneck)
 - Early-exit guard: if suppression dictionary is empty, Awake hook is no-op
+
+Suppression/Restoration:
+- SuppressPickup(Transform, PickUp): Hides item completely
+  • Sets transform.localScale = Vector3.zero
+  • Finds _PickupGui_ child via Transform.Find, calls SetActive(false)
+  • DisableCollidersRecursive: walks hierarchy disabling all Colliders
+  • Sets pickup.enabled = false
+- RestorePickup(Transform, PickUp): Reverses suppression mid-session
+  • Restores transform.localScale = Vector3.one
+  • Re-activates _PickupGui_ child
+  • EnableCollidersRecursive: walks hierarchy re-enabling all Colliders
+  • Sets pickup.enabled = true
+  • Only called if item was actually suppressed (localScale == Vector3.zero)
+    This guard prevents giant icon bug on fresh game instances where the
+    item already has its correct original scale
 
 Openable Containers:
 - Harmony PREFIX on ContainerItemSpawner.OpenContainer(): Blocks streaming

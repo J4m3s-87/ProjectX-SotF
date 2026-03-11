@@ -115,7 +115,7 @@ namespace ProjectX.Master.Modules.LootRespawn
 
         public static readonly HashSet<int> MedIds = new()
         {
-            437, 441, 439
+            437, 441, 439, 529  // 529 = GPS Locator
         };
 
         public static readonly HashSet<int> PlantIds = new()

@@ -992,7 +992,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                             _setIsOpenMethod?.Invoke(__instance, new object[] { true });
                             _toggleIconMethod?.Invoke(__instance, new object[] { false });
                         }
-                        catch { /* non-critical visual state */ }
+                        catch (Exception vsEx) { RLog.Warning($"[LootRespawn] Visual state invoke failed (prefix): {vsEx.Message}"); }
                         _suppressedCount++;
                         RLog.Msg($"[LootRespawn] ★ SUPPRESSED OpenContainer (timer pending): {objName}");
                         return false;
@@ -1033,7 +1033,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                         _setIsOpenMethod?.Invoke(__instance, new object[] { true });
                         _toggleIconMethod?.Invoke(__instance, new object[] { false });
                     }
-                    catch { /* non-critical */ }
+                    catch (Exception vsEx) { RLog.Warning($"[LootRespawn] Visual state invoke failed (Start): {vsEx.Message}"); }
                     RLog.Msg($"[LootRespawn] ★ VISUAL STATE: marked as opened on Start: {objName}");
                 }
             }

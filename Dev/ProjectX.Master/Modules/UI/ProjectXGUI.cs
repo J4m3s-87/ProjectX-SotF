@@ -586,18 +586,18 @@ namespace ProjectX.Master.Modules.UI
             
             if (Config.LR_LootTypeOverride.Value)
             {
-                Config.LR_MeleeDays.Value = DrawIntSlider("Melee Days (-1=Global)", Config.LR_MeleeDays.Value, -1, 100);
-                Config.LR_RangedDays.Value = DrawIntSlider("Ranged Days (-1=Global)", Config.LR_RangedDays.Value, -1, 100);
-                Config.LR_WeaponModsDays.Value = DrawIntSlider("Weapon Mods Days (-1=Global)", Config.LR_WeaponModsDays.Value, -1, 100);
-                Config.LR_MaterialsDays.Value = DrawIntSlider("Materials Days (-1=Global)", Config.LR_MaterialsDays.Value, -1, 100);
-                Config.LR_FoodDays.Value = DrawIntSlider("Food Days (-1=Global)", Config.LR_FoodDays.Value, -1, 100);
-                Config.LR_MedsDays.Value = DrawIntSlider("Meds Days (-1=Global)", Config.LR_MedsDays.Value, -1, 100);
-                Config.LR_PlantsDays.Value = DrawIntSlider("Plants Days (-1=Global)", Config.LR_PlantsDays.Value, -1, 100);
-                Config.LR_AmmoDays.Value = DrawIntSlider("Ammo Days (-1=Global)", Config.LR_AmmoDays.Value, -1, 100);
-                Config.LR_ThrowablesDays.Value = DrawIntSlider("Throwables Days (-1=Global)", Config.LR_ThrowablesDays.Value, -1, 100);
-                Config.LR_ExpendablesDays.Value = DrawIntSlider("Expendables Days (-1=Global)", Config.LR_ExpendablesDays.Value, -1, 100);
-                Config.LR_BreakablesDays.Value = DrawIntSlider("Breakables Days (-1=Global)", Config.LR_BreakablesDays.Value, -1, 100);
-                Config.LR_OpenablesDays.Value = DrawIntSlider("Openables Days (-1=Global)", Config.LR_OpenablesDays.Value, -1, 100);
+                Config.LR_MeleeDays.Value = DrawIntSlider("Melee Days (-1=Global)", int.TryParse(Config.LR_MeleeDays.Value, out int v1) ? v1 : -1, -1, 100).ToString();
+                Config.LR_RangedDays.Value = DrawIntSlider("Ranged Days (-1=Global)", int.TryParse(Config.LR_RangedDays.Value, out int v2) ? v2 : -1, -1, 100).ToString();
+                Config.LR_WeaponModsDays.Value = DrawIntSlider("Weapon Mods Days (-1=Global)", int.TryParse(Config.LR_WeaponModsDays.Value, out int v3) ? v3 : -1, -1, 100).ToString();
+                Config.LR_MaterialsDays.Value = DrawIntSlider("Materials Days (-1=Global)", int.TryParse(Config.LR_MaterialsDays.Value, out int v4) ? v4 : -1, -1, 100).ToString();
+                Config.LR_FoodDays.Value = DrawIntSlider("Food Days (-1=Global)", int.TryParse(Config.LR_FoodDays.Value, out int v5) ? v5 : -1, -1, 100).ToString();
+                Config.LR_MedsDays.Value = DrawIntSlider("Meds Days (-1=Global)", int.TryParse(Config.LR_MedsDays.Value, out int v6) ? v6 : -1, -1, 100).ToString();
+                Config.LR_PlantsDays.Value = DrawIntSlider("Plants Days (-1=Global)", int.TryParse(Config.LR_PlantsDays.Value, out int v7) ? v7 : -1, -1, 100).ToString();
+                Config.LR_AmmoDays.Value = DrawIntSlider("Ammo Days (-1=Global)", int.TryParse(Config.LR_AmmoDays.Value, out int v8) ? v8 : -1, -1, 100).ToString();
+                Config.LR_ThrowablesDays.Value = DrawIntSlider("Throwables Days (-1=Global)", int.TryParse(Config.LR_ThrowablesDays.Value, out int v9) ? v9 : -1, -1, 100).ToString();
+                Config.LR_ExpendablesDays.Value = DrawIntSlider("Expendables Days (-1=Global)", int.TryParse(Config.LR_ExpendablesDays.Value, out int v10) ? v10 : -1, -1, 100).ToString();
+                Config.LR_BreakablesDays.Value = DrawIntSlider("Breakables Days (-1=Global)", int.TryParse(Config.LR_BreakablesDays.Value, out int v11) ? v11 : -1, -1, 100).ToString();
+                Config.LR_OpenablesDays.Value = DrawIntSlider("Openables Days (-1=Global)", int.TryParse(Config.LR_OpenablesDays.Value, out int v12) ? v12 : -1, -1, 100).ToString();
             }
             
             // Reset + Debug (same pattern as server panel — two buttons, Height 45)

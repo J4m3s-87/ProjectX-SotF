@@ -120,7 +120,8 @@ namespace ProjectX.Master.Modules.LootRespawn
 
         public static readonly HashSet<int> PlantIds = new()
         {
-            397, 398, 399, 400, 450, 451, 452, 453, 454, 465
+            397, 398, 399, 400, 450, 451, 452, 453, 454, 465,
+            445, 446, 447, 448, 449  // Added: Blueberries, Twinberries, Salal, Salmonberries, Blackberries
         };
 
         public static readonly HashSet<int> AmmoIds = new()

@@ -48,7 +48,6 @@ namespace ProjectX.Master.Modules.UI
         private bool _noGrassActive = false;
         private bool _noForestActive = false;
         private string _activeSeason = "";
-        private bool _lootTypeOverride = false;
         
         // Console commands state
         private int _aiAngerLevel = 50;
@@ -582,10 +581,10 @@ namespace ProjectX.Master.Modules.UI
             GUILayout.EndHorizontal();
             
             // Loot Type Override toggle — reveals per-category day sliders
-            bool newLootOverride = DrawCheckbox("Loot Type Override", _lootTypeOverride);
-            if (newLootOverride != _lootTypeOverride) _lootTypeOverride = newLootOverride;
+            bool newLootOverride = DrawCheckbox("Loot Type Override", Config.LR_LootTypeOverride.Value);
+            if (newLootOverride != Config.LR_LootTypeOverride.Value) Config.LR_LootTypeOverride.Value = newLootOverride;
             
-            if (_lootTypeOverride)
+            if (Config.LR_LootTypeOverride.Value)
             {
                 Config.LR_MeleeDays.Value = (int)DrawSlider("Melee Days (-1=Global)", Config.LR_MeleeDays.Value, -1, 100);
                 Config.LR_RangedDays.Value = (int)DrawSlider("Ranged Days (-1=Global)", Config.LR_RangedDays.Value, -1, 100);

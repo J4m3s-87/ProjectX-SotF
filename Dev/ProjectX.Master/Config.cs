@@ -631,6 +631,10 @@ namespace ProjectX.Master
         [SettingsUiInclude]  // Visible on all builds — works locally and on server
         public static ConfigEntry<string> LR_ItemBlacklist { get; private set; }
 
+        // ======================== LOOT TYPE OVERRIDE ========================
+        [SettingsUiInclude]
+        public static ConfigEntry<bool> LR_LootTypeOverride { get; private set; }
+
         // ======================== PER-CATEGORY RESPAWN DAYS ========================
         [SettingsUiInclude]
         public static ConfigEntry<int> LR_MeleeDays { get; private set; }
@@ -1264,6 +1268,11 @@ namespace ProjectX.Master
             LR_ItemWhitelist = LootCategoriesCategory.CreateEntry<string>("LR_ItemWhitelist", "", "Item Whitelist (IDs)", "Comma-separated item IDs to ALWAYS track (e.g. 437,441). Overrides category toggles.");
             LR_ItemWhitelist.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.ItemWhitelist = Modules.LootRespawn.RespawnConfig.ParseIdList(v); });
             Modules.LootRespawn.RespawnConfig.ItemWhitelist = Modules.LootRespawn.RespawnConfig.ParseIdList(LR_ItemWhitelist.Value);
+
+            // ===== LOOT TYPE OVERRIDE (master toggle for per-category days) =====
+            LR_LootTypeOverride = LootCategoriesCategory.CreateEntry<bool>("LR_LootTypeOverride", false, "Loot Type Override", "Enable per-category respawn day overrides (OFF = use global for all)");
+            LR_LootTypeOverride.OnValueChanged.Subscribe((_, v) => { Modules.LootRespawn.RespawnConfig.LootTypeOverride = v; });
+            Modules.LootRespawn.RespawnConfig.LootTypeOverride = LR_LootTypeOverride.Value;
 
             // ===== PER-CATEGORY RESPAWN DAYS (-1 = use global LootRespawnDays) =====
             LR_MeleeDays = LootCategoriesCategory.CreateEntry<int>("LR_MeleeDays", -1, "Melee Respawn Days", "Days for melee weapons (-1 = use global)");

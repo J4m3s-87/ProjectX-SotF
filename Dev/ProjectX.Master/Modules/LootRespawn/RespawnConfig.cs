@@ -52,6 +52,10 @@ namespace ProjectX.Master.Modules.LootRespawn
         public static bool TrackBreakables = true;
         public static bool TrackOpenables = true;
 
+        // ── Per-category override master toggle ──────────────────────
+
+        public static bool LootTypeOverride = false;
+
         // ── Per-category respawn day overrides (-1 = use global) ─────
 
         public static int MeleeDays = -1;
@@ -217,6 +221,9 @@ namespace ProjectX.Master.Modules.LootRespawn
         /// </summary>
         public static int GetRespawnDaysForItem(int itemId)
         {
+            // If override toggle is off, always use global timer
+            if (!LootTypeOverride) return RespawnDays;
+
             int categoryDays = -1;
 
             if (MeleeWeaponIds.Contains(itemId))        categoryDays = MeleeDays;

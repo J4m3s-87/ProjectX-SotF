@@ -4,7 +4,7 @@
 
 ## Overview
 
-Project X is a unified modding suite for Sons of the Forest, combining the functionality of 20+ standalone mods into a single package with dedicated server support. It is **73 source files totalling over 770KB of custom C# code**, representing over 200 development phases.
+Project X is a unified modding suite for Sons of the Forest, combining the functionality of 20+ standalone mods into a single package with dedicated server support. It is **73 source files totalling over 770KB of custom C# code**, representing over 300 development phases.
 
 This document provides a transparent account of what was built, what was studied, how each module relates to existing mods, and where the implementations diverge.
 
@@ -66,7 +66,7 @@ Each module below was _studied_ from an existing mod to understand the concept a
 | **LootRespawn**         | 55KB+ (3 files)    | ~30KB (GitHub)  | **5× larger**    | All tiers                     | Server-authoritative loot sync via LootSyncEvent. Container respawn entirely new. `#if SERVER\|\|OWNER` guards server-only persistence |
 | **WeaponDamage**        | 21.2KB (2 files)   | ~9KB            | **2.4× larger**  | Owner + Client                | `#if !SERVER` — damage applied locally. Config set by server via ConfigSync                                                            |
 | **MeatDryer**           | 18.1KB (2 files)   | ~5KB            | **3.6× larger**  | All tiers                     | No tier guards — runs on headless server. Seasonal drying system + fire proximity detection                                            |
-| **WaterCollectors**     | 15.2KB (2 files)   | ~3KB (GitHub)   | **5.1× larger**  | All tiers                     | No tier guards — runs on headless server. Harmony `OnEnable` tracking + `Vector3.Distance` polling                                     |
+| **WaterCollectors**     | 15.2KB (2 files)   | ~3KB (GitHub)   | **5.1× larger**  | All tiers                     | Same core technique (`SetFrozen` + season override). Rewritten because original uses MonoBehaviour callbacks (Start/Update/OnTriggerEnter) which don't fire on headless servers (IL2CPP MonoBehaviour Callback Trap). Replaced with static Harmony hooks + `Vector3.Distance` polling |
 | **Stack**               | 14.9KB (1 file)    | ~4KB            | **3.7× larger**  | Owner + Client                | `#if !SERVER` — per-item configs across 14 categories. Config pushed by server via ConfigSync                                          |
 | **StructureDurability** | 11.7KB (1 file)    | ~4KB            | **2.9× larger**  | Owner + Client                | `#if !SERVER` — Harmony postfix on `GetStructureInfo()`. Config pushed by server via ConfigSync                                        |
 | **BuilderStacks**       | 10.8KB (1 file)    | 14.4KB (4 f)    | condensed        | Owner + Client                | `#if !SERVER` — per-material capacity buffers. Config pushed by server via ConfigSync                                                  |
@@ -91,7 +91,7 @@ Many features required novel solutions because IL2CPP strips, remaps, or hides s
 | **Enemy HP/Damage**                | `AccessTools.Field("_health")`                                            | Returns `null` — field metadata stripped                                     | Unsafe pointer arithmetic at offsets 0x4CC, 0x4D0                                  |
 | **Enemy Aggression**               | `GetStat(System.Type)`                                                    | `MissingMethodException` — IL2CPP maps `System.Type` to `Il2CppSystem.Type`  | Bridge through `dedicatedserver.cfg` native settings                               |
 | **Structure Durability**           | Direct field access on `ScrewStructure._hp`                               | Field is stripped                                                            | Harmony postfix on `GetStructureInfo()`                                            |
-| **Water Collector fire detection** | `SphereCollider` trigger (GLaDOS's approach) or `Physics.OverlapSphere()` | Both work at runtime; Project X avoids injecting MonoBehaviours on prefabs   | Harmony `OnEnable` tracking with `Vector3.Distance` — no collider injection needed |
+| **Water Collector fire detection** | `SphereCollider` trigger (GLaDOS's approach) or `Physics.OverlapSphere()` | MonoBehaviour callbacks (`Start`, `Update`, `OnTriggerEnter`) never fire on IL2CPP-injected types on headless servers | Harmony `OnEnable` tracking with `Vector3.Distance` — no MonoBehaviour injection needed, works on headless servers |
 | **Follower HP**                    | Set `_max` on HealthStat                                                  | VailActor has 13 stats, many sharing `_max=100`                              | Match by `_baseValue` not `_max`, 1-second post-revive delay                       |
 | **Season control**                 | `SeasonsManager._activeSeason` field                                      | Field stripped, network sync overrides writes                                | Marshal.WriteInt32 at offset 0x70 + triple Harmony PREFIX blocker                  |
 | **Texture casting**                | Standard type cast                                                        | DummyDll types don't cast to IL2CPP types                                    | `Il2CppInterop` runtime cast workaround                                            |
@@ -195,5 +195,5 @@ Full attribution is maintained in [`CREDITS.md`](CREDITS.md).
 ---
 
 _Project X — by J4m3s & Claude_
-_73 source files • 770KB+ custom code • 200+ development phases_
+_73 source files • 770KB+ custom code • 300+ development phases_
 _March 2026_

@@ -15,11 +15,11 @@ No code was copied — all implementations were independently written.
 | Raid Customization                        | RaidCustomizer                   | codengine (skynet86)    | Unknown  | [sotf-mods](https://sotf-mods.com/mods/codengine/RaidCustomizer/)    |
 | Scary Cross                               | ScaryCross                       | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/ScaryCross)                  |
 | Dedicated Server Admin                    | DedicatedSuperuser               | GLaD0S (laserman120)    | AGPL-3.0 | [GitHub](https://github.com/laserman120/DedicatedSuperuser)          |
-| Zipline Extension                         | ZiplineExtender                  | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
-| Stone Gate (REMOVED from build)           | StoneGate                        | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
+| Zipline Extension                         | ZiplineExtender                  | SmokyAce (move123456789)| Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
+| Stone Gate (REMOVED from build)           | StoneGate                        | SmokyAce (move123456789)| Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
 | Meat Dryer                                | RealisticMeatDryer               | DarkAvatar7             | Unknown  | [sotf-mods](https://sotf-mods.com/mods/DarkAvatar7/)                 |
-| Broadcast Message                         | BroadcastMessage                 | SmokyAce & ThirtyTwelve | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
-| Log/Item Carry (BuilderStacks, Inventory) | LogCarryAmount / ItemCarryAmount | SmokyAce                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
+| Broadcast Message                         | BroadcastMessage                 | SmokyAce (move123456789) & ThirtyTwelve | Free for use | [GitHub](https://github.com/move123456789/SOTF-Mods)           |
+| Log/Item Carry (BuilderStacks, Inventory) | LogCarryAmount / ItemCarryAmount | SmokyAce (move123456789)| Unknown  | [sotf-mods](https://sotf-mods.com/mods/SmokyAce/)                    |
 | Waterfall Audio (FMOD volume control)     | WaterfallSoundControl            | Toni Macaroni           | Unknown  | [sotf-mods](https://sotf-mods.com/mods/ToniMacaroni/)                |
 | Ammo UI                                   | AmmoUi                           | ImAxel0                 | MIT      | [GitHub](https://github.com/ImAxel0/AxelModMenu)                     |
 | Open Sesame (Doors)                       | OpenSesame                       | tempbito                | Unknown  | [sotf-mods](https://sotf-mods.com/mods/tempbito/)                    |

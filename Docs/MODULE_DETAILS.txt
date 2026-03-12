@@ -7,7 +7,7 @@ This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
- Last Updated: March 11, 2026
+ Last Updated: March 12, 2026
 
 ================================================================================
                                 TABLE OF CONTENTS
@@ -45,6 +45,8 @@ Removed Modules (no longer in build):
 ================================================================================
                               1. PLAYER MODULE
 ================================================================================
+
+EDITIONS: Server + Owner + Client (no tier guards)
 
 PURPOSE:
 Provides player quality-of-life features including teleportation of companions.
@@ -120,6 +122,9 @@ INTERNAL MECHANICS:
 ================================================================================
                               2. STACK MODULE
 ================================================================================
+
+EDITIONS: Owner + Client only (#if !SERVER)
+  Config set by server via ConfigSync — clients apply locally.
 
 PURPOSE:
 Modifies the maximum stack size for all items in the game, allowing for
@@ -250,6 +255,8 @@ CONFIG OPTIONS:
                               3. ZIPLINE MODULE
 ================================================================================
 
+EDITIONS: Server + Owner + Client (no tier guards)
+
 PURPOSE:
 Extends zipline construction distance and rope gun firing range.
 
@@ -297,6 +304,9 @@ INTERNAL MECHANICS:
 ================================================================================
                               4. RELOCATOR MODULE
 ================================================================================
+
+EDITIONS: Owner + Client only (#if !SERVER)
+  Config set by server via ConfigSync — clients apply locally.
 
 PURPOSE:
 Allows structures to be picked up and relocated without being destroyed.
@@ -346,6 +356,9 @@ INTERNAL MECHANICS:
                          5. STRUCTURE DURABILITY MODULE
 ================================================================================
 
+EDITIONS: Owner + Client only (#if !SERVER)
+  Config set by server via ConfigSync — clients apply locally.
+
 PURPOSE:
 Multiplies structure health for increased durability.
 
@@ -380,6 +393,8 @@ INTERNAL MECHANICS:
 ================================================================================
                           6. WATER COLLECTORS MODULE
 ================================================================================
+
+EDITIONS: Server + Owner + Client (no tier guards)
 
 PURPOSE:
 Prevents rain catchers from freezing in winter when near a fire source.
@@ -429,6 +444,8 @@ INTERNAL MECHANICS:
 ================================================================================
                              7. MEAT DRYER MODULE
 ================================================================================
+
+EDITIONS: Server + Owner + Client (no tier guards — core drying logic runs on all tiers)
 
 PURPOSE:
 Modifies drying rack behavior based on season and proximity to heat sources.
@@ -481,6 +498,9 @@ INTERNAL MECHANICS:
 ================================================================================
                             8. SCARY CROSS MODULE
 ================================================================================
+
+EDITIONS: Owner + Client only (#if !SERVER)
+  Config set by server via ConfigSync — clients apply effects locally.
 
 PURPOSE:
 Transforms the buildable Cross structure into a functional demon-repelling
@@ -589,6 +609,8 @@ ORIGINAL CONFIG OPTIONS (for reference):
                          10. RAIDCUSTOMIZER MODULE
 ================================================================================
 
+EDITIONS: All tiers (Server runs scheduling logic; stat overrides on Owner + Client)
+
 PURPOSE:
 Comprehensive raid and enemy customization module. Controls raid scheduling,
 enemy spawn counts, stat multipliers for all enemy types, and multiplayer
@@ -680,6 +702,8 @@ INTERNAL MECHANICS:
 
 BASED ON: GlaDOS (laserman120) — LootRespawnControl v2
   https://github.com/laserman120/SOTF-Mod-LootRespawnControl (AGPL-3.0)
+
+EDITIONS: Server + Owner + Client (all tiers — #if SERVER||OWNER guards server-only persistence)
 
 PURPOSE:
 Tracks collected loot items, opened containers, and broken crates, allowing
@@ -883,7 +907,8 @@ Breakable Containers:
 - OnBreak fires on the dedicated server (via Harmony) — server records directly
 
 Shared:
-- Timer: RespawnDays × 1440 seconds (1 in-game day ≈ 1440 seconds)
+- Timer: Day-number comparison (GetGameDay() - collectedDay >= RespawnDays)
+  Day 0 deferral: suppression skipped if GetGameDay() returns 0 (startup)
 - Timer-expired entries are REMOVED from _collected (container is truly fresh)
 - _recentlyRespawned HashSet blocks streaming replays only (not player interaction)
   Once _saveDataLoaded=true, _recentlyRespawned entries allow through + get removed
@@ -920,6 +945,8 @@ LootEventListener (debugCommand fallback — still used for C→S pickups):
 ================================================================================
                        12. DEDICATED SUPERUSER MODULE
 ================================================================================
+
+EDITIONS: All tiers (Server runs command dispatch; Owner/Client route via ChatBox)
 
 PURPOSE:
 Provides admin chat commands and server-side command execution for dedicated
@@ -981,6 +1008,9 @@ INTERNAL MECHANICS:
                          13. BUILDING CHEATS MODULE
 ================================================================================
 
+EDITIONS: Owner + Client only (#if !SERVER)
+  Config set by server via ConfigSync — clients apply locally.
+
 PURPOSE:
 Provides building-related cheats and enhancements via IMGUI toggles.
 All features are accessible from the Project X menu under "Building Cheats".
@@ -1034,6 +1064,8 @@ API DISCOVERY NOTES:
                              14. AMMO UI MODULE
 ================================================================================
 
+EDITIONS: Owner + Client only (#if !SERVER — HUD element)
+
 PURPOSE:
 Displays a HUD overlay showing current ammo count when holding a ranged weapon.
 Based on the standalone AmmoUi mod by Axel, now integrated into Project X with
@@ -1081,6 +1113,8 @@ INTERNAL MECHANICS:
                          16. DISCORD BRIDGE MODULE
 ================================================================================
 
+EDITIONS: Server + Owner only (excluded from Client csproj)
+
 PURPOSE:
 Bridges in-game events (player joins, deaths, chat) to a Discord channel via
 webhook or bot integration. Also provides an in-game chat overlay.
@@ -1124,6 +1158,9 @@ INTERNAL MECHANICS:
 ================================================================================
                      17. GUI LAYOUT & MENU SYSTEM
 ================================================================================
+
+EDITIONS: Owner + Client only (#if !SERVER — no UI on headless server)
+  Owner sees full admin panels; Client panels gated by #if !CLIENT.
 
 PURPOSE:
 The Project X GUI is the main in-game control panel for all modules.
@@ -1212,6 +1249,9 @@ STYLING (ProjectXStyles.cs):
                     15. BUILDER STACKS MODULE  *** NEW ***
 ================================================================================
 
+EDITIONS: Owner + Client only (#if !SERVER)
+  Config set by server via ConfigSync — clients apply locally.
+
 PURPOSE:
 Carry more logs, planks, and stones beyond vanilla limits using a virtual buffer.
 Based on ItemCarryAmount 1.0.0 by mΔ, rewritten for IL2CPP with per-material
@@ -1286,6 +1326,8 @@ IL2CPP NOTES:
                         18. AUDIO CONTROL MODULE  *** NEW ***
 ================================================================================
 
+EDITIONS: Owner only (#if !SERVER && !CLIENT — audio has no meaning on headless/client)
+
 PURPOSE:
 Controls the volume of waterfall sounds using FMOD event emitters.
 Based on WaterfallSoundControl 1.0.0 by Toni Macaroni, rewritten for IL2CPP.
@@ -1331,6 +1373,9 @@ IL2CPP NOTES:
 ================================================================================
               19. NETWORK INFRASTRUCTURE MODULE  *** NEW ***
 ================================================================================
+
+EDITIONS: All tiers (per-file #if guards: SERVER||OWNER for config broadcast,
+  CLIENT for config reception, etc.)
 
 PURPOSE:
 Server-authoritative networking layer that provides:
@@ -1461,6 +1506,8 @@ FILES:
                      20. INVENTORY MODULE  *** NEW ***
 ================================================================================
 
+EDITIONS: Server + Owner + Client (no tier guards)
+
 PURPOSE:
 Sets the maximum carry amount for ALL items to 999,999,999 when enabled.
 This is a simple quality-of-life toggle that removes inventory capacity
@@ -1498,6 +1545,9 @@ FILES:
 
 BASED ON: Less Useless Guns by SKN The Lisper
   Concept studied, independently implemented with per-weapon granularity.
+
+EDITIONS: Owner + Client only (#if !SERVER)
+  Config set by server via ConfigSync — clients apply damage multipliers locally.
 
 PURPOSE:
 Provides configurable per-weapon damage multipliers for all ranged and melee
@@ -1600,6 +1650,9 @@ FILES:
 BASED ON: FasterCrafting by unknown
   Concept studied, independently implemented with CraftingCog event hook.
 
+EDITIONS: Owner + Client only (#if !SERVER)
+  Config set by server via ConfigSync — clients apply locally.
+
 PURPOSE:
 Speeds up backpack crafting animations by setting the CraftingSystem's
 consecutive crafting speed to the configured multiplier on each craft event.
@@ -1651,6 +1704,8 @@ FILES:
 
 BASED ON: SonsHotbar 1.1.1 by AEDEV
   Concept and slot logic studied, rebuilt with sprite caching and frame throttling.
+
+EDITIONS: Owner + Client only (#if !SERVER — HUD element)
 
 PURPOSE:
 Displays hotkey-assigned item icons on-screen, showing which items are mapped

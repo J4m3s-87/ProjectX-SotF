@@ -19,13 +19,14 @@ namespace ProjectX.Master.Modules.LootRespawn
     /// until enough in-game time has passed.
     ///
     /// Architecture (ported from GlaDOS's LootRespawnControl v2):
-    /// - Each world PickUp / BreakableObject gets a stable MD5 hash from
+    /// - Each world PickUp / BreakableObject gets a stable hash from
     ///   position + rotation + name prefix
-    /// - When collected, the item's hash + game timestamp + item ID are recorded
-    /// - On load, items whose hash is in the collected set are destroyed (suppressed)
-    ///   UNLESS enough game-time has elapsed → then the entry is removed (respawned)
+    /// - When collected, the item's hash + game day number + item ID are recorded
+    /// - On load, items whose hash is in the collected set are suppressed
+    ///   UNLESS enough game days have elapsed → then the entry is removed (respawned)
     /// - Deferred checking: items that Awake before save data loads are queued
     ///   and re-checked once save data is available
+    /// - Timer: simple day comparison (currentDay - collectedDay >= respawnDays)
     ///
     /// Harmony patches (all Postfix, IL2CPP-safe):
     /// - PickUp.Awake           → queue/check pickup
@@ -351,6 +352,8 @@ namespace ProjectX.Master.Modules.LootRespawn
             _pendingPickups.Clear();
             _pendingContainers.Clear();
             _hashCache.Clear();
+            _recentlyRespawned.Clear();
+            _breakableLoadFrame.Clear();
             _suppressedCount = 0;
             _respawnedCount = 0;
         }
@@ -383,8 +386,9 @@ namespace ProjectX.Master.Modules.LootRespawn
 
                         if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
                         {
-                            // DO NOT remove from _collected — PREFIX needs entry for future loads
+                            _collected.Remove(hash);
                             _recentlyRespawned.Add(hash);
+                            _dirty = true;
                             respawned++;
                         }
                         else
@@ -411,9 +415,10 @@ namespace ProjectX.Master.Modules.LootRespawn
                     {
                         if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
                         {
-                            // DO NOT remove from _collected — PREFIX needs entry for future loads
+                            _collected.Remove(hash);
                             _recentlyRespawned.Add(hash);
                             _breakableLoadFrame[hash] = Time.frameCount;
+                            _dirty = true;
                             respawned++;
                         }
                         else
@@ -522,7 +527,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 string hash2 = GetOrGenerateHash(pickup.transform, pickup.GetInstanceID());
                 if (hash2 == null) return;
 
-                if (!_saveDataLoaded)
+                if (!_saveDataLoaded || (GetGameDay() == 0 && _collected.Count > 0))
                 {
                     _pendingPickups.Add(pickup);
                     return;
@@ -620,11 +625,11 @@ namespace ProjectX.Master.Modules.LootRespawn
                 }
 
                 // LOCAL HOST / SOLO / SERVER → record directly
-                long timestamp = GetGameTimestamp();
-                _collected[hash] = new LootData(hash, timestamp, itemId);
+                long day = GetGameDay();
+                _collected[hash] = new LootData(hash, day, itemId);
                 _dirty = true;
 
-                RLog.Msg($"[LootRespawn] Collected pickup: {objName} (itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp})");
+                RLog.Msg($"[LootRespawn] Collected pickup: {objName} (itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, day={day})");
             }
             catch (Exception ex)
             {
@@ -640,16 +645,16 @@ namespace ProjectX.Master.Modules.LootRespawn
         {
             if (string.IsNullOrEmpty(hash) || !RespawnConfig.Enabled) return;
 
-            long timestamp = GetGameTimestamp();
-            _collected[hash] = new LootData(hash, timestamp, itemId);
+            long day = GetGameDay();
+            _collected[hash] = new LootData(hash, day, itemId);
             _dirty = true;
 
             // Broadcast to all clients so they suppress this item too
 #if SERVER || OWNER
-            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, timestamp, itemId); } catch { }
+            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, day, itemId); } catch { }
 #endif
 
-            RLog.Msg($"[LootRespawn] ★ Received C→S pickup: itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}");
+            RLog.Msg($"[LootRespawn] ★ Received C→S pickup: itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, day={day}");
         }
 
         // ── BreakableObject (Container) Callbacks ────────────────────
@@ -692,7 +697,7 @@ namespace ProjectX.Master.Modules.LootRespawn
                 string hash2 = GetOrGenerateHash(container.transform, container.GetInstanceID());
                 if (hash2 == null) return;
 
-                if (!_saveDataLoaded)
+                if (!_saveDataLoaded || (GetGameDay() == 0 && _collected.Count > 0))
                 {
                     _pendingContainers.Add(container);
                     return;
@@ -703,9 +708,10 @@ namespace ProjectX.Master.Modules.LootRespawn
                 {
                     if (HasEnoughTimePassed(data.Timestamp, data.ItemId))
                     {
-                        // DO NOT remove from _collected — PREFIX needs entry for future loads
+                        _collected.Remove(hash2);
                         _recentlyRespawned.Add(hash2);
                         _breakableLoadFrame[hash2] = Time.frameCount;
+                        _dirty = true;
                         _respawnedCount++;
                         RLog.Msg($"[LootRespawn] Respawned container: {objName} (frame={Time.frameCount})");
                     }
@@ -878,11 +884,11 @@ namespace ProjectX.Master.Modules.LootRespawn
                     return; // already tracked, don't update timestamp
                 }
 
-                long timestamp = GetGameTimestamp();
-                _collected[hash] = new LootData(hash, timestamp, RespawnConfig.BreakableId);
+                long day = GetGameDay();
+                _collected[hash] = new LootData(hash, day, RespawnConfig.BreakableId);
                 _dirty = true;
 
-                RLog.Msg($"[LootRespawn] Container broken: {objName} (hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count})");
+                RLog.Msg($"[LootRespawn] Container broken: {objName} (hash={hash.Substring(0, Math.Min(8, hash.Length))}…, day={day}, tracked={_collected.Count})");
             }
             catch (Exception ex)
             {
@@ -928,11 +934,11 @@ namespace ProjectX.Master.Modules.LootRespawn
                 }
 
                 // LOCAL HOST / SOLO / SERVER → record directly
-                long timestamp = GetGameTimestamp();
-                _collected[hash] = new LootData(hash, timestamp, RespawnConfig.OpenableId);
+                long day = GetGameDay();
+                _collected[hash] = new LootData(hash, day, RespawnConfig.OpenableId);
                 _dirty = true;
 
-                RLog.Msg($"[LootRespawn] GrabBag opened: {controller.name} (containerId={containerId}, ts={timestamp}, tracked={_collected.Count})");
+                RLog.Msg($"[LootRespawn] GrabBag opened: {controller.name} (containerId={containerId}, day={day}, tracked={_collected.Count})");
             }
             catch (Exception ex)
             {
@@ -1146,11 +1152,11 @@ namespace ProjectX.Master.Modules.LootRespawn
                     return;
 
                 // NEW OPEN — record it
-                long timestamp = GetGameTimestamp();
-                _collected[hash] = new LootData(hash, timestamp, RespawnConfig.OpenableId);
+                long day = GetGameDay();
+                _collected[hash] = new LootData(hash, day, RespawnConfig.OpenableId);
                 _dirty = true;
 
-                RLog.Msg($"[LootRespawn] Container opened: {objName} (key={hash}, ts={timestamp}, tracked={_collected.Count})");
+                RLog.Msg($"[LootRespawn] Container opened: {objName} (key={hash}, day={day}, tracked={_collected.Count})");
             }
             catch (Exception ex)
             {
@@ -1225,17 +1231,18 @@ namespace ProjectX.Master.Modules.LootRespawn
         /// Get current game time as total seconds (days * 86400 + time-of-day seconds).
         /// Same algorithm as LootRespawnControl.GetTimestampFromGameTime().
         /// </summary>
-        private static long GetGameTimestamp()
+        /// <summary>
+        /// Returns the current in-game day number from TimeOfDayHolder.
+        /// Format: "Day X HH:MM:SS" — we only need X.
+        /// </summary>
+        private static long GetGameDay()
         {
             try
             {
                 var tod = TimeOfDayHolder.GetTimeOfDay();
                 string todStr = tod.ToString();
-                // Format: "Day X HH:MM:SS" — parse the same way as the original
                 string[] parts = todStr.Split(' ');
-                int day = int.Parse(parts[1]);
-                TimeSpan time = TimeSpan.Parse(parts[2]);
-                return (long)(day * 24 * 60 * 60) + (long)time.TotalSeconds;
+                return long.Parse(parts[1]);
             }
             catch
             {
@@ -1244,17 +1251,27 @@ namespace ProjectX.Master.Modules.LootRespawn
         }
 
         /// <summary>
-        /// Check if enough game-time has passed since the item was collected.
-        /// Uses per-category respawn days if configured, otherwise global RespawnDays.
+        /// Check if enough game days have passed since the item was collected.
+        /// Simple day-number comparison: currentDay - collectedDay >= respawnDays.
+        /// Backward compat: old saves stored seconds (day*86400+time) — values > 1000
+        /// are auto-converted to day numbers by dividing by 86400.
         /// </summary>
-        private static bool HasEnoughTimePassed(long collectedTimestamp, int itemId)
+        private static bool HasEnoughTimePassed(long collectedDay, int itemId)
         {
-            long now = GetGameTimestamp();
-            int days = RespawnConfig.GetRespawnDaysForItem(itemId);
-            long threshold = (long)days * 86400L;
-            long elapsed = now - collectedTimestamp;
-            bool passed = elapsed >= threshold;
-            RLog.Msg($"[LootRespawn] TimerCheck: itemId={itemId}, days={days}, threshold={threshold}, elapsed={elapsed}, passed={passed}");
+            long now = GetGameDay();
+            int requiredDays = RespawnConfig.GetRespawnDaysForItem(itemId);
+
+            // Backward compat: old saves stored full timestamps (e.g., 484200 seconds).
+            // Any value > 1000 is clearly an old-format timestamp — convert to day.
+            if (collectedDay > 1000)
+            {
+                collectedDay = collectedDay / 86400;
+                RLog.Msg($"[LootRespawn] Auto-converted old timestamp to day: {collectedDay}");
+            }
+
+            long elapsed = now - collectedDay;
+            bool passed = elapsed >= requiredDays;
+            RLog.Msg($"[LootRespawn] TimerCheck: itemId={itemId}, requiredDays={requiredDays}, collectedDay={collectedDay}, currentDay={now}, elapsed={elapsed}, passed={passed}");
             return passed;
         }
 
@@ -1364,16 +1381,16 @@ namespace ProjectX.Master.Modules.LootRespawn
             if (!RespawnConfig.Enabled) return;
             if (!RespawnConfig.ShouldTrackItem(itemId)) return;
 
-            long timestamp = GetGameTimestamp();
-            _collected[hash] = new LootData(hash, timestamp, itemId);
+            long day = GetGameDay();
+            _collected[hash] = new LootData(hash, day, itemId);
             _dirty = true;
 
             // Broadcast to all clients so they suppress this item too
 #if SERVER || OWNER
-            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, timestamp, itemId); } catch { }
+            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, day, itemId); } catch { }
 #endif
 
-            RLog.Msg($"[LootRespawn] ★ Server recorded remote COLLECT: itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count}");
+            RLog.Msg($"[LootRespawn] ★ Server recorded remote COLLECT: itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, day={day}, tracked={_collected.Count}");
         }
 
         /// <summary>
@@ -1388,16 +1405,16 @@ namespace ProjectX.Master.Modules.LootRespawn
             // Idempotent — don't update timestamp if already tracked
             if (_collected.ContainsKey(hash)) return;
 
-            long timestamp = GetGameTimestamp();
-            _collected[hash] = new LootData(hash, timestamp, RespawnConfig.BreakableId);
+            long day = GetGameDay();
+            _collected[hash] = new LootData(hash, day, RespawnConfig.BreakableId);
             _dirty = true;
 
             // Broadcast to all clients
 #if SERVER || OWNER
-            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, timestamp, RespawnConfig.BreakableId); } catch { }
+            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, day, RespawnConfig.BreakableId); } catch { }
 #endif
 
-            RLog.Msg($"[LootRespawn] ★ Server recorded remote CONTAINER_BREAK: hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count}");
+            RLog.Msg($"[LootRespawn] ★ Server recorded remote CONTAINER_BREAK: hash={hash.Substring(0, Math.Min(8, hash.Length))}…, day={day}, tracked={_collected.Count}");
         }
 
         /// <summary>
@@ -1412,16 +1429,16 @@ namespace ProjectX.Master.Modules.LootRespawn
             // Idempotent — don't update timestamp if already tracked
             if (_collected.ContainsKey(hash)) return;
 
-            long timestamp = GetGameTimestamp();
-            _collected[hash] = new LootData(hash, timestamp, RespawnConfig.OpenableId);
+            long day = GetGameDay();
+            _collected[hash] = new LootData(hash, day, RespawnConfig.OpenableId);
             _dirty = true;
 
             // Broadcast to all clients
 #if SERVER || OWNER
-            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, timestamp, RespawnConfig.OpenableId); } catch { }
+            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, day, RespawnConfig.OpenableId); } catch { }
 #endif
 
-            RLog.Msg($"[LootRespawn] ★ Server recorded remote CONTAINER_OPEN: hash={hash.Substring(0, Math.Min(8, hash.Length))}…, ts={timestamp}, tracked={_collected.Count}");
+            RLog.Msg($"[LootRespawn] ★ Server recorded remote CONTAINER_OPEN: hash={hash.Substring(0, Math.Min(8, hash.Length))}…, day={day}, tracked={_collected.Count}");
         }
 
         // ── Server → Client State Sync ──────────────────────────────

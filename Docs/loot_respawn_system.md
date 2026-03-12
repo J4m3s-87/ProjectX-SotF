@@ -1,6 +1,6 @@
 # Loot Respawn System — Comprehensive Technical Reference
 
-Last Updated: March 11, 2026
+Last Updated: March 12, 2026
 
 The Loot Respawn system tracks collected loot items, opened containers, and broken crates, allowing them to respawn after a configurable number of in-game days. This document covers how the system works in **both local play (solo/P2P)** and **dedicated server** scenarios.
 
@@ -8,7 +8,7 @@ The Loot Respawn system tracks collected loot items, opened containers, and brok
 
 ## 1. Overview
 
-When a player collects a pickup, opens a container, or breaks a crate, the mod records a **unique positional hash** and a **game-time timestamp**. While the timer is active, the item is **suppressed** — hidden, non-interactable, and invisible to the player. Once the respawn timer expires, the item returns to the world as if never collected.
+When a player collects a pickup, opens a container, or breaks a crate, the mod records a **unique positional hash** and the **current game day number**. While the timer is active, the item is **suppressed** — hidden, non-interactable, and invisible to the player. Once the respawn timer expires (on the next save reload or streaming zone re-entry), the item returns to the world as if never collected.
 
 ### Supported Item Types
 
@@ -49,6 +49,7 @@ When the world loads, every pickup and container fires its `Awake` method. The m
 ```
 PickUp.Awake fires
     → If save data not loaded yet → queue in _pendingPickups (deferred)
+    → If GetGameDay() == 0 AND _collected has entries → queue (Day 0 reload guard)
     → If hash found in _collected:
         → Timer expired? → Remove from _collected, add to _recentlyRespawned, call RestorePickup
         → Timer active?  → Call SuppressPickup (hide + disable)
@@ -56,6 +57,8 @@ PickUp.Awake fires
 ```
 
 **Deferred Processing**: Items that `Awake` before save data loads are queued. Once `OnGameStarted` fires and sets `_saveDataLoaded = true`, all pending items are processed in bulk.
+
+**Day 0 Deferral Guard**: On reload, `TimeOfDayHolder` reports Day 0 before the save system restores the actual day counter. Awake handlers now also defer when `GetGameDay() == 0 && _collected.Count > 0`. This prevents items from being incorrectly suppressed during the brief window before the game restores the real day. Never triggers on fresh games (empty `_collected`).
 
 ### 2.3 Suppression Mechanics
 
@@ -70,7 +73,7 @@ When an item is suppressed, four things happen:
 
 ### 2.4 Restoration Mechanics
 
-When a timer expires **mid-session** (player is still in the world and walks into a streaming zone), the item needs to be visually restored without reloading:
+When a timer expires and the item is encountered (via save reload or streaming zone re-entry), `RestorePickup` reverses the suppression:
 
 | Step | What |
 |---|---|
@@ -80,6 +83,8 @@ When a timer expires **mid-session** (player is still in the world and walks int
 | `pickup.enabled = true` | Re-enables the PickUp component |
 
 **Important Guard**: `RestorePickup` is only called if `localScale == Vector3.zero`. On game reload, items are **fresh instances** with their correct original scale — calling RestorePickup on these would cause giant icon bugs.
+
+**On respawn**: Items are **removed from `_collected`** (not kept). This ensures the game's own save system doesn't replay collection/break state on future loads.
 
 ### 2.5 Container-Specific Behaviour
 
@@ -100,6 +105,7 @@ Breakable containers are more complex because the game replays `OnBreak` during 
 
 - **Frame-based blocking**: `_breakableLoadFrame` dictionary tracks which frame each breakable's `Awake` fired. If `OnBreak` fires within 120 frames of `Awake`, it's treated as a streaming replay and blocked
 - **ClearContainerSaveState**: When a breakable respawns, the child `ContainerItemSpawner` has its save data wiped (`ClearStateSync` + `set_isOpen(false)`) so fresh loot spawns from the `contentsSeed`
+- **Remove from `_collected` on respawn**: Entries are removed when timer expires. This is critical — keeping them caused the game's own save system to replay `OnBreak` visually, making crates appear broken even after respawn
 - **Event ordering race**: Sometimes `OnBreak` fires before `Awake` POSTFIX on the same frame during streaming — the PREFIX checks `_collected` directly as a fallback
 
 ---
@@ -190,10 +196,10 @@ The server tracks connected clients in a `_trackedClients` HashSet, populated wh
 
 ### How Timers Work
 
-- **Timestamp**: When an item is collected, the current game time is recorded as a Unix-style timestamp (`GetGameTimestamp()`)
-- **Check**: `HasEnoughTimePassed(timestamp, itemId)` calculates `now - collectedTimestamp` and compares against the threshold
-- **Threshold**: `GetRespawnDaysForItem(itemId)` × 86,400 seconds (1 in-game day = 86,400 seconds in game time)
-- **Real-time equivalent**: 1 in-game day ≈ 24 real minutes at default game speed. At 3-day default: ~72 real minutes
+- **Day recording**: When an item is collected, the current game day is recorded via `GetGameDay()` (parses day number from `TimeOfDayHolder.GetTimeOfDay()`)
+- **Check**: `HasEnoughTimePassed(collectedDay, itemId)` calculates `currentDay - collectedDay` and compares against the threshold
+- **Threshold**: `GetRespawnDaysForItem(itemId)` returns the number of in-game days required
+- **Backward compatibility**: Old save data with timestamps > 1000 (from the previous seconds-based system) are auto-converted to day 0
 
 ### Per-Category Timers
 
@@ -308,12 +314,14 @@ All patches use **manual Harmony patching** (`HarmonyPatchAll = false`) for IL2C
 
 | Behaviour | Explanation |
 |---|---|
-| **Items respawn on area reload, not instantly** | The game streams world chunks. Items respawn when their chunk reloads (player leaves and returns) OR via `RestorePickup` mid-session |
+| **Items respawn on save reload** | Primary respawn mechanism. Items return when the game recreates objects from scratch on load. Verified working for all generic pickups, breakable containers, and openable containers |
+| **Streaming zone re-entry** | Ground pickups can also respawn mid-session when a player re-enters a streaming zone (chunk reload fires `PickUp.Awake`). Not yet tested on dedicated server |
+| **Unique items don't respawn** | Specific weapons (CompactPistolPickup 355) and GPS tags (529) are tracked by the **game's own native save persistence**. The game never spawns these objects on reload, so `PickUp.Awake` never fires. Would need game save deserialization hook to fix |
 | **Containers appear opened while suppressed** | By design — the `Start` hook applies visual opened state so players understand why a container is empty |
 | **Clone items are never tracked** | Items spawned from containers (name contains `(Clone)`) are ephemeral and excluded |
 | **Breakable containers spawn fresh loot** | `ClearContainerSaveState` wipes the child spawner's save data so a new `contentsSeed` generates random loot on respawn |
+| **Day 0 timing bug (fixed)** | On reload, `TimeOfDayHolder` reports Day 0 before save data restores the real day. Fixed with deferral guard: `GetGameDay() == 0 && _collected.Count > 0` |
 | **Giant icon bug (fixed)** | Calling `RestorePickup` on fresh game instances caused icons to scale up. Fixed with `localScale == Vector3.zero` guard |
-| **Negative elapsed times** | Can occur if items were collected during accelerated game time (5x speed) and timestamps ended up in the "future" relative to normal game clock. These items will never expire until the game time catches up |
 | **GPS Locator in Meds** | ItemId 529 is classified in the Meds category for timer purposes (uses per-category override, not global fallback) |
 
 ---

@@ -109,8 +109,8 @@ namespace ProjectX.Master
             // 5. Zipline (client only — uses LocalPlayer)
             Modules.Zipline.ZiplineModule.Init();
             
-            // 6. PrefabRepair — REMOVED (HarmonyPatchAll vtable corruption)
-            // Modules.PrefabRepair.PrefabRepairModule.Init();
+            // 6. PrefabRepair (client only — Harmony-only, no MonoBehaviour injection)
+            Modules.PrefabRepair.PrefabRepairModule.Init();
 #endif
             
             // 7. StructureDurability (client/owner: Harmony patch on GetStructureInfo)

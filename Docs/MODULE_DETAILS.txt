@@ -7,7 +7,7 @@ This document provides detailed technical information about each module in the
 Project X Master Mod, including HOW TO USE each feature, configurable values,
 internal mechanics, and in-game effects.
 
- Last Updated: March 12, 2026
+ Last Updated: March 14, 2026
 
 ================================================================================
                                 TABLE OF CONTENTS
@@ -36,10 +36,10 @@ internal mechanics, and in-game effects.
  21. Weapon Damage Module  *** NEW ***
  22. Crafting Speed Module  *** NEW ***
  23. Hotbar Module  *** NEW ***
-
+ 24. Prefab Repair Module  *** NEW ***
+ 
 Removed Modules (no longer in build):
  - Open Sesame (HarmonyPatchAll vtable corruption)
- - Prefab Repair (HarmonyPatchAll vtable corruption)
  - Stone Gate (ClassInjector + inventory crash)
 
 ================================================================================
@@ -1753,6 +1753,84 @@ FILES:
  - Modules/Hotbar/ModAssets.cs      (prefab + missingIcon references)
 
 ================================================================================
+                          24. PREFAB REPAIR MODULE  *** NEW ***
+================================================================================
+
+BASED ON: GlaDOS (laserman120) — PrefabRepair
+  https://github.com/laserman120/PrefabRepair (AGPL-3.0)
+
+EDITIONS: Owner + Client only (#if !SERVER)
+  P2P multiplayer only — dedicated server relay planned for Phase 2.
+
+PURPOSE:
+Allows players to repair damaged screw structures (shelves, traps, spiked walls,
+chairs, etc.) by hitting them with the Repair Tool (item 422). Gold-plated
+structures have doubled HP. Plays a completion sound on full repair.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HOW TO USE                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ This module works AUTOMATICALLY — no configuration needed!                   │
+│                                                                              │
+│ TO REPAIR A DAMAGED STRUCTURE:                                               │
+│ 1. Equip the Repair Tool (item 422)                                         │
+│ 2. Approach a damaged screw structure (shelves, traps, spiked walls, etc.) │
+│ 3. Hit it with the repair tool                                              │
+│ 4. Each hit restores 1 HP                                                   │
+│ 5. A crafting completion sound plays when fully repaired                    │
+│                                                                              │
+│ GOLD-PLATED STRUCTURES:                                                      │
+│ • Structures with gold plating have 12 HP (double the default 6 HP)        │
+│ • Gold plating is detected at structure spawn (Awake hook)                  │
+│ • Applying gold plating mid-game also doubles HP (ApplyGoldPlating hook)   │
+│                                                                              │
+│ MULTIPLAYER:                                                                 │
+│ • Works in P2P multiplayer (host is authoritative)                          │
+│ • Dedicated server support planned for Phase 2 (debugCommand relay)        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+HARMONY HOOKS (4 total, all manual patching):
+1. PREFIX on ScrewStructureDestruction.IImpactReceiver_OnImpact
+   - Checks: IsPlayer → debounce → local player → holding item 422 → HP < max
+   - Increments _currentHp by 1 per hit
+   - Plays FMODCommon.PlayOneshot on full repair
+
+2. POSTFIX on ScrewStructureDestruction.Awake
+   - Detects gold-plated structures via ScrewStructure.IsGoldPlated
+   - Sets _structureHp to 12 and _currentHp to 12 if at default 6
+   - Tracks plated structures in HashSet<IntPtr>
+
+3. POSTFIX on ScrewStructure.ApplyGoldPlating
+   - Doubles HP when gold plating is applied in-game
+   - Concrete type patching (IL2CPP can't patch open generic base class)
+
+4. POSTFIX on ElectricDeviceScrewStructure.ApplyGoldPlating
+   - Same as above for electric device variant
+
+KEY DIFFERENCES FROM ORIGINAL:
+- No MonoBehaviour injection (original uses [RegisterTypeInIl2Cpp] component)
+  This was the cause of IL2CPP vtable corruption (Tab/backpack crash)
+- All state stored in static fields/dictionaries instead of per-instance component
+- FMODCommon.PlayOneshot called via reflection (IL2CPP signature mismatch)
+  Uses (String, Transform) overload, NOT (String, Vector3) which crashes
+- ApplyGoldPlating patched on concrete types (ScrewStructure +
+  ElectricDeviceScrewStructure) instead of open generic ScrewStructureBase<T>
+  which causes Type.ContainsGenericParameters error in IL2CPP
+- Manual harmony.Patch() instead of HarmonyPatchAll
+
+INTERNAL MECHANICS:
+- Repair Tool ID: 422
+- Default structure HP: 6
+- Gold-plated structure HP: 12
+- Debounce interval: 0.05 seconds
+- Sound event: "event:/ui/ingame/ui_crafting_complete2"
+- FMODCommon.PlayOneshot resolved lazily via reflection (cached after first use)
+- Gold plating tracked via HashSet<IntPtr> keyed by IL2CPP pointer
+
+FILES:
+ - Modules/PrefabRepair/PrefabRepairModule.cs  (all hooks + sound + state)
+
+================================================================================
                     REMOVED MODULES (Historical Reference)
 ================================================================================
 
@@ -1763,11 +1841,6 @@ OPEN SESAME:
 - Allowed doors to be opened from either side regardless of lock direction
 - Removed due to HarmonyPatchAll vtable corruption causing backpack crashes
 - Harmony Postfix on DoorLock.IsInFront() forced __result = true
-
-PREFAB REPAIR:
-- Allowed repairing damaged structures with the repair tool
-- Removed due to HarmonyPatchAll vtable corruption causing backpack crashes
-- Modified ScrewStructureDestruction._currentHp
 
 STONE GATE:
 - Added craftable stone gates with open/close mechanics

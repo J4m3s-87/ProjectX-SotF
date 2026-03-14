@@ -19,7 +19,6 @@
   <ItemGroup>
     <Compile Remove="Modules\StoneGate\**" />
     <Compile Remove="Modules\OpenSesame\**" />
-    <Compile Remove="Modules\PrefabRepair\**" />
   </ItemGroup>
 
   <ItemGroup>

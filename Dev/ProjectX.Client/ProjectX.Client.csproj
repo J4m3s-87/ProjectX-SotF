@@ -159,7 +159,6 @@
   <ItemGroup>
     <Compile Remove="..\ProjectX.Master\Modules\StoneGate\**" />
     <Compile Remove="..\ProjectX.Master\Modules\OpenSesame\**" />
-    <Compile Remove="..\ProjectX.Master\Modules\PrefabRepair\**" />
     <!-- Discord Bridge not needed on Client -->
     <Compile Remove="..\ProjectX.Master\Modules\BroadcastMessage\**" />
   </ItemGroup>

@@ -4,7 +4,7 @@
 
 ## Overview
 
-Project X is a unified modding suite for Sons of the Forest, combining the functionality of 20+ standalone mods into a single package with dedicated server support. It is **73 source files totalling over 770KB of custom C# code**, representing over 300 development phases.
+Project X is a unified modding suite for Sons of the Forest, combining the functionality of 20+ standalone mods into a single package with dedicated server support. It is **74 source files totalling over 780KB of custom C# code**, representing over 300 development phases.
 
 This document provides a transparent account of what was built, what was studied, how each module relates to existing mods, and where the implementations diverge.
 
@@ -73,6 +73,7 @@ Each module below was _studied_ from an existing mod to understand the concept a
 | **AmmoUI**              | 10.1KB (1 file)    | 58.3KB (6 f)    | **5.8× smaller** | Owner + Client                | `#if !SERVER` — HUD element with sprite caching + frame throttling                                                                     |
 | **Hotbar**              | 8KB (2 files)      | ~3.7KB          | **2.2× larger**  | Owner + Client                | `#if !SERVER` — sprite caching, frame throttling, IL2CPP Cast workaround                                                              |
 | **Relocator**           | 5.5KB (1 file)     | ~2KB            | **2.8× larger**  | Owner + Client                | `#if !SERVER` — polling + category filter + backup dictionary                                                                          |
+| **PrefabRepair**        | 14.3KB (1 file)    | ~3KB (GitHub)   | **4.8× larger**  | Owner + Client                | `#if !SERVER` — Harmony-only (no MonoBehaviour injection). Static state, reflection-based FMOD, concrete type patching for generics    |
 | **Zipline**             | 4.2KB (2 files)    | ~3KB            | +40%             | All tiers                     | No tier guards — polling pattern runs on all editions                                                                                  |
 | **CraftingSpeed**       | 4.2KB (1 file)     | ~2KB            | **2.1× larger**  | Owner + Client                | `#if !SERVER` — Harmony PREFIX on CraftingCog. Config pushed by server via ConfigSync                                                  |
 | **WaterfallSound**      | 4.5KB (1 file)     | ~1KB            | **4.5× larger**  | Owner only                    | `#if !SERVER && !CLIENT` — FMOD Harmony tracking. Audio has no meaning on headless or client                                           |
@@ -98,6 +99,8 @@ Many features required novel solutions because IL2CPP strips, remaps, or hides s
 | **Scary Cross stimuli**            | Standard stimuli system                                                   | Stimuli don't fire from modded MonoBehaviours                                | Direct `VailActor.IgniteSelf()` bypass                                             |
 | **Container respawn (breakable)**  | Reset save data via game API                                              | `OnBreak` fires before `Awake` during streaming; save data forces empty loot | Frame-based PREFIX blocking + `ClearStateSync` on child spawner                    |
 | **Waterfall volume**               | `scene.GetRootGameObjects()` + `GetComponentsInChildren`                  | Both methods stripped by IL2CPP (scene graph + generic plural)               | Harmony Postfix on `SonsFMODEventEmitter.Awake` + root parent name filter          |
+| **Generic base patching**          | `[HarmonyPatch(typeof(ScrewStructureBase), "ApplyGoldPlating")]`          | `Type.ContainsGenericParameters is true` — IL2CPP can't patch open generics  | Patch the two concrete subclasses (`ScrewStructure` + `ElectricDeviceScrewStructure`) instead |
+| **FMOD sound playback**            | `FMODCommon.PlayOneshot(string, Transform)`                               | IL2CPP signature mismatch — `Vector3 cannot be converted to Transform`       | Reflection-based method discovery, match `(String, Transform)` overload explicitly |
 
 These are not theoretical problems — each one caused actual build failures or runtime crashes during development, often requiring multiple failed approaches before finding a working solution.
 
@@ -195,5 +198,5 @@ Full attribution is maintained in [`CREDITS.md`](CREDITS.md).
 ---
 
 _Project X — by J4m3s & Claude_
-_73 source files • 770KB+ custom code • 300+ development phases_
+_74 source files • 780KB+ custom code • 300+ development phases_
 _March 2026_

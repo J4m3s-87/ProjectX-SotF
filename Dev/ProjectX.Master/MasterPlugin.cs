@@ -342,7 +342,7 @@ namespace ProjectX.Master
                 {
                     PermissionEvent.Instance?.RequestPermissions();
                     ConfigSyncEvent.Instance?.RequestConfig();
-                    LootSyncEvent.Instance?.RequestState();
+                    Modules.LootRespawn.LootEventListener.RequestServerSync();
                     LoggerInstance.Msg("[Client] Sent config + permission + loot state requests to server (deferred)");
                 }
                 catch (Exception ex)

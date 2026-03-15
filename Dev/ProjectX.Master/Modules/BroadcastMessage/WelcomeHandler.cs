@@ -90,14 +90,59 @@ namespace ProjectX.Master.Modules.BroadcastMessage
                         }
                         
                         _welcomedPlayers.Add(playerName);
-                        DiscordBridge.FetchAndRelayWelcome(playerName);
-                        RLog.Msg($"[WelcomeHandler] Triggered Discord welcome for {playerName} (after {WELCOME_DELAY_SECONDS}s load delay)");
+                        
+                        // Send welcome directly to game chat (no Discord roundtrip)
+                        // The old FetchAndRelayWelcome posted [WELCOME] to Discord chat channel,
+                        // then the polling loop relayed it back — causing echo/spam.
+                        SendInGameWelcome(playerName);
+                        
+                        // Post Discord embed separately (notification only, not relayed back)
+                        DiscordBridge.SendPlayerJoin(playerName, isFirstTime: true);
+                        
+                        RLog.Msg($"[WelcomeHandler] Welcome sent to game chat + Discord for {playerName} (after {WELCOME_DELAY_SECONDS}s load delay)");
                     }
                 }
                 catch (Exception ex)
                 {
                     RLog.Warning($"[WelcomeHandler] Welcome send failed: {ex.Message}");
                 }
+            }
+        }
+        
+        // ====================================================================
+        // Direct In-Game Welcome (no Discord roundtrip)
+        // ====================================================================
+        
+        /// <summary>
+        /// Send welcome messages directly to game chat.
+        /// Previously this went through Discord (FetchAndRelayWelcome → post [WELCOME] to
+        /// chat channel → polling → relay) which caused echo/spam. Now sends directly.
+        /// </summary>
+        private static void SendInGameWelcome(string playerName)
+        {
+            try
+            {
+                string[] lines = new[]
+                {
+                    $">>> Welcome to the server, {playerName}! <<<",
+                    "WELCOME TO PROJECT X",
+                    "Please visit the discord to download the Mod Pack and learn more!  https://discord.gg/yMHU3hQt"
+                };
+                
+                foreach (string line in lines)
+                {
+#if SERVER
+                    DedicatedSuperuser.Utility.ChatResponse.SendLine($"[ProjectX] [Discord] Server: {line}");
+#elif OWNER
+                    InGameChat.SendMessage($"[ProjectX] [Discord] Server: {line}", true);
+#endif
+                }
+                
+                RLog.Msg($"[WelcomeHandler] Sent {lines.Length} welcome lines directly to game chat for {playerName}");
+            }
+            catch (Exception ex)
+            {
+                RLog.Warning($"[WelcomeHandler] SendInGameWelcome failed: {ex.Message}");
             }
         }
         

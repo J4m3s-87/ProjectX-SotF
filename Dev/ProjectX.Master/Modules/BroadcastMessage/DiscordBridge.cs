@@ -443,48 +443,16 @@ namespace ProjectX.Master.Modules.BroadcastMessage
                         // Log each message for debugging
                         RLog.Msg($"[DiscordBridge]   msg[{i}] id={msg.Id} author={msg.AuthorName}({msg.AuthorId}) bot={msg.IsBot} content='{msg.Content}'");
                         
-                        // Skip bot messages (avoid echo loop)
-                        // BUT allow bot messages tagged with [WELCOME] — these are our intentional welcome posts
-                        bool isWelcome = false;
+                        // Skip ALL bot messages (avoid echo loop)
+                        // Welcome messages are now sent directly to game chat
+                        // — no longer routed through Discord polling
                         if (msg.IsBot)
                         {
-                            if (!string.IsNullOrEmpty(msg.Content) && msg.Content.StartsWith("[WELCOME]"))
-                            {
-                                RLog.Msg($"[DiscordBridge]   -> Bot message with [WELCOME] tag — allowing relay");
-                                // Strip the [WELCOME] tag before relaying
-                                msg.Content = msg.Content.Substring("[WELCOME] ".Length).Trim();
-                                isWelcome = true;
-                            }
-                            else
-                            {
-                                RLog.Msg($"[DiscordBridge]   -> Skipped (bot)");
-                                continue;
-                            }
-                        }
-                        
-                        // Skip our own bot messages (but not welcome messages we posted)
-                        if (!isWelcome && !string.IsNullOrEmpty(_botUserId) && msg.AuthorId == _botUserId)
-                        {
-                            RLog.Msg($"[DiscordBridge]   -> Skipped (self)");
                             continue;
                         }
                         
-                        // Relay to game chat
-                        if (isWelcome)
-                        {
-                            // Welcome messages: relay each line with [Server] attribution
-                            string[] lines = msg.Content.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            foreach (string line in lines)
-                            {
-                                string trimmed = line.Trim();
-                                if (!string.IsNullOrEmpty(trimmed))
-                                    RelayToGameChat("Server", trimmed);
-                            }
-                        }
-                        else
-                        {
-                            RelayToGameChat(msg.AuthorName, msg.Content);
-                        }
+                        // Relay user message to game chat
+                        RelayToGameChat(msg.AuthorName, msg.Content);
                         relayed++;
                     }
                     

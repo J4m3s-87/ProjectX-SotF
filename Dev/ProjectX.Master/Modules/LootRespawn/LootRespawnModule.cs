@@ -319,7 +319,12 @@ namespace ProjectX.Master.Modules.LootRespawn
         public static void OnGameStarted()
         {
             _saveDataLoaded = true;
-            ProcessPendingItems();
+            
+            // Only process deferred items on host/solo — multiplayer clients wait for server sync
+            if (!IsMultiplayerClient())
+            {
+                ProcessPendingItems();
+            }
 
             // Client on dedicated server: discard local tracker and wait for server state
             if (IsMultiplayerClient())
@@ -333,12 +338,12 @@ namespace ProjectX.Master.Modules.LootRespawn
 
                 try
                 {
-                    Network.LootSyncEvent.Instance?.RequestState();
-                    RLog.Msg("[LootRespawn] Client requesting server suppression list...");
+                    LootEventListener.RequestServerSync();
+                    RLog.Msg("[LootRespawn] Client requesting server suppression list via debugCommand...");
                 }
                 catch (Exception ex)
                 {
-                    RLog.Warning($"[LootRespawn] RequestState failed: {ex.Message}");
+                    RLog.Warning($"[LootRespawn] RequestServerSync failed: {ex.Message}");
                 }
             }
         }
@@ -505,7 +510,12 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // Client on dedicated server: suppress using server-synced data only
                 if (IsMultiplayerClient())
                 {
-                    if (!_serverSyncReceived) return; // Haven't received server data yet
+                    if (!_serverSyncReceived)
+                    {
+                        // Queue until server sync arrives — don't skip!
+                        _pendingPickups.Add(pickup);
+                        return;
+                    }
 
                     string hash = GetOrGenerateHash(pickup.transform, pickup.GetInstanceID());
                     if (hash != null && _collected.ContainsKey(hash))
@@ -651,7 +661,7 @@ namespace ProjectX.Master.Modules.LootRespawn
 
             // Broadcast to all clients so they suppress this item too
 #if SERVER || OWNER
-            try { Network.LootSyncEvent.Instance?.BroadcastNewSuppression(hash, day, itemId); } catch { }
+            try { LootEventListener.BroadcastSuppression(hash, day, itemId); } catch { }
 #endif
 
             RLog.Msg($"[LootRespawn] ★ Received C→S pickup: itemId={itemId}, hash={hash.Substring(0, Math.Min(8, hash.Length))}…, day={day}");
@@ -676,7 +686,12 @@ namespace ProjectX.Master.Modules.LootRespawn
                 // Client on dedicated server: suppress using server-synced data only
                 if (IsMultiplayerClient())
                 {
-                    if (!_serverSyncReceived) return;
+                    if (!_serverSyncReceived)
+                    {
+                        // Queue until server sync arrives — don't skip!
+                        _pendingContainers.Add(container);
+                        return;
+                    }
 
                     string hash = GetOrGenerateHash(container.transform, container.GetInstanceID());
                     if (hash != null && _collected.ContainsKey(hash))
@@ -1464,6 +1479,55 @@ namespace ProjectX.Master.Modules.LootRespawn
             }
             _serverSyncReceived = true;
             RLog.Msg($"[LootRespawn] ★ Applied server state: {entries.Count} tracked items — client suppression ACTIVE");
+            
+            // Process items that were queued while waiting for sync
+            int pendingP = _pendingPickups.Count;
+            int pendingC = _pendingContainers.Count;
+            if (pendingP > 0 || pendingC > 0)
+            {
+                RLog.Msg($"[LootRespawn] Processing {pendingP} queued pickups + {pendingC} queued containers after server sync");
+                int suppressed = 0;
+                
+                foreach (var pickup in _pendingPickups)
+                {
+                    if (pickup == null) continue;
+                    try
+                    {
+                        string h = GetOrGenerateHash(pickup.transform, pickup.GetInstanceID());
+                        if (h != null && _collected.ContainsKey(h))
+                        {
+                            SuppressPickup(pickup.gameObject);
+                            pickup.enabled = false;
+                            suppressed++;
+                            if (suppressed <= 50)
+                                RLog.Msg($"[LootRespawn] Deferred client suppress pickup: {pickup.name} (hash={h.Substring(0, 8)}…)");
+                        }
+                    }
+                    catch { /* item may have been destroyed */ }
+                }
+                
+                foreach (var container in _pendingContainers)
+                {
+                    if (container == null) continue;
+                    try
+                    {
+                        string h = GetOrGenerateHash(container.transform, container.GetInstanceID());
+                        if (h != null && _collected.ContainsKey(h))
+                        {
+                            UnityEngine.Object.Destroy(container.gameObject);
+                            suppressed++;
+                            if (suppressed <= 50)
+                                RLog.Msg($"[LootRespawn] Deferred client suppress container: {container.name}");
+                        }
+                    }
+                    catch { /* container may have been destroyed */ }
+                }
+                
+                _pendingPickups.Clear();
+                _pendingContainers.Clear();
+                _suppressedCount += suppressed;
+                RLog.Msg($"[LootRespawn] ★ Deferred client suppression complete: {suppressed} suppressed from {pendingP + pendingC} queued");
+            }
         }
 
         /// <summary>
